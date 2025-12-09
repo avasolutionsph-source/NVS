@@ -32,10 +32,19 @@
 
   /* Border Colors */
   --border: #e4e9f2;
+  --border-color: #e4e9f2;
   --border-light: rgba(145, 177, 231, 0.35);
   --border-input: #d2d2d7;
 
+  /* Text Colors - Aliases */
+  --text-dark: #1b1f3b;
+
+  /* Primary Colors - Aliases */
+  --primary-hover: #1851c6;
+
   /* Shadow Colors */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.08);
   --shadow-light: 0 6px 16px rgba(0, 0, 0, 0.06);
   --shadow-medium: 0 10px 22px rgba(41, 91, 187, 0.08);
   --shadow-heavy: 0 30px 60px rgba(8, 15, 52, 0.08);

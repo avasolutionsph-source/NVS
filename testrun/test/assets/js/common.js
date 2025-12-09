@@ -802,9 +802,9 @@ const ReadingHistory = {
     history.unshift({
       novelId: novelId,
       chapterId: chapterId,
-      title: novelData.title || '',
+      novelTitle: novelData.title || novelData.novelTitle || '',
       chapterTitle: novelData.chapterTitle || '',
-      cover: novelData.cover || '',
+      coverImage: novelData.coverImage || novelData.cover || '',
       timestamp: Date.now()
     });
 
@@ -1161,14 +1161,14 @@ const UserCredentials = {
 // ============================================
 const DataIsolation = {
   // Storage keys that need to be isolated between guest and user
+  // NOTE: novelshare_profile is NOT included here - it should persist and be overwritten on login
   ISOLATED_KEYS: [
     'novelshare_library',
     'novelshare_history',
     'novelshare_bookmarks',
     'novelshare_ratings',
     'novelshare_following',
-    'novelshare_offline',
-    'novelshare_profile'
+    'novelshare_offline'
   ],
 
   // Get prefix for current mode
@@ -1307,12 +1307,14 @@ const GuestMode = {
     }
 
     // Clear all session data (user and guest copies)
+    // NOTE: Profile is NOT cleared here - it will be overwritten on next login
     DataIsolation.ISOLATED_KEYS.forEach(key => {
       localStorage.removeItem(key);
       localStorage.removeItem('guest_' + key);
       localStorage.removeItem('user_' + key);
     });
-    localStorage.removeItem('novelshare_profile');
+    // Backup profile for potential restore, but don't clear it
+    // localStorage.removeItem('novelshare_profile'); // Removed - profile persists
     localStorage.removeItem('novelshare_user_mock_initialized');
     localStorage.removeItem('novelshare_guest_mock_initialized');
 
@@ -1492,7 +1494,13 @@ if (typeof module !== 'undefined' && module.exports) {
 // ============================================
 // Password Toggle Functionality
 // ============================================
+let passwordToggleInitialized = false;
+
 function initPasswordToggle(toggleSelector = '.password-toggle') {
+  // Prevent multiple initializations
+  if (passwordToggleInitialized) return;
+  passwordToggleInitialized = true;
+
   // Event delegation so it works even if elements render after init
   document.addEventListener('click', (event) => {
     const toggle = event.target.closest(toggleSelector);
@@ -1502,28 +1510,35 @@ function initPasswordToggle(toggleSelector = '.password-toggle') {
     event.stopPropagation();
 
     const container = toggle.closest('.password-input-container');
-    if (!container) return;
-
-    const input = container.querySelector('input[type="password"], input[type="text"]');
-    if (!input) return;
-
-    const isPassword = input.type === 'password';
-    input.type = isPassword ? 'text' : 'password';
-    toggle.classList.toggle('active', !isPassword);
-
-    // Update icon if present; swap based on current filename to avoid path issues
-    const icon = toggle.querySelector('.eye-icon');
-    if (icon && icon.tagName === 'IMG' && icon.src) {
-      if (icon.src.includes('hide')) {
-        icon.src = icon.src.replace('hide', 'show');
-      } else if (icon.src.includes('show')) {
-        icon.src = icon.src.replace('show', 'hide');
-      } else {
-        icon.src = isPassword ? '../assets/images/icons/show.png' : '../assets/images/icons/hide.png';
-      }
-      icon.alt = isPassword ? 'Hide password' : 'Show password';
+    if (!container) {
+      console.warn('Password toggle: container not found');
+      return;
     }
 
-    toggle.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+    const input = container.querySelector('input');
+    if (!input) {
+      console.warn('Password toggle: input not found');
+      return;
+    }
+
+    // Toggle password visibility
+    const isCurrentlyPassword = input.type === 'password';
+    input.type = isCurrentlyPassword ? 'text' : 'password';
+    toggle.classList.toggle('active', isCurrentlyPassword);
+
+    // Update icon if present
+    const icon = toggle.querySelector('.eye-icon');
+    if (icon && icon.tagName === 'IMG' && icon.src) {
+      if (isCurrentlyPassword) {
+        // Showing password - use show icon
+        icon.src = icon.src.replace('hide', 'show');
+      } else {
+        // Hiding password - use hide icon
+        icon.src = icon.src.replace('show', 'hide');
+      }
+      icon.alt = isCurrentlyPassword ? 'Hide password' : 'Show password';
+    }
+
+    toggle.setAttribute('aria-label', isCurrentlyPassword ? 'Hide password' : 'Show password');
   });
 }

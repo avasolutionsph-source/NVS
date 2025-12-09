@@ -1581,18 +1581,12 @@
             function renderBookmarks() {
                 const grid = document.getElementById('bookmarksGrid');
                 const emptyState = document.getElementById('bookmarksEmpty');
-                const bookmarks = BookmarkSystem.getAllBookmarks();
 
-                // Flatten all bookmarks from all novels
-                const allBookmarks = [];
-                Object.entries(bookmarks).forEach(([novelId, novelBookmarks]) => {
-                    novelBookmarks.forEach(bookmark => {
-                        allBookmarks.push({ ...bookmark, novelId });
-                    });
-                });
+                // getBookmarks() returns a flat array of bookmarks
+                const allBookmarks = BookmarkSystem.getBookmarks();
 
-                // Sort by timestamp (newest first)
-                allBookmarks.sort((a, b) => b.timestamp - a.timestamp);
+                // Sort by timestamp/createdAt (newest first)
+                allBookmarks.sort((a, b) => (b.createdAt || b.timestamp || 0) - (a.createdAt || a.timestamp || 0));
 
                 if (allBookmarks.length === 0) {
                     grid.style.display = 'none';
@@ -1653,33 +1647,47 @@
                 const emptyState = document.getElementById('downloadsEmpty');
                 const raw = JSON.parse(localStorage.getItem('novelshare_offline') || '{}');
 
-                // Normalize any legacy flat shape into grouped structure
+                // Normalize data into consistent structure
                 const downloads = {};
-                Object.entries(raw).forEach(([key, value]) => {
-                  // Legacy flat item had chapterId property and key like novel_chapter
-                  if (value && value.chapterId) {
-                    const novelId = value.novelId || key.split('_')[0];
-                    if (!downloads[novelId]) {
-                      downloads[novelId] = {
-                        novelId,
-                        novelTitle: value.novelTitle || 'Unknown Novel',
-                        cover: value.cover || '',
-                        chapters: {}
-                      };
-                    }
-                    downloads[novelId].chapters[value.chapterId] = {
-                      chapterId: value.chapterId,
-                      chapterTitle: value.chapterTitle || `Chapter ${value.chapterId}`,
-                      content: value.content || '',
-                      downloadedAt: value.downloadedAt || Date.now()
+                Object.entries(raw).forEach(([novelId, novelData]) => {
+                  // Check if this is the current format: downloads[novelId][chapterId] = { novelTitle, chapterTitle, ... }
+                  // The novelData would be an object with numeric keys (chapter IDs)
+                  const chapterKeys = Object.keys(novelData || {});
+                  const isChapterObject = chapterKeys.length > 0 && chapterKeys.some(k => !isNaN(k) || novelData[k]?.chapterTitle);
+
+                  if (isChapterObject && !novelData.chapters) {
+                    // Current format: novelData is { 1: { novelTitle, chapterTitle, content }, 2: {...} }
+                    // Extract novelTitle from the first chapter
+                    const firstChapterKey = chapterKeys[0];
+                    const firstChapter = novelData[firstChapterKey];
+                    const novelTitle = firstChapter?.novelTitle || novelId;
+
+                    downloads[novelId] = {
+                      novelId,
+                      novelTitle: novelTitle,
+                      cover: '',
+                      chapters: {}
                     };
-                  } else {
-                    // Already in grouped shape
-                    downloads[key] = {
-                      novelId: value.novelId || key,
-                      novelTitle: value.novelTitle || 'Unknown Novel',
-                      cover: value.cover || '',
-                      chapters: value.chapters || {}
+
+                    // Convert each chapter
+                    chapterKeys.forEach(chapterId => {
+                      const chapter = novelData[chapterId];
+                      if (chapter && typeof chapter === 'object') {
+                        downloads[novelId].chapters[chapterId] = {
+                          chapterId: chapterId,
+                          chapterTitle: chapter.chapterTitle || `Chapter ${chapterId}`,
+                          content: chapter.content || '',
+                          downloadedAt: chapter.downloadedAt || Date.now()
+                        };
+                      }
+                    });
+                  } else if (novelData && novelData.chapters) {
+                    // Already in normalized format
+                    downloads[novelId] = {
+                      novelId: novelData.novelId || novelId,
+                      novelTitle: novelData.novelTitle || novelId,
+                      cover: novelData.cover || '',
+                      chapters: novelData.chapters || {}
                     };
                   }
                 });
