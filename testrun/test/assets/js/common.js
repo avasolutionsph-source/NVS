@@ -1931,6 +1931,17 @@ function addHamburgerButton() {
   topBar.insertAdjacentHTML('afterbegin', hamburgerHTML);
 }
 
+// Hide notification bell for guest mode
+function hideGuestElements() {
+  if (typeof GuestMode !== 'undefined' && GuestMode.isGuest()) {
+    // Hide notification bell for guests
+    const bellBtn = document.querySelector('.bell-btn');
+    if (bellBtn) {
+      bellBtn.style.display = 'none';
+    }
+  }
+}
+
 // Auto-initialize mobile navigation on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
   // Detect current page from URL
@@ -1948,4 +1959,7 @@ document.addEventListener('DOMContentLoaded', () => {
     addHamburgerButton();
     createMobileSidebar(currentPage);
   }
+
+  // Hide elements that should not appear for guests
+  hideGuestElements();
 });
