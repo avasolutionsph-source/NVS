@@ -865,6 +865,10 @@ const LibrarySystem = {
     } else {
       library.push(item);
       localStorage.setItem('novelshare_library', JSON.stringify(library));
+      // Push to Supabase when logged in
+      if (!GuestMode.isGuest() && typeof SupabaseSync !== 'undefined' && SupabaseSync.pushLibraryItem) {
+        SupabaseSync.pushLibraryItem(novelId, 'add');
+      }
       return true;
     }
   },
@@ -874,6 +878,9 @@ const LibrarySystem = {
     let library = this.getLibrary();
     library = library.filter(item => item.id !== novelId && item.novelId !== novelId);
     localStorage.setItem('novelshare_library', JSON.stringify(library));
+    if (!GuestMode.isGuest() && typeof SupabaseSync !== 'undefined' && SupabaseSync.pushLibraryItem) {
+      SupabaseSync.pushLibraryItem(novelId, 'remove');
+    }
   },
 
   // Toggle library status
@@ -895,6 +902,9 @@ const LibrarySystem = {
       item.currentChapter = currentChapter;
       item.lastRead = Date.now();
       localStorage.setItem('novelshare_library', JSON.stringify(library));
+      if (!GuestMode.isGuest() && typeof SupabaseSync !== 'undefined' && SupabaseSync.pushReadingProgress) {
+        SupabaseSync.pushReadingProgress(novelId, currentChapter);
+      }
     }
   },
 
@@ -994,6 +1004,11 @@ const ReadingHistory = {
     history = history.slice(0, 50);
 
     localStorage.setItem('novelshare_history', JSON.stringify(history));
+
+    // Push to Supabase when logged in
+    if (!GuestMode.isGuest() && typeof SupabaseSync !== 'undefined' && SupabaseSync.pushHistoryEntry) {
+      SupabaseSync.pushHistoryEntry(novelId, chapterId, novelData.chapterTitle || '');
+    }
   },
 
   // Get last read chapter for a novel

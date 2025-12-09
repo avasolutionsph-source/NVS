@@ -1345,7 +1345,7 @@
             const isGuest = GuestMode.isGuest();
             if (!isGuest) {
                 try {
-                    const user = await SupabaseAuth.getUser();
+                    const user = await SupabaseAuth.getCurrentUser();
                     if (user) {
                         console.log('Syncing library with Supabase...');
                         await SupabaseSync.syncLibrary();
@@ -1764,9 +1764,19 @@
             }
 
             // Clear History Handler
-            document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+            document.getElementById('clearHistoryBtn').addEventListener('click', async () => {
                 if (confirm('Are you sure you want to clear your reading history?')) {
                     ReadingHistory.clearHistory();
+                    if (!GuestMode.isGuest() && typeof SupabaseDB !== 'undefined') {
+                        try {
+                            const user = await SupabaseAuth.getCurrentUser();
+                            if (user) {
+                                await SupabaseDB.clearHistory(user.id);
+                            }
+                        } catch (e) {
+                            console.warn('Failed to clear cloud history:', e);
+                        }
+                    }
                     renderHistory();
                 }
             });
