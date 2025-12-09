@@ -169,14 +169,35 @@ body {
 }
 
 .password-toggle .eye-icon {
-  width: 20px;
-  height: 20px;
-  opacity: 0.5;
+  width: 14px;
+  height: 14px;
+  opacity: 0.65;
   transition: opacity 0.2s;
+  display: block;
+  object-fit: contain;
+}
+
+/* Slightly smaller show icon to match visual weight */
+.password-toggle .eye-icon[src*="show"] {
+  width: 18px;
+  height: 18px;
+}
+
+/* Keep hide icon slightly larger for balance */
+.password-toggle .eye-icon[src*="hide"] {
+  width: 18px;
+  height: 18px;
 }
 
 .password-toggle:hover .eye-icon {
-  opacity: 0.8;
+  opacity: 1;
+}
+
+/* Inline SVG eye icon support */
+.password-toggle svg.eye-icon {
+  width: 14px;
+  height: 14px;
+  stroke-width: 1.8;
 }
 
 /* Links */
