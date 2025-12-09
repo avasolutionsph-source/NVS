@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>NovelShare | Book Read</title>
+    <!-- Redirect to main reader page - book-read.html is deprecated in favor of reader.html -->
+    <meta http-equiv="refresh" content="0;url=reader.html">
     <!-- Shared CSS (includes fonts) -->
     <link rel="stylesheet" href="../assets/css/common.css">
     <!-- Page-specific overrides -->
@@ -173,9 +175,9 @@
         <footer class="footer">
             <span>&copy; 2025 NovelShare. All Rights Reserved.</span>
             <nav class="footer-links" aria-label="Footer navigation">
-                <a href="#">Contact Us</a>
-                <a href="#">Privacy Policy</a>
-                <a href="#">Terms of Service</a>
+                <a href="javascript:void(0)" onclick="showToast('Contact page coming soon')">Contact Us</a>
+                <a href="javascript:void(0)" onclick="showToast('Privacy Policy coming soon')">Privacy Policy</a>
+                <a href="javascript:void(0)" onclick="showToast('Terms of Service coming soon')">Terms of Service</a>
             </nav>
         </footer>
     </div>
