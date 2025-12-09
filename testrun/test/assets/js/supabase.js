@@ -8,6 +8,103 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ============================================
+// Offline Sync Queue System
+// ============================================
+
+const SyncQueue = {
+  QUEUE_KEY: 'novelshare_sync_queue',
+
+  // Get current queue
+  getQueue() {
+    try {
+      return JSON.parse(localStorage.getItem(this.QUEUE_KEY) || '[]');
+    } catch {
+      return [];
+    }
+  },
+
+  // Save queue
+  saveQueue(queue) {
+    try {
+      localStorage.setItem(this.QUEUE_KEY, JSON.stringify(queue));
+    } catch (e) {
+      console.error('Failed to save sync queue:', e);
+    }
+  },
+
+  // Add operation to queue
+  add(operation) {
+    const queue = this.getQueue();
+    queue.push({
+      ...operation,
+      id: Date.now() + Math.random().toString(36).substr(2, 9),
+      timestamp: Date.now(),
+      retries: 0
+    });
+    this.saveQueue(queue);
+  },
+
+  // Remove operation from queue
+  remove(operationId) {
+    const queue = this.getQueue().filter(op => op.id !== operationId);
+    this.saveQueue(queue);
+  },
+
+  // Clear entire queue
+  clear() {
+    localStorage.removeItem(this.QUEUE_KEY);
+  },
+
+  // Get queue length
+  length() {
+    return this.getQueue().length;
+  }
+};
+
+// ============================================
+// Network Status Detection
+// ============================================
+
+const NetworkStatus = {
+  _listeners: [],
+  _isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+
+  init() {
+    window.addEventListener('online', () => {
+      this._isOnline = true;
+      this._notifyListeners('online');
+      // Auto-process queue when back online
+      if (typeof SupabaseSync !== 'undefined' && SupabaseSync.processQueue) {
+        SupabaseSync.processQueue();
+      }
+    });
+
+    window.addEventListener('offline', () => {
+      this._isOnline = false;
+      this._notifyListeners('offline');
+    });
+  },
+
+  isOnline() {
+    return this._isOnline && navigator.onLine;
+  },
+
+  onStatusChange(callback) {
+    this._listeners.push(callback);
+    return () => {
+      this._listeners = this._listeners.filter(l => l !== callback);
+    };
+  },
+
+  _notifyListeners(status) {
+    this._listeners.forEach(cb => cb(status));
+  }
+};
+
+// Initialize network status detection
+NetworkStatus.init();
+
+// ============================================
 // Authentication Functions
 // ============================================
 
@@ -151,16 +248,6 @@ const SupabaseDB = {
       .eq('id', userId)
       .select()
       .single();
-
-    if (error) throw error;
-    return data;
-  },
-
-  async updateProfile(userId, updates) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', userId);
 
     if (error) throw error;
     return data;
@@ -545,6 +632,319 @@ const SupabaseSync = {
       this.syncLibrary(),
       this.syncHistory()
     ]);
+  },
+
+  // ============================================
+  // PUSH Functions (Local → Cloud)
+  // ============================================
+
+  // Push library item to cloud
+  async pushLibraryItem(novelId, action = 'add') {
+    const user = await SupabaseAuth.getCurrentUser();
+    if (!user) return { error: 'Not logged in' };
+
+    if (!NetworkStatus.isOnline()) {
+      SyncQueue.add({ type: 'library', novelId, action, userId: user.id });
+      return { queued: true };
+    }
+
+    try {
+      if (action === 'add') {
+        await SupabaseDB.addToLibrary(user.id, novelId);
+      } else if (action === 'remove') {
+        await SupabaseDB.removeFromLibrary(user.id, novelId);
+      }
+      return { success: true };
+    } catch (error) {
+      console.error('Push library failed:', error);
+      SyncQueue.add({ type: 'library', novelId, action, userId: user.id });
+      return { queued: true, error };
+    }
+  },
+
+  // Push rating to cloud
+  async pushRating(novelId, rating) {
+    const user = await SupabaseAuth.getCurrentUser();
+    if (!user) return { error: 'Not logged in' };
+
+    if (!NetworkStatus.isOnline()) {
+      SyncQueue.add({ type: 'rating', novelId, rating, userId: user.id });
+      return { queued: true };
+    }
+
+    try {
+      await SupabaseDB.rateNovel(user.id, novelId, rating);
+      return { success: true };
+    } catch (error) {
+      console.error('Push rating failed:', error);
+      SyncQueue.add({ type: 'rating', novelId, rating, userId: user.id });
+      return { queued: true, error };
+    }
+  },
+
+  // Push bookmark to cloud
+  async pushBookmark(novelId, chapterId, note, action = 'add') {
+    const user = await SupabaseAuth.getCurrentUser();
+    if (!user) return { error: 'Not logged in' };
+
+    if (!NetworkStatus.isOnline()) {
+      SyncQueue.add({ type: 'bookmark', novelId, chapterId, note, action, userId: user.id });
+      return { queued: true };
+    }
+
+    try {
+      if (action === 'add') {
+        await SupabaseDB.addBookmark(user.id, novelId, chapterId, note);
+      }
+      return { success: true };
+    } catch (error) {
+      console.error('Push bookmark failed:', error);
+      SyncQueue.add({ type: 'bookmark', novelId, chapterId, note, action, userId: user.id });
+      return { queued: true, error };
+    }
+  },
+
+  // Push reading progress to cloud
+  async pushReadingProgress(novelId, currentChapter) {
+    const user = await SupabaseAuth.getCurrentUser();
+    if (!user) return { error: 'Not logged in' };
+
+    if (!NetworkStatus.isOnline()) {
+      SyncQueue.add({ type: 'progress', novelId, currentChapter, userId: user.id });
+      return { queued: true };
+    }
+
+    try {
+      await SupabaseDB.updateReadingProgress(user.id, novelId, currentChapter);
+      return { success: true };
+    } catch (error) {
+      console.error('Push progress failed:', error);
+      SyncQueue.add({ type: 'progress', novelId, currentChapter, userId: user.id });
+      return { queued: true, error };
+    }
+  },
+
+  // Push follow/unfollow to cloud
+  async pushFollow(authorId, action = 'follow') {
+    const user = await SupabaseAuth.getCurrentUser();
+    if (!user) return { error: 'Not logged in' };
+
+    if (!NetworkStatus.isOnline()) {
+      SyncQueue.add({ type: 'follow', authorId, action, userId: user.id });
+      return { queued: true };
+    }
+
+    try {
+      if (action === 'follow') {
+        await SupabaseDB.followAuthor(user.id, authorId);
+      } else {
+        await SupabaseDB.unfollowAuthor(user.id, authorId);
+      }
+      return { success: true };
+    } catch (error) {
+      console.error('Push follow failed:', error);
+      SyncQueue.add({ type: 'follow', authorId, action, userId: user.id });
+      return { queued: true, error };
+    }
+  },
+
+  // Push history entry to cloud
+  async pushHistoryEntry(novelId, chapterId, chapterTitle) {
+    const user = await SupabaseAuth.getCurrentUser();
+    if (!user) return { error: 'Not logged in' };
+
+    if (!NetworkStatus.isOnline()) {
+      SyncQueue.add({ type: 'history', novelId, chapterId, chapterTitle, userId: user.id });
+      return { queued: true };
+    }
+
+    try {
+      await SupabaseDB.addToHistory(user.id, novelId, chapterId, chapterTitle);
+      return { success: true };
+    } catch (error) {
+      console.error('Push history failed:', error);
+      SyncQueue.add({ type: 'history', novelId, chapterId, chapterTitle, userId: user.id });
+      return { queued: true, error };
+    }
+  },
+
+  // ============================================
+  // Queue Processing
+  // ============================================
+
+  async processQueue() {
+    if (!NetworkStatus.isOnline()) return { processed: 0, remaining: SyncQueue.length() };
+
+    const queue = SyncQueue.getQueue();
+    if (queue.length === 0) return { processed: 0, remaining: 0 };
+
+    console.log(`Processing ${queue.length} queued operations...`);
+    let processed = 0;
+
+    for (const operation of queue) {
+      try {
+        let success = false;
+
+        switch (operation.type) {
+          case 'library':
+            if (operation.action === 'add') {
+              await SupabaseDB.addToLibrary(operation.userId, operation.novelId);
+            } else {
+              await SupabaseDB.removeFromLibrary(operation.userId, operation.novelId);
+            }
+            success = true;
+            break;
+
+          case 'rating':
+            await SupabaseDB.rateNovel(operation.userId, operation.novelId, operation.rating);
+            success = true;
+            break;
+
+          case 'bookmark':
+            if (operation.action === 'add') {
+              await SupabaseDB.addBookmark(operation.userId, operation.novelId, operation.chapterId, operation.note || '');
+            }
+            success = true;
+            break;
+
+          case 'progress':
+            await SupabaseDB.updateReadingProgress(operation.userId, operation.novelId, operation.currentChapter);
+            success = true;
+            break;
+
+          case 'follow':
+            if (operation.action === 'follow') {
+              await SupabaseDB.followAuthor(operation.userId, operation.authorId);
+            } else {
+              await SupabaseDB.unfollowAuthor(operation.userId, operation.authorId);
+            }
+            success = true;
+            break;
+
+          case 'history':
+            await SupabaseDB.addToHistory(operation.userId, operation.novelId, operation.chapterId, operation.chapterTitle);
+            success = true;
+            break;
+        }
+
+        if (success) {
+          SyncQueue.remove(operation.id);
+          processed++;
+        }
+      } catch (error) {
+        console.error(`Failed to process operation ${operation.id}:`, error);
+        // Increment retry count
+        const queue = SyncQueue.getQueue();
+        const opIndex = queue.findIndex(op => op.id === operation.id);
+        if (opIndex !== -1) {
+          queue[opIndex].retries = (queue[opIndex].retries || 0) + 1;
+          // Remove after 3 failed retries
+          if (queue[opIndex].retries >= 3) {
+            queue.splice(opIndex, 1);
+          }
+          SyncQueue.saveQueue(queue);
+        }
+      }
+    }
+
+    console.log(`Queue processing complete. ${processed} processed, ${SyncQueue.length()} remaining.`);
+    return { processed, remaining: SyncQueue.length() };
+  },
+
+  // ============================================
+  // Conflict Detection
+  // ============================================
+
+  async detectConflicts() {
+    const user = await SupabaseAuth.getCurrentUser();
+    if (!user) return { hasConflicts: false, conflicts: [] };
+
+    const conflicts = [];
+
+    try {
+      // Check library conflicts
+      const localLibrary = JSON.parse(localStorage.getItem('novelshare_library') || '[]');
+      const cloudLibrary = await SupabaseDB.getUserLibrary(user.id);
+
+      const localIds = new Set(localLibrary.map(item => item.novelId));
+      const cloudIds = new Set(cloudLibrary.map(item => item.novel_id));
+
+      // Items in local but not cloud
+      const localOnly = localLibrary.filter(item => !cloudIds.has(item.novelId));
+      if (localOnly.length > 0) {
+        conflicts.push({
+          type: 'library_local_only',
+          message: `${localOnly.length} item(s) in local library not synced to cloud`,
+          items: localOnly
+        });
+      }
+
+      // Items in cloud but not local
+      const cloudOnly = cloudLibrary.filter(item => !localIds.has(item.novel_id));
+      if (cloudOnly.length > 0) {
+        conflicts.push({
+          type: 'library_cloud_only',
+          message: `${cloudOnly.length} item(s) in cloud not in local library`,
+          items: cloudOnly
+        });
+      }
+
+      // Check for pending queue items
+      const queueLength = SyncQueue.length();
+      if (queueLength > 0) {
+        conflicts.push({
+          type: 'pending_sync',
+          message: `${queueLength} operation(s) pending sync`,
+          items: SyncQueue.getQueue()
+        });
+      }
+
+    } catch (error) {
+      console.error('Conflict detection failed:', error);
+    }
+
+    return {
+      hasConflicts: conflicts.length > 0,
+      conflicts
+    };
+  },
+
+  // Resolve conflicts by pushing local items to cloud
+  async resolveConflicts(strategy = 'push_local') {
+    const user = await SupabaseAuth.getCurrentUser();
+    if (!user) return { error: 'Not logged in' };
+
+    const { conflicts } = await this.detectConflicts();
+    let resolved = 0;
+
+    for (const conflict of conflicts) {
+      if (conflict.type === 'library_local_only' && strategy === 'push_local') {
+        // Push local items to cloud
+        for (const item of conflict.items) {
+          try {
+            await SupabaseDB.addToLibrary(user.id, item.novelId);
+            resolved++;
+          } catch (e) {
+            console.error('Failed to resolve conflict:', e);
+          }
+        }
+      } else if (conflict.type === 'pending_sync') {
+        // Process the queue
+        const result = await this.processQueue();
+        resolved += result.processed;
+      }
+    }
+
+    return { resolved, remaining: (await this.detectConflicts()).conflicts.length };
+  },
+
+  // Get sync status
+  getSyncStatus() {
+    return {
+      isOnline: NetworkStatus.isOnline(),
+      queueLength: SyncQueue.length(),
+      queue: SyncQueue.getQueue()
+    };
   }
 };
 
@@ -552,6 +952,8 @@ const SupabaseSync = {
 window.SupabaseAuth = SupabaseAuth;
 window.SupabaseDB = SupabaseDB;
 window.SupabaseSync = SupabaseSync;
+window.SyncQueue = SyncQueue;
+window.NetworkStatus = NetworkStatus;
 window.supabaseClient = supabase;
 
 console.log('Supabase initialized successfully');
