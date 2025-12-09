@@ -1089,7 +1089,15 @@
     <!-- Page-specific JavaScript -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Update empty state and visible count helper - must be defined first
+            // ============================================
+            // Unified Filter State Management
+            // ============================================
+            let activeGenre = 'all';
+            let activeStatus = 'all';
+            let activeSort = 'popular';
+            let searchQuery = '';
+
+            // Update empty state and visible count helper
             function updateEmptyState() {
                 const emptyState = document.querySelector('.empty-state');
                 const resultsHeader = document.querySelector('.results-header');
@@ -1103,108 +1111,102 @@
                 document.getElementById('visibleCount').textContent = count;
             }
 
-            // Custom search that calls updateEmptyState
+            // Unified filter function that combines all filters
+            function applyFilters() {
+                const cards = document.querySelectorAll('.card');
+                const grid = document.querySelector('.card-grid');
+
+                // First, apply visibility filters (genre, status, search)
+                cards.forEach(card => {
+                    const cardGenre = (card.dataset.genre || '').toLowerCase();
+                    const cardStatus = card.dataset.status || '';
+                    const cardTitle = (card.dataset.title || '').toLowerCase();
+                    const cardAuthor = (card.dataset.author || '').toLowerCase();
+
+                    // Check genre filter
+                    const matchesGenre = activeGenre === 'all' || cardGenre === activeGenre;
+
+                    // Check status filter
+                    const matchesStatus = activeStatus === 'all' || cardStatus === activeStatus;
+
+                    // Check search filter
+                    const matchesSearch = searchQuery === '' ||
+                        cardTitle.includes(searchQuery) ||
+                        cardAuthor.includes(searchQuery) ||
+                        cardGenre.includes(searchQuery);
+
+                    // Show card only if it matches ALL active filters
+                    if (matchesGenre && matchesStatus && matchesSearch) {
+                        card.style.display = '';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+
+                // Then apply sorting to visible cards
+                const visibleCards = Array.from(grid.querySelectorAll('.card:not([style*="display: none"])'));
+                visibleCards.sort((a, b) => {
+                    switch (activeSort) {
+                        case 'popular':
+                            return parseInt(b.dataset.popularity || 0) - parseInt(a.dataset.popularity || 0);
+                        case 'rating':
+                            return parseFloat(b.dataset.rating || 0) - parseFloat(a.dataset.rating || 0);
+                        case 'newest':
+                            return parseInt(b.dataset.published || 0) - parseInt(a.dataset.published || 0);
+                        case 'updated':
+                            return parseInt(b.dataset.updated || 0) - parseInt(a.dataset.updated || 0);
+                        default:
+                            return 0;
+                    }
+                });
+
+                // Re-append sorted cards (visible ones first, then hidden ones)
+                const hiddenCards = Array.from(grid.querySelectorAll('.card[style*="display: none"]'));
+                visibleCards.forEach(card => grid.appendChild(card));
+                hiddenCards.forEach(card => grid.appendChild(card));
+
+                updateEmptyState();
+            }
+
+            // Search input handler
             const searchInput = document.querySelector('.search-bar input');
             if (searchInput) {
                 searchInput.addEventListener('input', (e) => {
-                    const query = e.target.value.toLowerCase().trim();
-                    const cards = document.querySelectorAll('.card');
-
-                    cards.forEach(card => {
-                        const title = card.dataset.title?.toLowerCase() || '';
-                        const author = card.dataset.author?.toLowerCase() || '';
-                        const genre = card.dataset.genre?.toLowerCase() || '';
-
-                        if (title.includes(query) || author.includes(query) || genre.includes(query)) {
-                            card.style.display = '';
-                        } else {
-                            card.style.display = 'none';
-                        }
-                    });
-
-                    updateEmptyState();
+                    searchQuery = e.target.value.toLowerCase().trim();
+                    applyFilters();
                 });
             }
 
-            // Custom genre filter that calls updateEmptyState
+            // Genre filter handler
             const genreItems = document.querySelectorAll('.genre-list li');
             genreItems.forEach(genre => {
                 genre.addEventListener('click', () => {
-                    // Update active state
                     genreItems.forEach(g => g.classList.remove('active'));
                     genre.classList.add('active');
-
-                    const filterValue = genre.dataset.genre;
-                    const cards = document.querySelectorAll('.card');
-
-                    // Filter items
-                    cards.forEach(card => {
-                        const itemGenre = card.getAttribute('data-genre')?.toLowerCase() || '';
-                        if (filterValue === 'all' || itemGenre === filterValue) {
-                            card.style.display = '';
-                        } else {
-                            card.style.display = 'none';
-                        }
-                    });
-
-                    updateEmptyState();
+                    activeGenre = genre.dataset.genre || 'all';
+                    applyFilters();
                 });
             });
 
-            // Initialize status filter pills
+            // Status filter pills handler
             const statusPills = document.querySelectorAll('[data-filter-type="status"] .pill');
             statusPills.forEach(pill => {
                 pill.addEventListener('click', () => {
                     statusPills.forEach(p => p.classList.remove('active'));
                     pill.classList.add('active');
-
-                    const filter = pill.dataset.filter;
-                    const cards = document.querySelectorAll('.card');
-
-                    cards.forEach(card => {
-                        const status = card.dataset.status;
-                        if (filter === 'all' || status === filter) {
-                            card.style.display = '';
-                        } else {
-                            card.style.display = 'none';
-                        }
-                    });
-
-                    updateEmptyState();
+                    activeStatus = pill.dataset.filter || 'all';
+                    applyFilters();
                 });
             });
 
-            // Initialize sort pills
+            // Sort pills handler
             const sortPills = document.querySelectorAll('[data-filter-type="sort"] .pill');
             sortPills.forEach(pill => {
                 pill.addEventListener('click', () => {
                     sortPills.forEach(p => p.classList.remove('active'));
                     pill.classList.add('active');
-
-                    const sortBy = pill.dataset.sort;
-                    const grid = document.querySelector('.card-grid');
-                    const cards = Array.from(grid.querySelectorAll('.card'));
-
-                    cards.sort((a, b) => {
-                        switch (sortBy) {
-                            case 'popular':
-                                // Sort by popularity (views/reads) - highest first
-                                return parseInt(b.dataset.popularity || 0) - parseInt(a.dataset.popularity || 0);
-                            case 'rating':
-                                // Sort by rating - highest first
-                                return parseFloat(b.dataset.rating || 0) - parseFloat(a.dataset.rating || 0);
-                            case 'newest':
-                                // Sort by published date - newest first
-                                return parseInt(b.dataset.published || 0) - parseInt(a.dataset.published || 0);
-                            case 'updated':
-                                // Sort by last updated - most recent first
-                                return parseInt(b.dataset.updated || 0) - parseInt(a.dataset.updated || 0);
-                            default:
-                                return 0;
-                        }
-                    });
-
-                    cards.forEach(card => grid.appendChild(card));
+                    activeSort = pill.dataset.sort || 'popular';
+                    applyFilters();
                 });
             });
 
