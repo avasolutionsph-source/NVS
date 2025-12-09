@@ -1,0 +1,1529 @@
+/* ============================================
+   NovelShare - Shared JavaScript Components
+   ============================================ */
+
+// ============================================
+// Search Functionality
+// ============================================
+function initSearch(inputSelector, itemsSelector, searchKey = 'textContent') {
+  const searchInput = document.querySelector(inputSelector);
+  const items = document.querySelectorAll(itemsSelector);
+
+  if (!searchInput || !items.length) return;
+
+  searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase().trim();
+
+    items.forEach(item => {
+      const text = searchKey === 'textContent'
+        ? item.textContent.toLowerCase()
+        : item.getAttribute(searchKey)?.toLowerCase() || '';
+
+      if (text.includes(query)) {
+        item.style.display = '';
+        item.classList.remove('hidden');
+      } else {
+        item.style.display = 'none';
+        item.classList.add('hidden');
+      }
+    });
+
+    // Update empty state if exists
+    const emptyState = document.querySelector('.empty-state');
+    const visibleItems = document.querySelectorAll(`${itemsSelector}:not(.hidden)`);
+    if (emptyState) {
+      emptyState.style.display = visibleItems.length === 0 ? 'block' : 'none';
+    }
+  });
+}
+
+// ============================================
+// Filter Pills Functionality
+// ============================================
+function initFilterPills(pillsSelector, itemsSelector, filterAttr = 'data-category') {
+  // Exclude pills that have custom handling (those inside a [data-filter-type] container)
+  const pills = Array.from(document.querySelectorAll(pillsSelector)).filter(pill => !pill.closest('[data-filter-type]'));
+  const items = document.querySelectorAll(itemsSelector);
+
+  if (!pills.length || !items.length) return;
+
+  pills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      // Update active state
+      pills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+
+      const filterValue = pill.dataset.filter || pill.textContent.toLowerCase().trim();
+
+      // Filter items
+      items.forEach(item => {
+        const itemValue = item.getAttribute(filterAttr)?.toLowerCase() || '';
+
+        if (filterValue === 'all' || itemValue.includes(filterValue)) {
+          item.style.display = '';
+          item.classList.remove('hidden');
+        } else {
+          item.style.display = 'none';
+          item.classList.add('hidden');
+        }
+      });
+
+      // Update results count if exists
+      updateResultsCount(itemsSelector);
+    });
+  });
+}
+
+// ============================================
+// Genre Sidebar Filter
+// ============================================
+function initGenreFilter(genreListSelector, itemsSelector) {
+  const genreItems = document.querySelectorAll(`${genreListSelector} li`);
+  const items = document.querySelectorAll(itemsSelector);
+
+  if (!genreItems.length || !items.length) return;
+
+  genreItems.forEach(genre => {
+    genre.addEventListener('click', () => {
+      // Update active state
+      genreItems.forEach(g => g.classList.remove('active'));
+      genre.classList.add('active');
+
+      const filterValue = genre.dataset.genre || genre.textContent.toLowerCase().trim();
+
+      // Filter items
+      items.forEach(item => {
+        const itemGenre = item.getAttribute('data-genre')?.toLowerCase() || '';
+
+        if (filterValue === 'all' || itemGenre.includes(filterValue)) {
+          item.style.display = '';
+          item.classList.remove('hidden');
+        } else {
+          item.style.display = 'none';
+          item.classList.add('hidden');
+        }
+      });
+
+      // Update results count
+      updateResultsCount(itemsSelector);
+    });
+  });
+}
+
+// ============================================
+// Pagination
+// ============================================
+function initPagination(options = {}) {
+  const {
+    containerSelector = '.pagination',
+    itemsSelector = '.card',
+    itemsPerPage = 12
+  } = options;
+
+  const container = document.querySelector(containerSelector);
+  const items = document.querySelectorAll(itemsSelector);
+
+  if (!container || !items.length) return;
+
+  let currentPage = 1;
+  const totalPages = Math.ceil(items.length / itemsPerPage);
+
+  function showPage(page) {
+    currentPage = page;
+    const start = (page - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+
+    items.forEach((item, index) => {
+      if (index >= start && index < end) {
+        item.style.display = '';
+      } else {
+        item.style.display = 'none';
+      }
+    });
+
+    renderPagination();
+  }
+
+  function renderPagination() {
+    container.innerHTML = '';
+
+    // Previous button
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'page-link';
+    prevBtn.textContent = '← Previous';
+    prevBtn.disabled = currentPage === 1;
+    prevBtn.addEventListener('click', () => showPage(currentPage - 1));
+    container.appendChild(prevBtn);
+
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+        const pageBtn = document.createElement('button');
+        pageBtn.className = `page-link ${i === currentPage ? 'active' : ''}`;
+        pageBtn.textContent = i;
+        pageBtn.addEventListener('click', () => showPage(i));
+        container.appendChild(pageBtn);
+      } else if (i === currentPage - 2 || i === currentPage + 2) {
+        const ellipsis = document.createElement('span');
+        ellipsis.className = 'page-ellipsis';
+        ellipsis.textContent = '...';
+        container.appendChild(ellipsis);
+      }
+    }
+
+    // Next button
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'page-link';
+    nextBtn.textContent = 'Next →';
+    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.addEventListener('click', () => showPage(currentPage + 1));
+    container.appendChild(nextBtn);
+  }
+
+  showPage(1);
+}
+
+// ============================================
+// Tabs Component
+// ============================================
+function initTabs(tabsSelector, contentSelector) {
+  const tabs = document.querySelectorAll(tabsSelector);
+  const contents = document.querySelectorAll(contentSelector);
+
+  if (!tabs.length) return;
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const targetId = tab.dataset.tab;
+
+      // Update tab states
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+
+      // Update content visibility
+      if (contents.length) {
+        contents.forEach(content => {
+          if (content.id === targetId || content.dataset.tab === targetId) {
+            content.style.display = '';
+            content.classList.add('active');
+          } else {
+            content.style.display = 'none';
+            content.classList.remove('active');
+          }
+        });
+      }
+    });
+  });
+}
+
+// ============================================
+// Toast Notifications
+// ============================================
+function showToast(message, duration = 3000) {
+  // Remove existing toast if any
+  const existingToast = document.querySelector('.toast');
+  if (existingToast) {
+    existingToast.remove();
+  }
+
+  // Create toast element
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  // Show toast
+  requestAnimationFrame(() => {
+    toast.classList.add('show');
+  });
+
+  // Hide after duration
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 200);
+  }, duration);
+}
+
+// ============================================
+// Add to Library Button
+// ============================================
+function initAddToLibrary(buttonSelector) {
+  const buttons = document.querySelectorAll(buttonSelector);
+
+  buttons.forEach(button => {
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
+
+      const isAdded = button.classList.toggle('added');
+      const novelId = button.dataset.novelId;
+
+      if (isAdded) {
+        showToast('Added to your library!');
+        // In production, make API call here
+        // saveToLibrary(novelId);
+      } else {
+        showToast('Removed from library');
+        // removeFromLibrary(novelId);
+      }
+    });
+  });
+}
+
+// ============================================
+// Form Validation
+// ============================================
+const Validators = {
+  email: (value) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(value);
+  },
+
+  password: (value, minLength = 8) => {
+    return value.length >= minLength;
+  },
+
+  username: (value, minLength = 3) => {
+    const usernameRegex = /^[a-zA-Z0-9_-]+$/;
+    return value.length >= minLength && usernameRegex.test(value);
+  },
+
+  required: (value) => {
+    return value.trim().length > 0;
+  },
+
+  match: (value, matchValue) => {
+    return value === matchValue;
+  }
+};
+
+function validateField(input, validationType, options = {}) {
+  const value = input.value;
+  let isValid = false;
+
+  switch (validationType) {
+    case 'email':
+      isValid = Validators.email(value);
+      break;
+    case 'password':
+      isValid = Validators.password(value, options.minLength);
+      break;
+    case 'username':
+      isValid = Validators.username(value, options.minLength);
+      break;
+    case 'required':
+      isValid = Validators.required(value);
+      break;
+    case 'match':
+      isValid = Validators.match(value, options.matchValue);
+      break;
+    default:
+      isValid = true;
+  }
+
+  // Update input state
+  input.classList.remove('valid', 'invalid');
+  if (value.length > 0) {
+    input.classList.add(isValid ? 'valid' : 'invalid');
+  }
+
+  return isValid;
+}
+
+// ============================================
+// Password Strength Indicator
+// ============================================
+function getPasswordStrength(password) {
+  let strength = 0;
+
+  if (password.length >= 8) strength++;
+  if (password.length >= 12) strength++;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+  if (/\d/.test(password)) strength++;
+  if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++;
+
+  const levels = ['', 'weak', 'fair', 'good', 'strong', 'strong'];
+  return {
+    score: strength,
+    level: levels[strength]
+  };
+}
+
+function initPasswordStrength(inputSelector, barSelector) {
+  const input = document.querySelector(inputSelector);
+  const bar = document.querySelector(barSelector);
+
+  if (!input || !bar) return;
+
+  input.addEventListener('input', () => {
+    const { level } = getPasswordStrength(input.value);
+    bar.className = 'password-strength-fill';
+    if (level) {
+      bar.classList.add(level);
+    }
+  });
+}
+
+// ============================================
+// Dropdown / TOC Toggle
+// ============================================
+function initDropdown(toggleSelector, dropdownSelector) {
+  const toggle = document.querySelector(toggleSelector);
+  const dropdown = document.querySelector(dropdownSelector);
+
+  if (!toggle || !dropdown) return;
+
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = dropdown.classList.toggle('open');
+    toggle.classList.toggle('active', isOpen);
+  });
+
+  // Close on click outside
+  document.addEventListener('click', (e) => {
+    if (!dropdown.contains(e.target) && !toggle.contains(e.target)) {
+      dropdown.classList.remove('open');
+      toggle.classList.remove('active');
+    }
+  });
+
+  // Close on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      dropdown.classList.remove('open');
+      toggle.classList.remove('active');
+    }
+  });
+}
+
+// ============================================
+// Helper Functions
+// ============================================
+function updateResultsCount(itemsSelector) {
+  const countElement = document.querySelector('.results-count');
+  if (!countElement) return;
+
+  const visibleItems = document.querySelectorAll(`${itemsSelector}:not(.hidden):not([style*="display: none"])`);
+  countElement.textContent = `${visibleItems.length} results`;
+}
+
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+function throttle(func, limit) {
+  let inThrottle;
+  return function(...args) {
+    if (!inThrottle) {
+      func.apply(this, args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
+    }
+  };
+}
+
+// ============================================
+// Initialize on DOM Load
+// ============================================
+document.addEventListener('DOMContentLoaded', () => {
+  // Auto-initialize common components if they exist
+  initPasswordToggle();
+
+  // Initialize search if search bar exists
+  const searchBar = document.querySelector('.search-bar input, .search input');
+  if (searchBar) {
+    initSearch('.search-bar input, .search input', '.card');
+  }
+
+  // Initialize filter pills if they exist
+  const filterPills = document.querySelector('.pill-row .pill, .filters .pill');
+  if (filterPills) {
+    initFilterPills('.pill-row .pill, .filters .pill', '.card');
+  }
+
+  // Initialize genre filter if sidebar exists
+  const genreList = document.querySelector('.genre-list');
+  if (genreList) {
+    initGenreFilter('.genre-list', '.card');
+  }
+
+  // Initialize tabs if they exist
+  const tabs = document.querySelector('.tabs .tab');
+  if (tabs) {
+    initTabs('.tabs .tab', '.tab-content');
+  }
+
+  // Global profile dropdown toggle (supports multiple wrappers, works via delegation)
+  document.addEventListener('click', (event) => {
+    const btn = event.target.closest('.profile-wrapper .profile');
+    const isInsideDropdown = event.target.closest('.profile-dropdown');
+
+    // Close if clicking outside any dropdown/profile
+    if (!btn && !isInsideDropdown) {
+      document.querySelectorAll('.profile-dropdown.open').forEach(dd => dd.classList.remove('open'));
+      return;
+    }
+
+    if (btn) {
+      const wrapper = btn.closest('.profile-wrapper');
+      const dropdown = wrapper ? wrapper.querySelector('.profile-dropdown') : null;
+      if (dropdown) {
+        event.preventDefault();
+        event.stopPropagation();
+        // Close other open dropdowns
+        document.querySelectorAll('.profile-dropdown.open').forEach(dd => {
+          if (dd !== dropdown) dd.classList.remove('open');
+        });
+        dropdown.classList.toggle('open');
+      }
+    }
+  });
+
+  // Logout handlers (ensure full cleanup instead of just following link)
+  const logoutLinks = document.querySelectorAll('.logout');
+  if (logoutLinks.length) {
+    logoutLinks.forEach(link => {
+      link.addEventListener('click', async (event) => {
+        event.preventDefault();
+        try {
+          if (typeof GuestMode !== 'undefined' && GuestMode.fullLogout) {
+            await GuestMode.fullLogout();
+            return;
+          }
+        } catch (err) {
+          console.warn('Logout failed, fallback redirect', err);
+        }
+        window.location.href = 'login.html';
+      });
+    });
+  }
+
+  // Block library navigation for guests
+  const libraryLinks = document.querySelectorAll('a[href*="library.html"]');
+  if (libraryLinks.length) {
+    libraryLinks.forEach(link => {
+      link.addEventListener('click', (event) => {
+        if (typeof GuestMode !== 'undefined' && GuestMode.isGuest && GuestMode.isGuest()) {
+          event.preventDefault();
+          showToast('Please sign up to access your library');
+          setTimeout(() => { window.location.href = 'signup.html'; }, 1200);
+        }
+      }, { passive: false });
+    });
+  }
+
+  // Initialize TOC dropdown if it exists
+  const tocBtn = document.querySelector('.toc-btn');
+  if (tocBtn) {
+    initDropdown('.toc-btn', '.toc-dropdown');
+  }
+
+  // Initialize add to library buttons
+  const addLibraryBtns = document.querySelector('.add-btn[data-novel-id]');
+  if (addLibraryBtns) {
+    initAddToLibrary('.add-btn[data-novel-id]');
+  }
+});
+
+// ============================================
+// Rating System
+// ============================================
+const RatingSystem = {
+  // Get all ratings from localStorage
+  getAllRatings() {
+    const ratings = localStorage.getItem('novelshare_ratings');
+    return ratings ? JSON.parse(ratings) : {};
+  },
+
+  // Get rating for a specific novel
+  getRating(novelId) {
+    const ratings = this.getAllRatings();
+    return ratings[novelId] || null;
+  },
+
+  // Save rating for a novel
+  saveRating(novelId, rating, review = '') {
+    const ratings = this.getAllRatings();
+    ratings[novelId] = {
+      rating: rating,
+      review: review,
+      timestamp: Date.now()
+    };
+    localStorage.setItem('novelshare_ratings', JSON.stringify(ratings));
+    return ratings[novelId];
+  },
+
+  // Remove rating
+  removeRating(novelId) {
+    const ratings = this.getAllRatings();
+    delete ratings[novelId];
+    localStorage.setItem('novelshare_ratings', JSON.stringify(ratings));
+  },
+
+  // Calculate average rating (mock - would be from API in production)
+  calculateAverage(novelId) {
+    const rating = this.getRating(novelId);
+    // In production, this would aggregate all user ratings
+    return rating ? rating.rating : 0;
+  },
+
+  // Render star rating display
+  renderStars(rating, maxStars = 5) {
+    let html = '';
+    const fullStars = Math.floor(rating);
+    const hasHalf = rating % 1 >= 0.5;
+
+    for (let i = 1; i <= maxStars; i++) {
+      if (i <= fullStars) {
+        html += '<span class="star filled">★</span>';
+      } else if (i === fullStars + 1 && hasHalf) {
+        html += '<span class="star half">★</span>';
+      } else {
+        html += '<span class="star empty">☆</span>';
+      }
+    }
+    return html;
+  },
+
+  // Initialize interactive star rating
+  initStarRating(containerSelector, options = {}) {
+    const containers = document.querySelectorAll(containerSelector);
+    const { maxStars = 5, onRate = null, initialRating = 0 } = options;
+
+    containers.forEach(container => {
+      let currentRating = initialRating;
+
+      // Create stars
+      container.innerHTML = '';
+      for (let i = 1; i <= maxStars; i++) {
+        const star = document.createElement('span');
+        star.className = 'star-input';
+        star.dataset.value = i;
+        star.textContent = '★';
+        star.addEventListener('mouseenter', () => highlightStars(container, i));
+        star.addEventListener('mouseleave', () => highlightStars(container, currentRating));
+        star.addEventListener('click', () => {
+          currentRating = i;
+          highlightStars(container, i);
+          container.dataset.rating = i;
+          if (onRate) onRate(i);
+        });
+        container.appendChild(star);
+      }
+
+      // Set initial rating
+      if (initialRating > 0) {
+        highlightStars(container, initialRating);
+        container.dataset.rating = initialRating;
+      }
+    });
+
+    function highlightStars(container, rating) {
+      const stars = container.querySelectorAll('.star-input');
+      stars.forEach((star, index) => {
+        star.classList.toggle('active', index < rating);
+      });
+    }
+  }
+};
+
+// ============================================
+// Library/Bookmark System
+// ============================================
+const LibrarySystem = {
+  // Get all library items
+  getLibrary() {
+    const library = localStorage.getItem('novelshare_library');
+    return library ? JSON.parse(library) : [];
+  },
+
+  // Check if novel is in library
+  isInLibrary(novelId) {
+    const library = this.getLibrary();
+    return library.some(item => item.id === novelId || item.novelId === novelId);
+  },
+
+  // Add to library
+  addToLibrary(novelId, novelData = {}) {
+    // Allow signature LibrarySystem.addToLibrary({ novelId, ... })
+    if (typeof novelId === 'object' && novelId !== null) {
+      novelData = novelId;
+      novelId = novelData.novelId || novelData.id;
+    }
+
+    if (!novelId) return false;
+
+    const library = this.getLibrary();
+    const existingIndex = library.findIndex(item => item.id === novelId || item.novelId === novelId);
+
+    const item = {
+      id: novelId,
+      novelId: novelId,
+      title: novelData.title || '',
+      author: novelData.author || '',
+      coverImage: novelData.coverImage || novelData.cover || '',
+      cover: novelData.coverImage || novelData.cover || '',
+      totalChapters: novelData.totalChapters || novelData.chapters || 0,
+      currentChapter: novelData.currentChapter || 0,
+      progress: novelData.progress || 0,
+      addedAt: Date.now()
+    };
+
+    if (existingIndex >= 0) {
+      library[existingIndex] = { ...library[existingIndex], ...item };
+      localStorage.setItem('novelshare_library', JSON.stringify(library));
+      return false; // already existed, just updated
+    } else {
+      library.push(item);
+      localStorage.setItem('novelshare_library', JSON.stringify(library));
+      return true;
+    }
+  },
+
+  // Remove from library
+  removeFromLibrary(novelId) {
+    let library = this.getLibrary();
+    library = library.filter(item => item.id !== novelId && item.novelId !== novelId);
+    localStorage.setItem('novelshare_library', JSON.stringify(library));
+  },
+
+  // Toggle library status
+  toggleLibrary(novelId, novelData = {}) {
+    if (this.isInLibrary(novelId)) {
+      this.removeFromLibrary(novelId);
+      return false;
+    } else {
+      return this.addToLibrary(novelId, novelData);
+    }
+  },
+
+  // Update reading progress
+  updateProgress(novelId, progress, currentChapter) {
+    const library = this.getLibrary();
+    const item = library.find(item => item.id === novelId || item.novelId === novelId);
+    if (item) {
+      item.progress = progress;
+      item.currentChapter = currentChapter;
+      item.lastRead = Date.now();
+      localStorage.setItem('novelshare_library', JSON.stringify(library));
+    }
+  },
+
+  // Get reading progress
+  getProgress(novelId) {
+    const library = this.getLibrary();
+    const item = library.find(item => item.id === novelId || item.novelId === novelId);
+    return item ? { progress: item.progress, currentChapter: item.currentChapter } : null;
+  }
+};
+
+// ============================================
+// Following System
+// ============================================
+const FollowingSystem = {
+  // Get all following
+  getFollowing() {
+    const following = localStorage.getItem('novelshare_following');
+    return following ? JSON.parse(following) : [];
+  },
+
+  // Check if following an author
+  isFollowing(authorId) {
+    const following = this.getFollowing();
+    return following.some(item => item.id === authorId);
+  },
+
+  // Follow author
+  follow(authorId, authorData = {}) {
+    const following = this.getFollowing();
+    if (!this.isFollowing(authorId)) {
+      following.push({
+        id: authorId,
+        name: authorData.name || '',
+        avatar: authorData.avatar || '',
+        followedAt: Date.now()
+      });
+      localStorage.setItem('novelshare_following', JSON.stringify(following));
+      return true;
+    }
+    return false;
+  },
+
+  // Unfollow author
+  unfollow(authorId) {
+    let following = this.getFollowing();
+    following = following.filter(item => item.id !== authorId);
+    localStorage.setItem('novelshare_following', JSON.stringify(following));
+  },
+
+  // Toggle follow status
+  toggleFollow(authorId, authorData = {}) {
+    if (this.isFollowing(authorId)) {
+      this.unfollow(authorId);
+      return false;
+    } else {
+      this.follow(authorId, authorData);
+      return true;
+    }
+  },
+
+  // Get follower count (mock)
+  getFollowerCount(authorId) {
+    // In production, this would be from API
+    return Math.floor(Math.random() * 10000) + 100;
+  }
+};
+
+// ============================================
+// Reading History System
+// ============================================
+const ReadingHistory = {
+  // Get history
+  getHistory() {
+    const history = localStorage.getItem('novelshare_history');
+    return history ? JSON.parse(history) : [];
+  },
+
+  // Add to history
+  addToHistory(novelId, chapterId, novelData = {}) {
+    let history = this.getHistory();
+
+    // Remove if already exists
+    history = history.filter(item => item.novelId !== novelId);
+
+    // Add to beginning
+    history.unshift({
+      novelId: novelId,
+      chapterId: chapterId,
+      title: novelData.title || '',
+      chapterTitle: novelData.chapterTitle || '',
+      cover: novelData.cover || '',
+      timestamp: Date.now()
+    });
+
+    // Keep only last 50 items
+    history = history.slice(0, 50);
+
+    localStorage.setItem('novelshare_history', JSON.stringify(history));
+  },
+
+  // Get last read chapter for a novel
+  getLastRead(novelId) {
+    const history = this.getHistory();
+    return history.find(item => item.novelId === novelId);
+  },
+
+  // Clear history
+  clearHistory() {
+    localStorage.removeItem('novelshare_history');
+  }
+};
+
+// ============================================
+// Bookmarks System (for specific chapters/positions)
+// ============================================
+const BookmarkSystem = {
+  // Get all bookmarks
+  getBookmarks() {
+    const bookmarks = localStorage.getItem('novelshare_bookmarks');
+    return bookmarks ? JSON.parse(bookmarks) : [];
+  },
+
+  // Add bookmark
+  addBookmark(novelId, chapterId, position = 0, note = '') {
+    const bookmarks = this.getBookmarks();
+    const bookmark = {
+      id: `${novelId}_${chapterId}_${Date.now()}`,
+      novelId: novelId,
+      chapterId: chapterId,
+      position: position,
+      note: note,
+      createdAt: Date.now()
+    };
+    bookmarks.push(bookmark);
+    localStorage.setItem('novelshare_bookmarks', JSON.stringify(bookmarks));
+    return bookmark;
+  },
+
+  // Get bookmarks for a novel
+  getNovelBookmarks(novelId) {
+    const bookmarks = this.getBookmarks();
+    return bookmarks.filter(b => b.novelId === novelId);
+  },
+
+  // Get bookmarks for a chapter
+  getChapterBookmarks(novelId, chapterId) {
+    const bookmarks = this.getBookmarks();
+    return bookmarks.filter(b => b.novelId === novelId && b.chapterId === chapterId);
+  },
+
+  // Remove bookmark
+  removeBookmark(bookmarkId) {
+    let bookmarks = this.getBookmarks();
+    bookmarks = bookmarks.filter(b => b.id !== bookmarkId);
+    localStorage.setItem('novelshare_bookmarks', JSON.stringify(bookmarks));
+  },
+
+  // Check if position is bookmarked
+  isBookmarked(novelId, chapterId) {
+    const bookmarks = this.getChapterBookmarks(novelId, chapterId);
+    return bookmarks.length > 0;
+  }
+};
+
+// ============================================
+// Mock Data Initializer
+// ============================================
+const MockDataInitializer = {
+  // Check if mock data should be initialized
+  // DISABLED - All new accounts start with empty library
+  shouldInitialize() {
+    return false;
+  },
+
+  // Initialize all mock data
+  initialize() {
+    if (!this.shouldInitialize()) return;
+
+    const isGuest = GuestMode.isGuest();
+
+    // Mock Library Data - Only for logged-in users, guests get empty
+    if (LibrarySystem.getLibrary().length === 0 && !isGuest) {
+      const mockLibrary = [
+        {
+          id: 'shadow-slave',
+          novelId: 'shadow-slave',
+          title: 'Shadow Slave',
+          author: 'Guiltythree',
+          cover: 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=300&q=80',
+          coverImage: 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=300&q=80',
+          totalChapters: 2721,
+          currentChapter: 847,
+          progress: 31,
+          addedAt: Date.now() - 86400000 * 30
+        },
+        {
+          id: 'lord-of-mysteries',
+          novelId: 'lord-of-mysteries',
+          title: 'Lord of Mysteries',
+          author: 'Cuttlefish That Loves Diving',
+          cover: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=300&q=80',
+          coverImage: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=300&q=80',
+          totalChapters: 1432,
+          currentChapter: 1432,
+          progress: 100,
+          addedAt: Date.now() - 86400000 * 60
+        },
+        {
+          id: 'solo-leveling',
+          novelId: 'solo-leveling',
+          title: 'Solo Leveling',
+          author: 'Chugong',
+          cover: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=300&q=80',
+          coverImage: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=300&q=80',
+          totalChapters: 270,
+          currentChapter: 156,
+          progress: 58,
+          addedAt: Date.now() - 86400000 * 15
+        },
+        {
+          id: 'supreme-magus',
+          novelId: 'supreme-magus',
+          title: 'Supreme Magus',
+          author: 'Legion20',
+          cover: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=300&q=80',
+          coverImage: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=300&q=80',
+          totalChapters: 3995,
+          currentChapter: 2100,
+          progress: 53,
+          addedAt: Date.now() - 86400000 * 7
+        }
+      ];
+      localStorage.setItem('novelshare_library', JSON.stringify(mockLibrary));
+    }
+
+    // Mock Reading History - Only for logged-in users, guests get empty
+    if (ReadingHistory.getHistory().length === 0 && !isGuest) {
+      const mockHistory = [
+        {
+          novelId: 'shadow-slave',
+          chapterId: 847,
+          title: 'Shadow Slave',
+          novelTitle: 'Shadow Slave',
+          chapterTitle: 'Chapter 847: Dark Awakening',
+          cover: 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=300&q=80',
+          coverImage: 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=300&q=80',
+          timestamp: Date.now() - 3600000
+        },
+        {
+          novelId: 'supreme-magus',
+          chapterId: 2100,
+          title: 'Supreme Magus',
+          novelTitle: 'Supreme Magus',
+          chapterTitle: 'Chapter 2100: The Final Test',
+          cover: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=300&q=80',
+          coverImage: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=300&q=80',
+          timestamp: Date.now() - 7200000
+        },
+        {
+          novelId: 'solo-leveling',
+          chapterId: 156,
+          title: 'Solo Leveling',
+          novelTitle: 'Solo Leveling',
+          chapterTitle: 'Chapter 156: Shadow Army',
+          cover: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=300&q=80',
+          coverImage: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=300&q=80',
+          timestamp: Date.now() - 86400000
+        },
+        {
+          novelId: 'lord-of-mysteries',
+          chapterId: 1432,
+          title: 'Lord of Mysteries',
+          novelTitle: 'Lord of Mysteries',
+          chapterTitle: 'Chapter 1432: The End',
+          cover: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=300&q=80',
+          coverImage: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=300&q=80',
+          timestamp: Date.now() - 86400000 * 3
+        }
+      ];
+      localStorage.setItem('novelshare_history', JSON.stringify(mockHistory));
+    }
+
+    // Mock Bookmarks - Only for logged-in users, guests get empty
+    if (BookmarkSystem.getBookmarks().length === 0 && !isGuest) {
+      const mockBookmarks = [
+        {
+          id: 'shadow-slave_847_1',
+          novelId: 'shadow-slave',
+          chapterId: 847,
+          novelTitle: 'Shadow Slave',
+          chapterTitle: 'Chapter 847: Dark Awakening',
+          position: 1500,
+          note: 'Epic fight scene starts here!',
+          timestamp: Date.now() - 3600000,
+          createdAt: Date.now() - 3600000
+        },
+        {
+          id: 'lord-of-mysteries_500_1',
+          novelId: 'lord-of-mysteries',
+          chapterId: 500,
+          novelTitle: 'Lord of Mysteries',
+          chapterTitle: 'Chapter 500: The Fool',
+          position: 2000,
+          note: 'Major plot revelation',
+          timestamp: Date.now() - 86400000 * 2,
+          createdAt: Date.now() - 86400000 * 2
+        },
+        {
+          id: 'solo-leveling_100_1',
+          novelId: 'solo-leveling',
+          chapterId: 100,
+          novelTitle: 'Solo Leveling',
+          chapterTitle: 'Chapter 100: Arise',
+          position: 800,
+          note: 'Best chapter so far',
+          timestamp: Date.now() - 86400000 * 5,
+          createdAt: Date.now() - 86400000 * 5
+        }
+      ];
+      localStorage.setItem('novelshare_bookmarks', JSON.stringify(mockBookmarks));
+    }
+
+    // Mock Ratings - Only for logged-in users, guests get empty
+    if (Object.keys(RatingSystem.getAllRatings()).length === 0 && !isGuest) {
+      const mockRatings = {
+        'shadow-slave': { rating: 5, review: 'Best novel I have ever read! The world-building is incredible.', timestamp: Date.now() - 86400000 * 10 },
+        'lord-of-mysteries': { rating: 5, review: 'Masterpiece of mystery and fantasy. Klein Moretti is one of the best MCs ever.', timestamp: Date.now() - 86400000 * 30 },
+        'solo-leveling': { rating: 4, review: 'Great action and progression. Jinwoo is badass!', timestamp: Date.now() - 86400000 * 5 },
+        'supreme-magus': { rating: 4, review: 'Interesting magic system and character development.', timestamp: Date.now() - 86400000 * 7 }
+      };
+      localStorage.setItem('novelshare_ratings', JSON.stringify(mockRatings));
+    }
+
+    // Mock Following - Only for logged-in users, guests get empty
+    if (FollowingSystem.getFollowing().length === 0 && !isGuest) {
+      const mockFollowing = [
+        { id: 'guiltythree', name: 'Guiltythree', avatar: '', followedAt: Date.now() - 86400000 * 30 },
+        { id: 'cuttlefish', name: 'Cuttlefish That Loves Diving', avatar: '', followedAt: Date.now() - 86400000 * 60 },
+        { id: 'chugong', name: 'Chugong', avatar: '', followedAt: Date.now() - 86400000 * 15 },
+        { id: 'legion20', name: 'Legion20', avatar: '', followedAt: Date.now() - 86400000 * 7 }
+      ];
+      localStorage.setItem('novelshare_following', JSON.stringify(mockFollowing));
+    }
+
+    // Mock Offline Downloads - Only for logged-in users, guests get empty
+    const offlineData = JSON.parse(localStorage.getItem('novelshare_offline') || '{}');
+    if (Object.keys(offlineData).length === 0 && !isGuest) {
+      const mockDownloads = {
+        'shadow-slave': {
+          '847': {
+            novelTitle: 'Shadow Slave',
+            chapterTitle: 'Chapter 847: Dark Awakening',
+            content: '<p>The darkness swirled around Sunny as he prepared for the battle ahead...</p>',
+            downloadedAt: Date.now() - 3600000
+          },
+          '848': {
+            novelTitle: 'Shadow Slave',
+            chapterTitle: 'Chapter 848: The Choice',
+            content: '<p>Every choice has consequences, and Sunny knew this better than anyone...</p>',
+            downloadedAt: Date.now() - 3600000
+          }
+        },
+        'solo-leveling': {
+          '156': {
+            novelTitle: 'Solo Leveling',
+            chapterTitle: 'Chapter 156: Shadow Army',
+            content: '<p>Jinwoo stood before his army of shadows, feeling their power surge through him...</p>',
+            downloadedAt: Date.now() - 86400000
+          }
+        }
+      };
+      localStorage.setItem('novelshare_offline', JSON.stringify(mockDownloads));
+    }
+
+    // Mock Profile - Only for logged-in users, guests get empty profile
+    if (!localStorage.getItem('novelshare_profile') && !isGuest) {
+      const mockProfile = {
+        name: 'Jane Writer',
+        username: 'janewriter',
+        email: 'jane@example.com',
+        location: 'New York, USA',
+        bio: 'Passionate storyteller who loves crafting fantasy worlds and romance tales. Writing has been my escape and joy for over 5 years. Always open to feedback and connecting with fellow book lovers!'
+      };
+      localStorage.setItem('novelshare_profile', JSON.stringify(mockProfile));
+    }
+
+    // Mark as initialized - separate for guest and user
+    const initKey = isGuest ? 'novelshare_guest_mock_initialized' : 'novelshare_user_mock_initialized';
+    localStorage.setItem(initKey, 'true');
+    console.log(`NovelShare: Mock data initialized successfully for ${isGuest ? 'guest' : 'user'}!`);
+  },
+
+  // Reset all mock data (useful for testing)
+  reset() {
+    localStorage.removeItem('novelshare_library');
+    localStorage.removeItem('novelshare_history');
+    localStorage.removeItem('novelshare_bookmarks');
+    localStorage.removeItem('novelshare_ratings');
+    localStorage.removeItem('novelshare_following');
+    localStorage.removeItem('novelshare_offline');
+    localStorage.removeItem('novelshare_profile');
+    localStorage.removeItem('novelshare_guest_mock_initialized');
+    localStorage.removeItem('novelshare_user_mock_initialized');
+    this.initialize();
+    console.log('NovelShare: Mock data reset successfully!');
+  }
+};
+
+// ============================================
+// User Credentials Storage (for auto-fill)
+// ============================================
+const UserCredentials = {
+  // Storage key for saved credentials
+  STORAGE_KEY: 'novelshare_saved_credentials',
+
+  // Get saved credentials
+  getSavedCredentials() {
+    const creds = localStorage.getItem(this.STORAGE_KEY);
+    return creds ? JSON.parse(creds) : null;
+  },
+
+  // Save user credentials (email only for security - password is not stored)
+  saveCredentials(email, username) {
+    const credentials = {
+      email: email,
+      username: username,
+      savedAt: Date.now()
+    };
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(credentials));
+  },
+
+  // Clear saved credentials
+  clearCredentials() {
+    localStorage.removeItem(this.STORAGE_KEY);
+  },
+
+  // Check if user has saved credentials
+  hasSavedCredentials() {
+    return this.getSavedCredentials() !== null;
+  }
+};
+
+// ============================================
+// Data Isolation System
+// ============================================
+const DataIsolation = {
+  // Storage keys that need to be isolated between guest and user
+  ISOLATED_KEYS: [
+    'novelshare_library',
+    'novelshare_history',
+    'novelshare_bookmarks',
+    'novelshare_ratings',
+    'novelshare_following',
+    'novelshare_offline',
+    'novelshare_profile'
+  ],
+
+  // Get prefix for current mode
+  getPrefix(isGuest) {
+    return isGuest ? 'guest_' : 'user_';
+  },
+
+  // Backup current data before switching modes
+  backupCurrentData(currentIsGuest) {
+    const prefix = this.getPrefix(currentIsGuest);
+    this.ISOLATED_KEYS.forEach(key => {
+      const data = localStorage.getItem(key);
+      if (data) {
+        localStorage.setItem(prefix + key, data);
+      }
+    });
+  },
+
+  // Restore data for new mode
+  restoreData(newIsGuest) {
+    const prefix = this.getPrefix(newIsGuest);
+    this.ISOLATED_KEYS.forEach(key => {
+      const backupData = localStorage.getItem(prefix + key);
+      if (backupData) {
+        localStorage.setItem(key, backupData);
+      } else if (newIsGuest) {
+        // Clear data for guest if no backup exists (fresh guest session)
+        localStorage.removeItem(key);
+      }
+    });
+  },
+
+  // Clear guest data completely
+  clearGuestData() {
+    const prefix = this.getPrefix(true);
+    this.ISOLATED_KEYS.forEach(key => {
+      localStorage.removeItem(prefix + key);
+      // Also clear current if in guest mode
+      if (GuestMode.isGuest()) {
+        localStorage.removeItem(key);
+      }
+    });
+  },
+
+  // Switch between guest and user mode with data isolation
+  switchMode(toGuestMode) {
+    const currentIsGuest = GuestMode.isGuest();
+
+    // If already in the target mode, do nothing
+    if (currentIsGuest === toGuestMode) return;
+
+    // Backup current mode's data
+    this.backupCurrentData(currentIsGuest);
+
+    // Restore data for new mode
+    this.restoreData(toGuestMode);
+  },
+
+  // Initialize guest mode with fresh data (no user data leakage)
+  initGuestSession() {
+    // Backup user data first
+    this.backupCurrentData(false);
+
+    // Clear all isolated keys for fresh guest session - guests always start empty
+    this.ISOLATED_KEYS.forEach(key => {
+      localStorage.removeItem(key);
+    });
+
+    // Also clear any old guest backups to ensure fresh start
+    this.ISOLATED_KEYS.forEach(key => {
+      localStorage.removeItem('guest_' + key);
+    });
+
+    // Clear guest mock initialized flag so it doesn't try to restore old data
+    localStorage.removeItem('novelshare_guest_mock_initialized');
+
+    // Guest always starts with empty data - no restore, no mock data
+  },
+
+  // Initialize user session (restore user data)
+  initUserSession() {
+    // Try to restore user data
+    const userLibrary = localStorage.getItem('user_novelshare_library');
+    if (userLibrary) {
+      this.restoreData(false);
+    }
+    // If no user backup exists, mock data initializer will handle it
+  }
+};
+
+// ============================================
+// Guest Mode System
+// ============================================
+const GuestMode = {
+  // Check if user is in guest mode
+  isGuest() {
+    return localStorage.getItem('novelshare_guest_mode') === 'true';
+  },
+
+  // Set guest mode with data isolation
+  setGuestMode(value) {
+    if (value) {
+      // Switching to guest mode
+      DataIsolation.initGuestSession();
+      localStorage.setItem('novelshare_guest_mode', 'true');
+    } else {
+      // Switching to user mode
+      // Backup guest data first if currently in guest mode
+      if (this.isGuest()) {
+        DataIsolation.backupCurrentData(true);
+      }
+      localStorage.removeItem('novelshare_guest_mode');
+      DataIsolation.initUserSession();
+    }
+  },
+
+  // Log out (clear guest mode and redirect to login)
+  logout() {
+    return this.fullLogout();
+  },
+
+  // Full logout (clears all session data)
+  async fullLogout() {
+    // Sign out from Supabase if available
+    try {
+      if (typeof SupabaseAuth !== 'undefined' && SupabaseAuth.signOut) {
+        await SupabaseAuth.signOut();
+      }
+    } catch (error) {
+      console.warn('Supabase sign-out failed (continuing logout):', error);
+    }
+
+    // Clear saved credentials used for auto-fill
+    if (typeof UserCredentials !== 'undefined' && UserCredentials.clearCredentials) {
+      UserCredentials.clearCredentials();
+    }
+
+    // Clear all session data (user and guest copies)
+    DataIsolation.ISOLATED_KEYS.forEach(key => {
+      localStorage.removeItem(key);
+      localStorage.removeItem('guest_' + key);
+      localStorage.removeItem('user_' + key);
+    });
+    localStorage.removeItem('novelshare_profile');
+    localStorage.removeItem('novelshare_user_mock_initialized');
+    localStorage.removeItem('novelshare_guest_mock_initialized');
+
+    // Enter clean guest mode to avoid auto-restoring user state
+    localStorage.setItem('novelshare_guest_mode', 'true');
+
+    window.location.href = 'login.html';
+  },
+
+  // Update profile UI based on guest mode
+  updateProfileUI() {
+    const isGuest = this.isGuest();
+    const profile = JSON.parse(localStorage.getItem('novelshare_profile') || '{}');
+
+    // Update header profile section
+    const profileWrapper = document.querySelector('.profile-wrapper');
+    const profileLink = document.querySelector('a.profile');
+    const avatarElements = document.querySelectorAll('.avatar:not(.avatar-lg)');
+    const avatarLgElements = document.querySelectorAll('.avatar-lg');
+    const usernameElements = document.querySelectorAll('.username');
+    const nameElements = document.querySelectorAll('.profile-dropdown-header .name');
+    const emailElements = document.querySelectorAll('.profile-dropdown-header .email');
+
+    if (isGuest) {
+      // Guest mode - show guest UI
+      avatarElements.forEach(el => el.textContent = 'G');
+      avatarLgElements.forEach(el => el.textContent = 'G');
+      usernameElements.forEach(el => el.textContent = 'Guest');
+      nameElements.forEach(el => el.textContent = 'Guest User');
+      emailElements.forEach(el => el.textContent = 'Not signed in');
+
+      // Change profile link to login page for guests (if it's a simple link)
+      if (profileLink && !profileWrapper) {
+        profileLink.href = 'login.html';
+      }
+
+      // Update profile dropdown menu for guest
+      const profileMenu = document.querySelector('.profile-dropdown-menu');
+      if (profileMenu) {
+        profileMenu.innerHTML = `
+          <a href="login.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>Sign In</a>
+          <a href="signup.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>Create Account</a>
+        `;
+      }
+    } else {
+      // Logged in - show user data
+      const initial = profile.name ? profile.name.charAt(0).toUpperCase() : 'U';
+      avatarElements.forEach(el => el.textContent = initial);
+      avatarLgElements.forEach(el => el.textContent = initial);
+      usernameElements.forEach(el => el.textContent = profile.username || 'User');
+      nameElements.forEach(el => el.textContent = profile.name || 'User');
+      emailElements.forEach(el => el.textContent = profile.email || '');
+
+      // Ensure profile link goes to profile page when logged in
+      if (profileLink && !profileWrapper) {
+        profileLink.href = 'profile.html';
+      }
+
+      // Populate logged-in menu if present
+      const profileMenu = document.querySelector('.profile-dropdown-menu');
+      if (profileMenu) {
+        profileMenu.innerHTML = `
+          <a href="profile.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="8" r="4"/>
+              <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
+            </svg>
+            My Profile
+          </a>
+          <a href="library.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+            My Works
+          </a>
+          <a href="login.html" class="logout">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+            </svg>
+            Log Out
+          </a>
+        `;
+      }
+    }
+  }
+};
+
+// Auto-initialize mock data and guest mode UI on page load
+document.addEventListener('DOMContentLoaded', () => {
+  // Only initialize mock data for logged-in users, not guests
+  // This prevents user data from leaking to guest sessions
+  if (!GuestMode.isGuest()) {
+    MockDataInitializer.initialize();
+  }
+
+  // If a Supabase session exists, ensure guest mode is off and profile UI reflects the logged-in user
+  if (typeof SupabaseAuth !== 'undefined' && SupabaseAuth.getSession) {
+    SupabaseAuth.getSession()
+      .then(async (result) => {
+        const session = result?.session || result?.data?.session;
+        const user = session?.user;
+        if (user) {
+          // Force user mode
+          GuestMode.setGuestMode(false);
+
+          // Try to fetch profile from DB for accurate name/username
+          let profile = {};
+          if (typeof SupabaseDB !== 'undefined' && SupabaseDB.getProfile) {
+            try {
+              const dbProfile = await SupabaseDB.getProfile(user.id);
+              profile = {
+                name: dbProfile?.display_name || dbProfile?.username || user.email || 'User',
+                username: dbProfile?.username || dbProfile?.display_name || 'user',
+                email: dbProfile?.email || user.email || ''
+              };
+            } catch (e) {
+              // Fallback to user metadata
+              const meta = user.user_metadata || {};
+              profile = {
+                name: meta.display_name || meta.full_name || 'User',
+                username: meta.username || meta.user_name || 'user',
+                email: user.email || ''
+              };
+            }
+          }
+
+          // Store profile for UI
+          if (Object.keys(profile).length === 0) {
+            const meta = user?.user_metadata || {};
+            profile = {
+              name: meta.display_name || meta.full_name || 'User',
+              username: meta.username || meta.user_name || 'user',
+              email: user?.email || ''
+            };
+          }
+          localStorage.setItem('novelshare_profile', JSON.stringify(profile));
+        }
+      })
+      .finally(() => {
+        GuestMode.updateProfileUI();
+      });
+  } else {
+    GuestMode.updateProfileUI();
+  }
+});
+
+// Export functions for module usage
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    initSearch,
+    initFilterPills,
+    initGenreFilter,
+    initPagination,
+    initTabs,
+    showToast,
+    initAddToLibrary,
+    initPasswordToggle,
+    validateField,
+    getPasswordStrength,
+    initPasswordStrength,
+    initDropdown,
+    Validators,
+    debounce,
+    throttle,
+    RatingSystem,
+    LibrarySystem,
+    FollowingSystem,
+    ReadingHistory,
+    BookmarkSystem,
+    MockDataInitializer,
+    GuestMode,
+    UserCredentials,
+    DataIsolation
+  };
+}
+
+// ============================================
+// Password Toggle Functionality
+// ============================================
+function initPasswordToggle(toggleSelector = '.password-toggle') {
+  // Event delegation so it works even if elements render after init
+  document.addEventListener('click', (event) => {
+    const toggle = event.target.closest(toggleSelector);
+    if (!toggle) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const container = toggle.closest('.password-input-container');
+    if (!container) return;
+
+    const input = container.querySelector('input[type="password"], input[type="text"]');
+    if (!input) return;
+
+    const isPassword = input.type === 'password';
+    input.type = isPassword ? 'text' : 'password';
+    toggle.classList.toggle('active', !isPassword);
+
+    // Update icon if present; swap based on current filename to avoid path issues
+    const icon = toggle.querySelector('.eye-icon');
+    if (icon && icon.tagName === 'IMG' && icon.src) {
+      if (icon.src.includes('hide')) {
+        icon.src = icon.src.replace('hide', 'show');
+      } else if (icon.src.includes('show')) {
+        icon.src = icon.src.replace('show', 'hide');
+      } else {
+        icon.src = isPassword ? '../assets/images/icons/show.png' : '../assets/images/icons/hide.png';
+      }
+      icon.alt = isPassword ? 'Hide password' : 'Show password';
+    }
+
+    toggle.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+  });
+}

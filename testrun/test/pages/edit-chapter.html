@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edit Chapter | NovelShare</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
+  <link rel="stylesheet" href="../assets/css/common.css" />
+  <style>
+    /* Chapter Form Specific Styles */
+    .form-container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 24px;
+    }
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .page-header h2 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin: 0 0 4px;
+    }
+    .page-header .subtext {
+      font-size: 0.9375rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+    .chapter-nav {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .chapter-nav button {
+      padding: 8px 16px;
+      border: 1px solid var(--border-color);
+      background: #fff;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-dark);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .chapter-nav button:hover:not(:disabled) {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .chapter-nav button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .chapter-nav .chapter-indicator {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      padding: 0 8px;
+    }
+    .form-container form {
+      background: #fff;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: var(--shadow-sm);
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 200px;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .form-container label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      margin-bottom: 8px;
+    }
+    .form-container input[type="text"],
+    .form-container select {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: #fff;
+    }
+    .form-container input[type="text"]:focus,
+    .form-container select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(31, 111, 225, 0.1);
+    }
+    .form-container input.invalid {
+      border-color: #ef4444;
+    }
+
+    /* Status Badge Styles */
+    .status-wrapper {
+      position: relative;
+    }
+    .status-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .status-badge.draft {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .status-badge.published {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    /* Formatting Toolbar */
+    .editor-wrapper {
+      margin-bottom: 24px;
+    }
+    .formatting-toolbar {
+      display: flex;
+      gap: 4px;
+      padding: 8px 12px;
+      background: #f8f9fa;
+      border: 1px solid var(--border-color);
+      border-bottom: none;
+      border-radius: 10px 10px 0 0;
+      flex-wrap: wrap;
+    }
+    .toolbar-btn {
+      padding: 8px 12px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: var(--text-dark);
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .toolbar-btn:hover {
+      background: #e9ecef;
+    }
+    .toolbar-btn.active {
+      background: var(--primary);
+      color: #fff;
+    }
+    .toolbar-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+    .toolbar-divider {
+      width: 1px;
+      background: var(--border-color);
+      margin: 0 8px;
+    }
+    .form-container textarea {
+      width: 100%;
+      min-height: 400px;
+      padding: 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 0 0 10px 10px;
+      font-size: 1rem;
+      font-family: inherit;
+      line-height: 1.7;
+      resize: vertical;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-container textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(31, 111, 225, 0.1);
+    }
+
+    /* Content Stats */
+    .content-stats {
+      display: flex;
+      gap: 20px;
+      padding: 12px 16px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .stat-item {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+    .stat-item strong {
+      color: var(--text-dark);
+      font-weight: 600;
+    }
+
+    /* Auto-save Indicator */
+    .autosave-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+    .autosave-indicator.saving {
+      color: var(--primary);
+    }
+    .autosave-indicator.saved {
+      color: #22c55e;
+    }
+    .autosave-indicator svg {
+      width: 16px;
+      height: 16px;
+    }
+    .spinner {
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Form Buttons */
+    .form-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .form-buttons .left-actions {
+      display: flex;
+      gap: 12px;
+    }
+    .form-buttons .right-actions {
+      display: flex;
+      gap: 12px;
+    }
+    .form-buttons button {
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .cancel-btn {
+      background: #f5f5f5;
+      color: var(--text-dark);
+      border: 1px solid var(--border-color);
+    }
+    .cancel-btn:hover {
+      background: #eee;
+    }
+    .delete-btn {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+    .delete-btn:hover {
+      background: #fee2e2;
+    }
+    .preview-btn {
+      background: #fff;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+    .preview-btn:hover {
+      background: #f0f4ff;
+    }
+    .save-btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+    }
+    .save-btn:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    /* Preview Mode */
+    .preview-container {
+      display: none;
+      background: #fff;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: var(--shadow-sm);
+    }
+    .preview-container.active {
+      display: block;
+    }
+    .preview-container .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .preview-container .preview-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+    .preview-container .preview-status {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .preview-container .preview-content {
+      font-size: 1.0625rem;
+      line-height: 1.8;
+      color: var(--text-dark);
+      white-space: pre-wrap;
+    }
+    .form-container form.hidden {
+      display: none;
+    }
+
+    /* Notification Dropdown */
+    .notification-wrapper {
+      position: relative;
+    }
+    .bell-btn {
+      position: relative;
+    }
+    .notification-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 18px;
+      height: 18px;
+      background: #ef4444;
+      color: #fff;
+      border-radius: 50%;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .notification-dropdown {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 320px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
+      display: none;
+      z-index: 100;
+      overflow: hidden;
+    }
+    .notification-dropdown.open {
+      display: block;
+    }
+    .notification-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .notification-header h4 {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      margin: 0;
+    }
+    .notification-header button {
+      font-size: 0.8125rem;
+      color: var(--primary);
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    .notification-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .notification-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .notification-item:hover {
+      background: #f8f9fa;
+    }
+    .notification-item.unread {
+      background: #f0f7ff;
+    }
+    .notification-item .notif-title {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-dark);
+      margin-bottom: 4px;
+    }
+    .notification-item .notif-time {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Profile Dropdown */
+    .profile-wrapper {
+      position: relative;
+    }
+    .profile {
+      cursor: pointer;
+    }
+    .profile-dropdown {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 200px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
+      display: none;
+      z-index: 100;
+      overflow: hidden;
+    }
+    .profile-dropdown.open {
+      display: block;
+    }
+    .profile-dropdown-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+      text-align: center;
+    }
+    .profile-dropdown-header .avatar-lg {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 1.25rem;
+      margin: 0 auto 8px;
+    }
+    .profile-dropdown-header .name {
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+    .profile-dropdown-header .email {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+    .profile-dropdown-menu {
+      padding: 8px 0;
+    }
+    .profile-dropdown-menu a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      color: var(--text-dark);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: background 0.2s;
+    }
+    .profile-dropdown-menu a:hover {
+      background: #f8f9fa;
+    }
+    .profile-dropdown-menu a svg {
+      width: 18px;
+      height: 18px;
+      color: var(--text-muted);
+    }
+    .profile-dropdown-menu .logout {
+      color: #dc2626;
+      border-top: 1px solid var(--border-color);
+      margin-top: 8px;
+      padding-top: 16px;
+    }
+    .profile-dropdown-menu .logout svg {
+      color: #dc2626;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-overlay.open {
+      display: flex;
+    }
+    .modal {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+    }
+    .modal-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .modal-icon.danger {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+    .modal-icon.warning {
+      background: #fef3c7;
+      color: #d97706;
+    }
+    .modal-icon svg {
+      width: 28px;
+      height: 28px;
+    }
+    .modal h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 0 0 8px;
+    }
+    .modal p {
+      font-size: 0.9375rem;
+      color: var(--text-muted);
+      margin: 0 0 24px;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    .modal-actions button {
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .modal-cancel {
+      background: #f5f5f5;
+      color: var(--text-dark);
+      border: 1px solid var(--border-color);
+    }
+    .modal-confirm {
+      background: #dc2626;
+      color: #fff;
+      border: none;
+    }
+    .modal-confirm.warning {
+      background: #d97706;
+    }
+
+    @media (max-width: 768px) {
+      .form-row { grid-template-columns: 1fr; }
+      .notification-dropdown { width: 280px; right: -100px; }
+    }
+    @media (max-width: 620px) {
+      .form-container { padding: 0 16px; margin: 24px auto; }
+      .form-container form { padding: 20px; }
+      .form-container textarea { min-height: 300px; }
+      .form-buttons { flex-direction: column; }
+      .form-buttons .left-actions,
+      .form-buttons .right-actions { width: 100%; justify-content: stretch; }
+      .form-buttons button { flex: 1; }
+      .page-header { flex-direction: column; }
+      .chapter-nav { width: 100%; justify-content: space-between; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- Header -->
+    <header class="top-bar">
+      <a href="home.html" class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 64 64" aria-hidden="true">
+            <path
+              d="M32 12c-4.8-3.3-10.4-4.4-16-4.4a6.6 6.6 0 0 0-6.6 6.6v28.2c0 1.1.9 2 2 2H18c4.7 0 9.3 1.5 13.2 4.2 3.9-2.7 8.5-4.2 13.2-4.2h6.6c1.1 0 2-.9 2-2V14.2A6.6 6.6 0 0 0 48 7.6C42.4 7.6 36.8 8.7 32 12Zm0 6.9c4.3-2.6 9.2-3.9 14.2-3.9 1.1 0 2 .9 2 2v24.1h-4.6c-4.5 0-8.9 1.1-12.8 3.2v-25.4Zm-4 25.4c-3.9-2.1-8.3-3.2-12.8-3.2H10.6V17c0-1.1.9-2 2-2 5 0 9.9 1.3 14.2 3.9v25.4Z"
+              fill="currentColor"
+            />
+          </svg>
+        </div>
+        <div class="logo-text">
+          <span class="logo-name">NovelShare</span>
+          <span class="logo-tagline">READ • WRITE • SHARE</span>
+        </div>
+      </a>
+
+      <nav class="nav-pills">
+        <a class="pill" href="library.html">
+          <span class="pill-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15z"/>
+            </svg>
+          </span>
+          Library
+        </a>
+        <a class="pill" href="browse.html">
+          <span class="pill-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M11 5a6 6 0 1 1 0 12 6 6 0 0 1 0-12zm6.7 11.3L21 19.6" stroke-width="2" fill="none" stroke="currentColor" stroke-linecap="round"/>
+            </svg>
+          </span>
+          Browse
+        </a>
+      </nav>
+
+      <div class="profile-actions">
+        <!-- Notification Bell with Dropdown -->
+        <div class="notification-wrapper">
+          <button class="bell-btn" id="notificationBtn" aria-label="Notifications">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 5.5A4.5 4.5 0 0 0 7.5 10v3.4l-.8 2.4h10.6l-.8-2.4V10A4.5 4.5 0 0 0 12 5.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M10 18.5a2 2 0 0 0 4 0" stroke-width="1.8" stroke="currentColor" fill="none"/>
+            </svg>
+            <span class="notification-badge" id="notifBadge">3</span>
+          </button>
+          <div class="notification-dropdown" id="notificationDropdown">
+            <div class="notification-header">
+              <h4>Notifications</h4>
+              <button id="markAllRead">Mark all read</button>
+            </div>
+            <div class="notification-list">
+              <div class="notification-item unread" data-id="1">
+                <div class="notif-title">New comment on "Twin Sisters"</div>
+                <div class="notif-time">2 minutes ago</div>
+              </div>
+              <div class="notification-item unread" data-id="2">
+                <div class="notif-title">Your chapter was published</div>
+                <div class="notif-time">1 hour ago</div>
+              </div>
+              <div class="notification-item unread" data-id="3">
+                <div class="notif-title">New follower: JohnDoe</div>
+                <div class="notif-time">3 hours ago</div>
+              </div>
+              <div class="notification-item" data-id="4">
+                <div class="notif-title">Weekly stats available</div>
+                <div class="notif-time">1 day ago</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Profile with Dropdown -->
+        <div class="profile-wrapper">
+          <div class="profile" id="profileBtn">
+            <div class="avatar">U</div>
+            <span class="username">user</span>
+          </div>
+          <div class="profile-dropdown" id="profileDropdown">
+            <div class="profile-dropdown-header">
+              <div class="avatar-lg">U</div>
+              <div class="name">User Name</div>
+              <div class="email">user@example.com</div>
+            </div>
+            <div class="profile-dropdown-menu">
+              <a href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="8" r="4"/>
+                  <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
+                </svg>
+                My Profile
+              </a>
+              <a href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                </svg>
+                My Works
+              </a>
+              <a href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+                Settings
+              </a>
+              <a href="login.html" class="logout">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+                </svg>
+                Log Out
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Edit Chapter Form -->
+    <main class="form-container">
+      <div class="page-header">
+        <div>
+          <h2>Edit Chapter</h2>
+          <p class="subtext">Refine the chapter content as needed</p>
+        </div>
+        <div class="chapter-nav">
+          <button id="prevChapter" disabled>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 18l-6-6 6-6"/>
+            </svg>
+            Previous
+          </button>
+          <span class="chapter-indicator">Chapter 3 of 12</span>
+          <button id="nextChapter">
+            Next
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Auto-save Indicator -->
+      <div class="autosave-indicator" id="autosaveIndicator">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+        </svg>
+        <span>All changes saved</span>
+      </div>
+
+      <form id="editChapterForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="chapter-title">Chapter Title <span style="color: #ef4444;">*</span></label>
+            <input type="text" id="chapter-title" value="Twin Sisters" required />
+          </div>
+          <div class="form-group status-wrapper">
+            <label for="status">Status</label>
+            <select id="status">
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+            </select>
+            <span class="status-badge draft" id="statusBadge">Draft</span>
+          </div>
+        </div>
+
+        <div class="editor-wrapper">
+          <label for="chapter-content">Chapter Content</label>
+          <div class="formatting-toolbar">
+            <button type="button" class="toolbar-btn" data-format="bold" title="Bold (Ctrl+B)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6zM6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/>
+              </svg>
+            </button>
+            <button type="button" class="toolbar-btn" data-format="italic" title="Italic (Ctrl+I)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="4" x2="10" y2="4"/>
+                <line x1="14" y1="20" x2="5" y2="20"/>
+                <line x1="15" y1="4" x2="9" y2="20"/>
+              </svg>
+            </button>
+            <button type="button" class="toolbar-btn" data-format="underline" title="Underline (Ctrl+U)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"/>
+                <line x1="4" y1="21" x2="20" y2="21"/>
+              </svg>
+            </button>
+            <div class="toolbar-divider"></div>
+            <button type="button" class="toolbar-btn" data-format="h1" title="Heading 1">H1</button>
+            <button type="button" class="toolbar-btn" data-format="h2" title="Heading 2">H2</button>
+            <button type="button" class="toolbar-btn" data-format="h3" title="Heading 3">H3</button>
+            <div class="toolbar-divider"></div>
+            <button type="button" class="toolbar-btn" data-format="quote" title="Quote">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"/>
+              </svg>
+            </button>
+            <button type="button" class="toolbar-btn" data-format="list" title="Bullet List">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="8" y1="6" x2="21" y2="6"/>
+                <line x1="8" y1="12" x2="21" y2="12"/>
+                <line x1="8" y1="18" x2="21" y2="18"/>
+                <circle cx="4" cy="6" r="1" fill="currentColor"/>
+                <circle cx="4" cy="12" r="1" fill="currentColor"/>
+                <circle cx="4" cy="18" r="1" fill="currentColor"/>
+              </svg>
+            </button>
+          </div>
+          <textarea id="chapter-content">Huizhou Prefecture, She County.
+
+At night, the streets and alleys are quiet, and you can occasionally hear a few dogs barking.
+A group of officials suddenly broke into the Song family's home. The leading official claimed that the medicinal materials sold by the Song family to the Northwest Army were inferior and had resulted in deaths. They were ordered to search the family's home and investigate the crime.
+"Oh no! There's a flood in the backyard!"
+"Go put out the fire! The eldest and second young ladies are still in the house!"
+"Rescue!"
+The Song family was in chaos and there were cries everywhere.
+An ordinary horse-drawn carriage came out of the alley next to the Song residence and hurried towards the city gate. Inside the carriage,
+Song Jin hugged his half sister Song Xiu. Even though he was extremely frightened in his heart, his face remained calm.
+The old man Qin who was driving the car said, "Miss, when you get to Qinjiagou, tell everyone that you are from the next county and both your parents are dead."</textarea>
+        </div>
+
+        <!-- Content Stats -->
+        <div class="content-stats">
+          <div class="stat-item"><strong id="wordCount">0</strong> words</div>
+          <div class="stat-item"><strong id="charCount">0</strong> characters</div>
+          <div class="stat-item"><strong id="readTime">0</strong> min read</div>
+          <div class="stat-item"><strong id="paragraphCount">0</strong> paragraphs</div>
+        </div>
+
+        <div class="form-buttons">
+          <div class="left-actions">
+            <button type="button" class="delete-btn" id="deleteBtn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;">
+                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+              Delete
+            </button>
+          </div>
+          <div class="right-actions">
+            <button type="button" class="cancel-btn" id="cancelBtn">Cancel</button>
+            <button type="button" class="preview-btn" id="previewBtn">Preview</button>
+            <button type="submit" class="save-btn">Save Changes</button>
+          </div>
+        </div>
+      </form>
+
+      <!-- Preview Container -->
+      <div class="preview-container" id="previewContainer">
+        <div class="preview-header">
+          <h3 class="preview-title" id="previewTitle">Twin Sisters</h3>
+          <span class="preview-status status-badge draft" id="previewStatus">Draft</span>
+        </div>
+        <div class="preview-content" id="previewContent"></div>
+        <div class="form-buttons" style="margin-top: 24px;">
+          <div class="left-actions"></div>
+          <div class="right-actions">
+            <button type="button" class="preview-btn" id="exitPreviewBtn">Exit Preview</button>
+            <button type="button" class="save-btn" id="publishFromPreview">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>&copy; 2025 Novel Share. All Rights Reserved.</p>
+      <div class="footer-links">
+        <a href="#">Contact Us</a>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal">
+      <div class="modal-icon danger">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/>
+        </svg>
+      </div>
+      <h3>Delete Chapter?</h3>
+      <p>This action cannot be undone. The chapter will be permanently deleted.</p>
+      <div class="modal-actions">
+        <button class="modal-cancel" id="cancelDelete">Cancel</button>
+        <button class="modal-confirm" id="confirmDelete">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unsaved Changes Modal -->
+  <div class="modal-overlay" id="unsavedModal">
+    <div class="modal">
+      <div class="modal-icon warning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        </svg>
+      </div>
+      <h3>Unsaved Changes</h3>
+      <p>You have unsaved changes. Are you sure you want to leave?</p>
+      <div class="modal-actions">
+        <button class="modal-cancel" id="stayOnPage">Stay</button>
+        <button class="modal-confirm warning" id="leaveAnyway">Leave Anyway</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Change Modal -->
+  <div class="modal-overlay" id="statusModal">
+    <div class="modal">
+      <div class="modal-icon warning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 8v4M12 16h.01"/>
+        </svg>
+      </div>
+      <h3 id="statusModalTitle">Change Status?</h3>
+      <p id="statusModalText">Are you sure you want to change the chapter status?</p>
+      <div class="modal-actions">
+        <button class="modal-cancel" id="cancelStatusChange">Cancel</button>
+        <button class="modal-confirm warning" id="confirmStatusChange">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../assets/js/common.js"></script>
+  <script>
+    // State
+    let hasUnsavedChanges = false;
+    let originalContent = {};
+    let autoSaveTimeout = null;
+    let currentChapter = 3;
+    const totalChapters = 12;
+
+    // DOM Elements
+    const form = document.getElementById('editChapterForm');
+    const titleInput = document.getElementById('chapter-title');
+    const contentTextarea = document.getElementById('chapter-content');
+    const statusSelect = document.getElementById('status');
+    const statusBadge = document.getElementById('statusBadge');
+    const autosaveIndicator = document.getElementById('autosaveIndicator');
+    const previewContainer = document.getElementById('previewContainer');
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      // Store original content
+      originalContent = {
+        title: titleInput.value,
+        content: contentTextarea.value,
+        status: statusSelect.value
+      };
+
+      // Update stats
+      updateContentStats();
+
+      // Initialize dropdowns
+      initDropdowns();
+    });
+
+    // ============================================
+    // Content Stats
+    // ============================================
+    function updateContentStats() {
+      const content = contentTextarea.value;
+      const words = content.trim() ? content.trim().split(/\s+/).length : 0;
+      const chars = content.length;
+      const paragraphs = content.trim() ? content.trim().split(/\n\n+/).length : 0;
+      const readTime = Math.ceil(words / 200); // Average reading speed
+
+      document.getElementById('wordCount').textContent = words.toLocaleString();
+      document.getElementById('charCount').textContent = chars.toLocaleString();
+      document.getElementById('readTime').textContent = readTime;
+      document.getElementById('paragraphCount').textContent = paragraphs;
+    }
+
+    contentTextarea.addEventListener('input', updateContentStats);
+
+    // ============================================
+    // Auto-save Functionality
+    // ============================================
+    function triggerAutoSave() {
+      hasUnsavedChanges = true;
+
+      // Show saving indicator
+      autosaveIndicator.className = 'autosave-indicator saving';
+      autosaveIndicator.innerHTML = `
+        <svg class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+        </svg>
+        <span>Saving...</span>
+      `;
+
+      // Clear previous timeout
+      clearTimeout(autoSaveTimeout);
+
+      // Auto-save after 2 seconds of inactivity
+      autoSaveTimeout = setTimeout(() => {
+        // Simulate save
+        setTimeout(() => {
+          autosaveIndicator.className = 'autosave-indicator saved';
+          autosaveIndicator.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 6L9 17l-5-5"/>
+            </svg>
+            <span>All changes saved</span>
+          `;
+          hasUnsavedChanges = false;
+
+          // Reset indicator after 3 seconds
+          setTimeout(() => {
+            autosaveIndicator.className = 'autosave-indicator';
+            autosaveIndicator.innerHTML = `
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+              </svg>
+              <span>All changes saved</span>
+            `;
+          }, 3000);
+        }, 500);
+      }, 2000);
+    }
+
+    titleInput.addEventListener('input', triggerAutoSave);
+    contentTextarea.addEventListener('input', triggerAutoSave);
+
+    // ============================================
+    // Status Change
+    // ============================================
+    let pendingStatus = null;
+
+    statusSelect.addEventListener('change', (e) => {
+      const newStatus = e.target.value;
+      const oldStatus = originalContent.status;
+
+      if (newStatus === 'draft' && oldStatus === 'published') {
+        // Warn about unpublishing
+        pendingStatus = newStatus;
+        document.getElementById('statusModalTitle').textContent = 'Unpublish Chapter?';
+        document.getElementById('statusModalText').textContent = 'This will remove the chapter from public view. Readers will no longer be able to access it.';
+        document.getElementById('statusModal').classList.add('open');
+        statusSelect.value = oldStatus;
+      } else if (newStatus === 'published' && oldStatus === 'draft') {
+        // Confirm publishing
+        pendingStatus = newStatus;
+        document.getElementById('statusModalTitle').textContent = 'Publish Chapter?';
+        document.getElementById('statusModalText').textContent = 'This will make the chapter visible to all readers.';
+        document.getElementById('statusModal').classList.add('open');
+        statusSelect.value = oldStatus;
+      } else {
+        updateStatusBadge(newStatus);
+      }
+    });
+
+    document.getElementById('confirmStatusChange').addEventListener('click', () => {
+      if (pendingStatus) {
+        statusSelect.value = pendingStatus;
+        updateStatusBadge(pendingStatus);
+        originalContent.status = pendingStatus;
+        showToast(pendingStatus === 'published' ? 'Chapter published!' : 'Chapter unpublished');
+      }
+      document.getElementById('statusModal').classList.remove('open');
+      pendingStatus = null;
+    });
+
+    document.getElementById('cancelStatusChange').addEventListener('click', () => {
+      document.getElementById('statusModal').classList.remove('open');
+      pendingStatus = null;
+    });
+
+    function updateStatusBadge(status) {
+      statusBadge.className = `status-badge ${status}`;
+      statusBadge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    }
+
+    // ============================================
+    // Formatting Toolbar
+    // ============================================
+    document.querySelectorAll('.toolbar-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const format = btn.dataset.format;
+        const textarea = contentTextarea;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = textarea.value.substring(start, end);
+
+        let formattedText = '';
+        let cursorOffset = 0;
+
+        switch (format) {
+          case 'bold':
+            formattedText = `**${selectedText}**`;
+            cursorOffset = selectedText ? 0 : 2;
+            break;
+          case 'italic':
+            formattedText = `*${selectedText}*`;
+            cursorOffset = selectedText ? 0 : 1;
+            break;
+          case 'underline':
+            formattedText = `_${selectedText}_`;
+            cursorOffset = selectedText ? 0 : 1;
+            break;
+          case 'h1':
+            formattedText = `# ${selectedText}`;
+            cursorOffset = selectedText ? 0 : 2;
+            break;
+          case 'h2':
+            formattedText = `## ${selectedText}`;
+            cursorOffset = selectedText ? 0 : 3;
+            break;
+          case 'h3':
+            formattedText = `### ${selectedText}`;
+            cursorOffset = selectedText ? 0 : 4;
+            break;
+          case 'quote':
+            formattedText = `> ${selectedText}`;
+            cursorOffset = selectedText ? 0 : 2;
+            break;
+          case 'list':
+            formattedText = `- ${selectedText}`;
+            cursorOffset = selectedText ? 0 : 2;
+            break;
+        }
+
+        textarea.value = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
+        textarea.focus();
+
+        if (selectedText) {
+          textarea.setSelectionRange(start, start + formattedText.length);
+        } else {
+          textarea.setSelectionRange(start + cursorOffset, start + cursorOffset);
+        }
+
+        triggerAutoSave();
+        showToast(`${format.charAt(0).toUpperCase() + format.slice(1)} applied`);
+      });
+    });
+
+    // Keyboard shortcuts
+    contentTextarea.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key.toLowerCase()) {
+          case 'b':
+            e.preventDefault();
+            document.querySelector('[data-format="bold"]').click();
+            break;
+          case 'i':
+            e.preventDefault();
+            document.querySelector('[data-format="italic"]').click();
+            break;
+          case 'u':
+            e.preventDefault();
+            document.querySelector('[data-format="underline"]').click();
+            break;
+        }
+      }
+    });
+
+    // ============================================
+    // Preview Mode
+    // ============================================
+    document.getElementById('previewBtn').addEventListener('click', () => {
+      form.classList.add('hidden');
+      previewContainer.classList.add('active');
+
+      document.getElementById('previewTitle').textContent = titleInput.value || 'Untitled';
+      document.getElementById('previewContent').textContent = contentTextarea.value;
+
+      const previewStatus = document.getElementById('previewStatus');
+      previewStatus.className = `preview-status status-badge ${statusSelect.value}`;
+      previewStatus.textContent = statusSelect.value.charAt(0).toUpperCase() + statusSelect.value.slice(1);
+    });
+
+    document.getElementById('exitPreviewBtn').addEventListener('click', () => {
+      form.classList.remove('hidden');
+      previewContainer.classList.remove('active');
+    });
+
+    document.getElementById('publishFromPreview').addEventListener('click', () => {
+      form.classList.remove('hidden');
+      previewContainer.classList.remove('active');
+      form.dispatchEvent(new Event('submit'));
+    });
+
+    // ============================================
+    // Chapter Navigation
+    // ============================================
+    function updateChapterNav() {
+      document.getElementById('prevChapter').disabled = currentChapter <= 1;
+      document.getElementById('nextChapter').disabled = currentChapter >= totalChapters;
+      document.querySelector('.chapter-indicator').textContent = `Chapter ${currentChapter} of ${totalChapters}`;
+    }
+
+    document.getElementById('prevChapter').addEventListener('click', () => {
+      if (hasUnsavedChanges) {
+        showUnsavedModal(() => {
+          currentChapter--;
+          updateChapterNav();
+          showToast(`Navigated to Chapter ${currentChapter}`);
+        });
+      } else {
+        currentChapter--;
+        updateChapterNav();
+        showToast(`Navigated to Chapter ${currentChapter}`);
+      }
+    });
+
+    document.getElementById('nextChapter').addEventListener('click', () => {
+      if (hasUnsavedChanges) {
+        showUnsavedModal(() => {
+          currentChapter++;
+          updateChapterNav();
+          showToast(`Navigated to Chapter ${currentChapter}`);
+        });
+      } else {
+        currentChapter++;
+        updateChapterNav();
+        showToast(`Navigated to Chapter ${currentChapter}`);
+      }
+    });
+
+    // ============================================
+    // Delete Chapter
+    // ============================================
+    document.getElementById('deleteBtn').addEventListener('click', () => {
+      document.getElementById('deleteModal').classList.add('open');
+    });
+
+    document.getElementById('cancelDelete').addEventListener('click', () => {
+      document.getElementById('deleteModal').classList.remove('open');
+    });
+
+    document.getElementById('confirmDelete').addEventListener('click', () => {
+      document.getElementById('deleteModal').classList.remove('open');
+      showToast('Chapter deleted');
+      setTimeout(() => {
+        window.location.href = 'library.html';
+      }, 1000);
+    });
+
+    // ============================================
+    // Unsaved Changes Warning
+    // ============================================
+    let pendingNavigation = null;
+
+    function showUnsavedModal(callback) {
+      pendingNavigation = callback;
+      document.getElementById('unsavedModal').classList.add('open');
+    }
+
+    document.getElementById('stayOnPage').addEventListener('click', () => {
+      document.getElementById('unsavedModal').classList.remove('open');
+      pendingNavigation = null;
+    });
+
+    document.getElementById('leaveAnyway').addEventListener('click', () => {
+      document.getElementById('unsavedModal').classList.remove('open');
+      hasUnsavedChanges = false;
+      if (pendingNavigation) {
+        pendingNavigation();
+        pendingNavigation = null;
+      }
+    });
+
+    document.getElementById('cancelBtn').addEventListener('click', () => {
+      if (hasUnsavedChanges) {
+        showUnsavedModal(() => {
+          history.back();
+        });
+      } else {
+        history.back();
+      }
+    });
+
+    // Warn before leaving page
+    window.addEventListener('beforeunload', (e) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+
+    // ============================================
+    // Form Validation & Submit
+    // ============================================
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      // Validate title
+      if (!titleInput.value.trim()) {
+        titleInput.classList.add('invalid');
+        titleInput.focus();
+        showToast('Please enter a chapter title');
+        return;
+      }
+
+      titleInput.classList.remove('invalid');
+      hasUnsavedChanges = false;
+
+      // Update original content
+      originalContent = {
+        title: titleInput.value,
+        content: contentTextarea.value,
+        status: statusSelect.value
+      };
+
+      showToast('Changes saved successfully!');
+    });
+
+    titleInput.addEventListener('input', () => {
+      if (titleInput.value.trim()) {
+        titleInput.classList.remove('invalid');
+      }
+    });
+
+    // ============================================
+    // Dropdowns (Notifications & Profile)
+    // ============================================
+    function initDropdowns() {
+      const notifBtn = document.getElementById('notificationBtn');
+      const notifDropdown = document.getElementById('notificationDropdown');
+      const profileBtn = document.getElementById('profileBtn');
+      const profileDropdown = document.getElementById('profileDropdown');
+
+      // Notification dropdown
+      notifBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        notifDropdown.classList.toggle('open');
+        profileDropdown.classList.remove('open');
+      });
+
+      // Profile dropdown
+      profileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        profileDropdown.classList.toggle('open');
+        notifDropdown.classList.remove('open');
+      });
+
+      // Close on click outside
+      document.addEventListener('click', () => {
+        notifDropdown.classList.remove('open');
+        profileDropdown.classList.remove('open');
+      });
+
+      // Prevent closing when clicking inside dropdown
+      notifDropdown.addEventListener('click', (e) => e.stopPropagation());
+      profileDropdown.addEventListener('click', (e) => e.stopPropagation());
+
+      // Mark all as read
+      document.getElementById('markAllRead').addEventListener('click', () => {
+        document.querySelectorAll('.notification-item.unread').forEach(item => {
+          item.classList.remove('unread');
+        });
+        document.getElementById('notifBadge').style.display = 'none';
+        showToast('All notifications marked as read');
+      });
+
+      // Mark individual as read
+      document.querySelectorAll('.notification-item').forEach(item => {
+        item.addEventListener('click', () => {
+          item.classList.remove('unread');
+          updateNotifBadge();
+        });
+      });
+    }
+
+    function updateNotifBadge() {
+      const unreadCount = document.querySelectorAll('.notification-item.unread').length;
+      const badge = document.getElementById('notifBadge');
+      if (unreadCount > 0) {
+        badge.textContent = unreadCount;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    // Close modals on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          overlay.classList.remove('open');
+        }
+      });
+    });
+
+    // Close modals on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.open').forEach(modal => {
+          modal.classList.remove('open');
+        });
+        document.querySelectorAll('.notification-dropdown.open, .profile-dropdown.open').forEach(dropdown => {
+          dropdown.classList.remove('open');
+        });
+      }
+    });
+  </script>
+</body>
+</html>
