@@ -1100,7 +1100,7 @@
     const novelData = {
       id: 'twin_sisters',
       title: 'Twin Sisters',
-      cover: '',
+      cover: '../assets/images/covers/thumbnail.jpg',
       author: 'Jane Writer',
       authorId: 'janewriter'
     };
@@ -1344,7 +1344,7 @@
       } else {
         // Add bookmark at current position
         const scrollPosition = window.scrollY;
-        BookmarkSystem.addBookmark(novelData.id, chapterData.id, scrollPosition, `Bookmarked at ${new Date().toLocaleString()}`);
+        BookmarkSystem.addBookmark(novelData.id, chapterData.id, scrollPosition, `Bookmarked at ${new Date().toLocaleString()}`, novelData.title, chapterData.title);
         showToast('Bookmark added');
       }
 

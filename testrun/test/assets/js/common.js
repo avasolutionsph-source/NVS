@@ -1019,7 +1019,7 @@ const BookmarkSystem = {
   },
 
   // Add bookmark
-  addBookmark(novelId, chapterId, position = 0, note = '') {
+  addBookmark(novelId, chapterId, position = 0, note = '', novelTitle = '', chapterTitle = '') {
     const bookmarks = this.getBookmarks();
     const bookmark = {
       id: `${novelId}_${chapterId}_${Date.now()}`,
@@ -1027,6 +1027,8 @@ const BookmarkSystem = {
       chapterId: chapterId,
       position: position,
       note: note,
+      novelTitle: novelTitle,
+      chapterTitle: chapterTitle,
       createdAt: Date.now()
     };
     bookmarks.push(bookmark);
