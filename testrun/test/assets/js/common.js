@@ -3,6 +3,143 @@
    ============================================ */
 
 // ============================================
+// Safe Storage Wrapper (handles localStorage errors)
+// ============================================
+const SafeStorage = {
+  // Check if localStorage is available
+  isAvailable() {
+    try {
+      const test = '__storage_test__';
+      localStorage.setItem(test, test);
+      localStorage.removeItem(test);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  },
+
+  // Safe getItem with fallback
+  getItem(key, defaultValue = null) {
+    try {
+      const value = localStorage.getItem(key);
+      return value !== null ? value : defaultValue;
+    } catch (e) {
+      console.warn(`SafeStorage: Failed to get "${key}"`, e.message);
+      return defaultValue;
+    }
+  },
+
+  // Safe setItem with quota handling
+  setItem(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.code === 22) {
+        console.warn('SafeStorage: Storage quota exceeded. Attempting cleanup...');
+        // Try to free up space by removing old/large items
+        this.cleanup();
+        // Retry once
+        try {
+          localStorage.setItem(key, value);
+          return true;
+        } catch (retryError) {
+          console.error('SafeStorage: Still unable to save after cleanup', retryError.message);
+          this.showStorageWarning();
+          return false;
+        }
+      }
+      console.error(`SafeStorage: Failed to set "${key}"`, e.message);
+      return false;
+    }
+  },
+
+  // Safe removeItem
+  removeItem(key) {
+    try {
+      localStorage.removeItem(key);
+      return true;
+    } catch (e) {
+      console.warn(`SafeStorage: Failed to remove "${key}"`, e.message);
+      return false;
+    }
+  },
+
+  // Get JSON with parsing and error handling
+  getJSON(key, defaultValue = null) {
+    try {
+      const value = this.getItem(key);
+      if (value === null) return defaultValue;
+      return JSON.parse(value);
+    } catch (e) {
+      console.warn(`SafeStorage: Failed to parse JSON for "${key}"`, e.message);
+      return defaultValue;
+    }
+  },
+
+  // Set JSON with stringifying and error handling
+  setJSON(key, value) {
+    try {
+      return this.setItem(key, JSON.stringify(value));
+    } catch (e) {
+      console.error(`SafeStorage: Failed to stringify JSON for "${key}"`, e.message);
+      return false;
+    }
+  },
+
+  // Get current storage usage
+  getUsage() {
+    try {
+      let total = 0;
+      for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          total += localStorage.getItem(key).length * 2; // UTF-16 = 2 bytes per char
+        }
+      }
+      return {
+        used: total,
+        usedMB: (total / (1024 * 1024)).toFixed(2),
+        // Most browsers have 5-10MB limit
+        estimatedLimit: 5 * 1024 * 1024,
+        percentUsed: ((total / (5 * 1024 * 1024)) * 100).toFixed(1)
+      };
+    } catch (e) {
+      return { used: 0, usedMB: '0', estimatedLimit: 0, percentUsed: '0' };
+    }
+  },
+
+  // Cleanup old/unnecessary data to free space
+  cleanup() {
+    try {
+      // Items that can be safely trimmed or removed
+      const trimmableKeys = [
+        'novelshare_history',  // Can trim old entries
+        'novelshare_offline'   // Can remove cached chapters
+      ];
+
+      trimmableKeys.forEach(key => {
+        const data = this.getJSON(key, []);
+        if (Array.isArray(data) && data.length > 20) {
+          // Keep only last 20 items
+          this.setJSON(key, data.slice(-20));
+        }
+      });
+
+      console.log('SafeStorage: Cleanup completed');
+    } catch (e) {
+      console.warn('SafeStorage: Cleanup failed', e.message);
+    }
+  },
+
+  // Show warning to user about storage issues
+  showStorageWarning() {
+    if (typeof showToast === 'function') {
+      showToast('Storage is full. Some data may not be saved.', 'warning');
+    }
+  }
+};
+
+// ============================================
 // Search Functionality
 // ============================================
 function initSearch(inputSelector, itemsSelector, searchKey = 'textContent') {
@@ -592,13 +729,14 @@ const RatingSystem = {
     return html;
   },
 
-  // Initialize interactive star rating
+  // Initialize interactive star rating with touch support
   initStarRating(containerSelector, options = {}) {
     const containers = document.querySelectorAll(containerSelector);
     const { maxStars = 5, onRate = null, initialRating = 0 } = options;
 
     containers.forEach(container => {
       let currentRating = initialRating;
+      let isTouching = false;
 
       // Create stars
       container.innerHTML = '';
@@ -607,15 +745,59 @@ const RatingSystem = {
         star.className = 'star-input';
         star.dataset.value = i;
         star.textContent = '★';
-        star.addEventListener('mouseenter', () => highlightStars(container, i));
-        star.addEventListener('mouseleave', () => highlightStars(container, currentRating));
-        star.addEventListener('click', () => {
+
+        // Mouse events (for desktop)
+        star.addEventListener('mouseenter', () => {
+          if (!isTouching) highlightStars(container, i);
+        });
+        star.addEventListener('mouseleave', () => {
+          if (!isTouching) highlightStars(container, currentRating);
+        });
+
+        // Click/tap to select rating
+        star.addEventListener('click', (e) => {
+          e.preventDefault();
           currentRating = i;
           highlightStars(container, i);
           container.dataset.rating = i;
           if (onRate) onRate(i);
         });
+
         container.appendChild(star);
+      }
+
+      // Touch events for mobile - allow sliding to select stars
+      container.addEventListener('touchstart', (e) => {
+        isTouching = true;
+        handleTouchRating(e);
+      }, { passive: false });
+
+      container.addEventListener('touchmove', (e) => {
+        e.preventDefault(); // Prevent scroll while rating
+        handleTouchRating(e);
+      }, { passive: false });
+
+      container.addEventListener('touchend', (e) => {
+        // Commit the rating on touch end
+        const stars = container.querySelectorAll('.star-input.active');
+        if (stars.length > 0) {
+          currentRating = stars.length;
+          container.dataset.rating = currentRating;
+          if (onRate) onRate(currentRating);
+        }
+        isTouching = false;
+      }, { passive: true });
+
+      function handleTouchRating(e) {
+        const touch = e.touches[0];
+        const stars = container.querySelectorAll('.star-input');
+
+        stars.forEach((star, index) => {
+          const rect = star.getBoundingClientRect();
+          if (touch.clientX >= rect.left && touch.clientX <= rect.right) {
+            highlightStars(container, index + 1);
+          }
+        });
       }
 
       // Set initial rating
@@ -1542,3 +1724,226 @@ function initPasswordToggle(toggleSelector = '.password-toggle') {
     toggle.setAttribute('aria-label', isCurrentlyPassword ? 'Hide password' : 'Show password');
   });
 }
+
+// ============================================
+// Mobile Sidebar Navigation
+// ============================================
+let mobileSidebarInitialized = false;
+
+function initMobileSidebar() {
+  if (mobileSidebarInitialized) return;
+  mobileSidebarInitialized = true;
+
+  const hamburgerBtn = document.querySelector('.hamburger-btn');
+  const mobileSidebar = document.querySelector('.mobile-sidebar');
+  const overlay = document.querySelector('.mobile-sidebar-overlay');
+  const closeBtn = document.querySelector('.mobile-sidebar-close');
+
+  if (!hamburgerBtn || !mobileSidebar || !overlay) return;
+
+  // Open sidebar
+  hamburgerBtn.addEventListener('click', () => {
+    mobileSidebar.classList.add('active');
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  });
+
+  // Close sidebar functions
+  function closeSidebar() {
+    mobileSidebar.classList.remove('active');
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  // Close button
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeSidebar);
+  }
+
+  // Close on overlay click
+  overlay.addEventListener('click', closeSidebar);
+
+  // Close on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && mobileSidebar.classList.contains('active')) {
+      closeSidebar();
+    }
+  });
+
+  // Close sidebar when clicking nav items
+  mobileSidebar.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      // Small delay to allow navigation to start
+      setTimeout(closeSidebar, 100);
+    });
+  });
+
+  // Close sidebar when clicking genre items
+  mobileSidebar.querySelectorAll('.genre-list li').forEach(item => {
+    item.addEventListener('click', closeSidebar);
+  });
+
+  // Handle touch events for swipe to close
+  let touchStartX = 0;
+  let touchCurrentX = 0;
+
+  mobileSidebar.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+  }, { passive: true });
+
+  mobileSidebar.addEventListener('touchmove', (e) => {
+    touchCurrentX = e.touches[0].clientX;
+    const diff = touchStartX - touchCurrentX;
+
+    // Only allow swiping left (to close)
+    if (diff > 0) {
+      const translateX = Math.min(diff, 280);
+      mobileSidebar.style.transform = `translateX(-${translateX}px)`;
+    }
+  }, { passive: true });
+
+  mobileSidebar.addEventListener('touchend', () => {
+    const diff = touchStartX - touchCurrentX;
+
+    // If swiped more than 80px, close the sidebar
+    if (diff > 80) {
+      closeSidebar();
+    }
+
+    // Reset transform
+    mobileSidebar.style.transform = '';
+  }, { passive: true });
+}
+
+// Create mobile sidebar HTML dynamically
+function createMobileSidebar(currentPage = 'home') {
+  // Check if already exists
+  if (document.querySelector('.mobile-sidebar')) return;
+
+  const currentPageLower = currentPage.toLowerCase();
+
+  const sidebarHTML = `
+    <div class="mobile-sidebar-overlay"></div>
+    <nav class="mobile-sidebar" aria-label="Mobile navigation">
+      <div class="mobile-sidebar-header">
+        <a class="logo" href="home.html">
+          <div class="logo-icon">
+            <svg viewBox="0 0 64 64" aria-hidden="true">
+              <path d="M32 12c-4.8-3.3-10.4-4.4-16-4.4a6.6 6.6 0 0 0-6.6 6.6v28.2c0 1.1.9 2 2 2H18c4.7 0 9.3 1.5 13.2 4.2 3.9-2.7 8.5-4.2 13.2-4.2h6.6c1.1 0 2-.9 2-2V14.2A6.6 6.6 0 0 0 48 7.6C42.4 7.6 36.8 8.7 32 12Zm0 6.9c4.3-2.6 9.2-3.9 14.2-3.9 1.1 0 2 .9 2 2v24.1h-4.6c-4.5 0-8.9 1.1-12.8 3.2v-25.4Zm-4 25.4c-3.9-2.1-8.3-3.2-12.8-3.2H10.6V17c0-1.1.9-2 2-2 5 0 9.9 1.3 14.2 3.9v25.4Z" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="logo-text">
+            <span class="logo-name">NovelShare</span>
+          </div>
+        </a>
+        <button class="mobile-sidebar-close" aria-label="Close menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="mobile-sidebar-nav">
+        <div class="nav-title">Navigation</div>
+        <div class="nav-items">
+          <a href="home.html" class="nav-item ${currentPageLower === 'home' ? 'active' : ''}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9,22 9,12 15,12 15,22"/>
+            </svg>
+            Home
+          </a>
+          <a href="library.html" class="nav-item ${currentPageLower === 'library' ? 'active' : ''}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15z"/>
+            </svg>
+            Library
+          </a>
+          <a href="browse.html" class="nav-item ${currentPageLower === 'browse' ? 'active' : ''}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.35-4.35"/>
+            </svg>
+            Browse
+          </a>
+          <a href="profile.html" class="nav-item ${currentPageLower === 'profile' ? 'active' : ''}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="8" r="4"/>
+              <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
+            </svg>
+            Profile
+          </a>
+        </div>
+      </div>
+
+      <div class="mobile-sidebar-divider"></div>
+
+      <div class="mobile-sidebar-nav">
+        <div class="nav-title">Account</div>
+        <div class="nav-items">
+          <a href="login.html" class="nav-item" id="mobileLogoutBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16,17 21,12 16,7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            Log Out
+          </a>
+        </div>
+      </div>
+    </nav>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', sidebarHTML);
+
+  // Initialize after creating
+  initMobileSidebar();
+
+  // Handle logout click
+  const mobileLogoutBtn = document.querySelector('#mobileLogoutBtn');
+  if (mobileLogoutBtn && typeof GuestMode !== 'undefined') {
+    mobileLogoutBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      GuestMode.fullLogout();
+    });
+  }
+}
+
+// Add hamburger button to header if not exists
+function addHamburgerButton() {
+  const topBar = document.querySelector('.top-bar');
+  if (!topBar || topBar.querySelector('.hamburger-btn')) return;
+
+  const hamburgerHTML = `
+    <button class="hamburger-btn" aria-label="Open menu" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+  `;
+
+  // Insert hamburger as first child of top-bar
+  topBar.insertAdjacentHTML('afterbegin', hamburgerHTML);
+}
+
+// Auto-initialize mobile navigation on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  // Detect current page from URL
+  const path = window.location.pathname;
+  let currentPage = 'home';
+
+  if (path.includes('library')) currentPage = 'library';
+  else if (path.includes('browse')) currentPage = 'browse';
+  else if (path.includes('profile')) currentPage = 'profile';
+  else if (path.includes('novel')) currentPage = 'novel';
+  else if (path.includes('search')) currentPage = 'search';
+
+  // Only add mobile nav for pages with top-bar
+  if (document.querySelector('.top-bar')) {
+    addHamburgerButton();
+    createMobileSidebar(currentPage);
+  }
+});

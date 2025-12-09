@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>NovelShare - Discover Your Next Great Read</title>
     <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
     <!-- Shared CSS (includes fonts) -->
@@ -27,21 +27,21 @@
         }
 
         .banner h1 {
-            font-size: 48px;
+            font-size: clamp(1.75rem, 5vw + 0.5rem, 3rem);
             font-weight: 800;
             margin-bottom: 10px;
             color: var(--text-primary);
         }
 
         .banner h2 {
-            font-size: 48px;
+            font-size: clamp(1.75rem, 5vw + 0.5rem, 3rem);
             font-weight: 800;
             color: var(--primary);
             margin-bottom: 20px;
         }
 
         .banner p {
-            font-size: 18px;
+            font-size: clamp(0.9375rem, 2vw + 0.25rem, 1.125rem);
             max-width: 650px;
             margin: 0 auto 30px;
             color: var(--text-secondary);
