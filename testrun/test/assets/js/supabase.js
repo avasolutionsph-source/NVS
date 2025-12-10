@@ -828,11 +828,13 @@ const SupabaseSync = {
   async pushLibraryItem(novelId, action = 'add') {
     if (!isSupabaseAvailable()) return { error: 'Supabase not available' };
 
-    // Skip non-UUID novel IDs (e.g., slug-based IDs like "lord-of-mysteries")
+    // Validate novel ID format - all Supabase novels should have UUID IDs
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(novelId);
     if (!isUUID) {
-      console.log('Skipping cloud sync for non-UUID novel ID:', novelId);
-      return { skipped: true, reason: 'Non-UUID novel ID' };
+      // Non-UUID IDs are likely local-only works (work-*) or old slug IDs
+      // These can't be synced to cloud - they don't exist in Supabase novels table
+      console.warn('Cannot sync non-UUID novel to cloud:', novelId);
+      return { skipped: true, reason: 'Non-UUID novel ID - local only' };
     }
 
     const user = await SupabaseAuth.getCurrentUser();
