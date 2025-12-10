@@ -1405,7 +1405,14 @@
 
     // Download for offline
     document.getElementById('downloadBtn')?.addEventListener('click', () => {
-      if (!novelData.id || !chapterData.id) return;
+      if (!novelData.id || !chapterData.id) {
+        showToast('No chapter available to download');
+        return;
+      }
+      if (!chapterContentEl.innerHTML || chapterContentEl.innerHTML.trim() === '') {
+        showToast('Chapter content not loaded yet');
+        return;
+      }
       const offline = JSON.parse(localStorage.getItem('novelshare_offline') || '{}');
       if (!offline[novelData.id]) {
         offline[novelData.id] = { novelId: novelData.id, novelTitle: novelData.title, cover: novelData.cover || '', chapters: {} };

@@ -694,6 +694,12 @@ const RatingSystem = {
       timestamp: Date.now()
     };
     localStorage.setItem('novelshare_ratings', JSON.stringify(ratings));
+
+    // Push to Supabase when logged in
+    if (typeof GuestMode !== 'undefined' && !GuestMode.isGuest() && typeof SupabaseSync !== 'undefined' && SupabaseSync.pushRating) {
+      SupabaseSync.pushRating(novelId, rating, review);
+    }
+
     return ratings[novelId];
   },
 
