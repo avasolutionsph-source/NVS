@@ -569,7 +569,8 @@
       worksList.querySelectorAll('[data-action="add-chapter"]').forEach(btn => {
         btn.addEventListener('click', () => {
           if (selectionMode) return;
-          window.location.href = 'add-chapter.html';
+          const id = btn.dataset.id;
+          window.location.href = id ? `add-chapter.html?workId=${encodeURIComponent(id)}` : 'add-chapter.html';
         });
       });
       worksList.querySelectorAll('[data-action="view"]').forEach(btn => {

@@ -523,6 +523,13 @@
               supabaseStatus = 'ongoing';
             }
 
+            // Get author name from profile
+            let authorName = user.email || 'Unknown';
+            try {
+              const profile = JSON.parse(localStorage.getItem('novelshare_profile') || '{}');
+              authorName = profile.display_name || profile.name || profile.username || user.email || 'Unknown';
+            } catch { /* use default */ }
+
             const upsertPayload = {
               title: payload.title,
               description: payload.description,
@@ -531,7 +538,7 @@
               status: supabaseStatus,
               total_chapters: payload.chapters || 0,
               author_id: user.id,
-              author: payload.author || normalized.display_name || normalized.username || normalized.email || user.email || 'Unknown'
+              author: payload.author || authorName
             };
             if (isUUID(payload.id)) {
               upsertPayload.id = payload.id;

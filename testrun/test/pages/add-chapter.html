@@ -760,7 +760,8 @@
     let autoSaveTimeout = null;
     let draftSaved = false;
     const chapterStoreKey = 'novelshare_chapters';
-    const workId = new URLSearchParams(window.location.search).get('id') || '';
+    const urlParams = new URLSearchParams(window.location.search);
+    const workId = urlParams.get('workId') || urlParams.get('id') || '';
     const profile = (() => { try { return JSON.parse(localStorage.getItem('novelshare_profile') || '{}'); } catch { return {}; } })();
 
     // DOM Elements
