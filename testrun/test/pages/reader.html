@@ -1005,8 +1005,10 @@
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
-  <script src="../assets/js/common.js"></script>
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../assets/js/supabase.js"></script>
+  <script src="../assets/js/common.js"></script>
   <script>
     const params = new URLSearchParams(window.location.search);
     const novelId = params.get('novelId') || params.get('novel') || '';

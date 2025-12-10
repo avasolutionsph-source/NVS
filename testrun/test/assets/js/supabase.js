@@ -284,14 +284,30 @@ const SupabaseDB = {
   },
 
   async getNovelById(novelId) {
-    const { data, error } = await supabase
+    // Check if novelId is a valid UUID format
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(novelId);
+
+    if (isUUID) {
+      const { data, error } = await supabase
+        .from('novels')
+        .select('*')
+        .eq('id', novelId)
+        .single();
+
+      if (!error && data) return data;
+    }
+
+    // Try by slug if not UUID or UUID lookup failed
+    const { data: slugData, error: slugError } = await supabase
       .from('novels')
       .select('*')
-      .eq('id', novelId)
-      .single();
+      .eq('slug', novelId)
+      .maybeSingle();
 
-    if (error) throw error;
-    return data;
+    if (!slugError && slugData) return slugData;
+
+    // If both failed, return null (don't throw for graceful degradation)
+    return null;
   },
 
   async getNovelsByAuthor(authorId, limit = 50, offset = 0) {
@@ -339,14 +355,26 @@ const SupabaseDB = {
 
   // --- Chapters ---
   async getChapters(novelId) {
+    // Check if novelId is a valid UUID format
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(novelId);
+
+    if (!isUUID) {
+      // For non-UUID IDs (slugs), return empty array - chapters require UUID novel_id
+      console.log('getChapters: Non-UUID novel ID, returning empty array');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('chapters')
       .select('*')
       .eq('novel_id', novelId)
       .order('chapter_number', { ascending: true });
 
-    if (error) throw error;
-    return data;
+    if (error) {
+      console.warn('getChapters error:', error);
+      return [];
+    }
+    return data || [];
   },
 
   async getChapter(novelId, chapterNumber) {
@@ -527,8 +555,7 @@ const SupabaseDB = {
       .from('bookmarks')
       .select(`
         *,
-        novels (*),
-        chapters (*)
+        novels (*)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
@@ -734,7 +761,7 @@ const SupabaseSync = {
         chapterId: b.chapter_id,
         note: b.note || '',
         novelTitle: b.novels?.title || '',
-        chapterTitle: b.chapters?.title || '',
+        chapterTitle: b.chapter_title || '',
         createdAt: new Date(b.created_at).getTime()
       }));
       localStorage.setItem('novelshare_bookmarks', JSON.stringify(localFormat));
