@@ -1,4 +1,4 @@
--- Enable UUID
+-- Enable UUID darren mawi wawie?
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- PROFILES
