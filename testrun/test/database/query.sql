@@ -1,4 +1,4 @@
--- Enable UUID 
+-- Enable UUID boomtarattarat
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- PROFILES
