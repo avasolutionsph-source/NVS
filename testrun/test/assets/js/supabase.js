@@ -847,24 +847,8 @@ const SupabaseSync = {
     }
 
     try {
-      // Best-effort upsert of novel to avoid FK errors
-      if (action === 'add' && arguments.length > 2) {
-        const novelData = arguments[2] || {};
-        const upsertPayload = {
-          id: novelId,
-          title: novelData.title,
-          author: novelData.author,
-          cover_image: novelData.coverImage || novelData.cover,
-          total_chapters: novelData.totalChapters,
-          status: novelData.status,
-          genres: novelData.genre ? [novelData.genre] : []
-        };
-        try {
-          await SupabaseDB.upsertNovel(upsertPayload);
-        } catch (e) {
-          console.warn('Novel upsert failed (continuing):', e);
-        }
-      }
+      // Skip novel upsert - novels already exist in database and users can't create them (RLS)
+      // Just add the library entry directly
 
       if (action === 'add') {
         await SupabaseDB.addToLibrary(user.id, novelId);
