@@ -1190,8 +1190,8 @@
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
             </svg>
-            <h3 style="color:var(--text-primary);margin-bottom:8px;">No chapters published yet</h3>
-            <p style="color:var(--text-muted);margin-bottom:24px;">This novel doesn't have any chapters available for reading.</p>
+            <h3 style="color:var(--text-primary);margin-bottom:8px;">Chapter content not available</h3>
+            <p style="color:var(--text-muted);margin-bottom:24px;">This chapter's content hasn't been uploaded yet. Check back later!</p>
             <a href="novel.html?id=${encodeURIComponent(novelId || '')}" class="btn-back" style="display:inline-flex;">Back to Novel</a>
           </div>
         `;
@@ -1522,9 +1522,6 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       loadData();
-      initFontSizeToggle?.();
-      initThemeToggle?.();
-      initBookmark?.();
     });
   </script>
 </body>
