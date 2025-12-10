@@ -1519,6 +1519,18 @@
                 if (libraryCountEl) libraryCountEl.textContent = total;
             }
 
+            // Escape HTML attributes to prevent XSS and template errors
+            function escapeAttr(str) {
+                if (!str) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/`/g, '&#96;');
+            }
+
             // Get reading status for a novel
             function getReadingStatus(novel) {
                 const progress = novel.totalChapters > 0 ? (novel.currentChapter / novel.totalChapters) * 100 : 0;
@@ -1549,26 +1561,27 @@
                 emptyState.style.display = 'none';
 
                 grid.innerHTML = library.map(novel => {
-                    const id = novel.novelId || novel.id;
+                    const id = escapeAttr(novel.novelId || novel.id);
+                    const title = escapeAttr(novel.title || 'Untitled');
                     const coverImgRaw = (novel.coverImage || novel.cover || '').trim();
-                    const coverImg = coverImgRaw || fallbackCover;
+                    const coverImg = escapeAttr(coverImgRaw) || fallbackCover;
                     const totalChapters = novel.totalChapters || novel.chapters || 0;
                     const currentChapter = Number.isFinite(novel.currentChapter) ? novel.currentChapter : 0;
                     const progress = totalChapters > 0
                         ? Math.round((currentChapter / totalChapters) * 100)
                         : 0;
                     const status = getReadingStatus({ ...novel, totalChapters, currentChapter });
-                    const authorName = getAuthorDisplayName(novel.author);
+                    const authorName = escapeAttr(getAuthorDisplayName(novel.author));
 
                     return `
-                        <div class="library-card" data-novel-id="${id}" data-title="${novel.title.toLowerCase()}">
+                        <div class="library-card" data-novel-id="${id}" data-title="${title.toLowerCase()}">
                             <span class="reading-status ${status.class}">${status.text}</span>
                             <div class="library-card-inner">
                                 <div class="library-card-cover">
-                                    <img src="${coverImg}" alt="${novel.title}" onerror="this.onerror=null;this.src='${fallbackCover}'">
+                                    <img src="${coverImg}" alt="${title}" onerror="this.onerror=null;this.src='${fallbackCover}'">
                                 </div>
                                 <div class="library-card-info">
-                                    <h3 class="library-card-title">${novel.title}</h3>
+                                    <h3 class="library-card-title">${title}</h3>
                                     <p class="library-card-author">by ${authorName}</p>
                                     <div class="library-card-progress">
                                         <div class="progress-label">
@@ -1583,14 +1596,14 @@
                                 </div>
                             </div>
                             <div class="library-card-footer">
-                                <a href="reader.html?novelId=${id}&chapterId=${novel.currentChapterId || ''}" class="continue-btn">
+                                <a href="reader.html?novelId=${id}&chapterId=${escapeAttr(novel.currentChapterId || '')}" class="continue-btn">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polygon points="5 3 19 12 5 21 5 3"/>
                                     </svg>
                                     ${currentChapter > 0 ? 'Continue' : 'Start Reading'}
                                 </a>
                                 <div style="display: flex; gap: 4px;">
-                                    <button class="download-btn" data-action="download-novel" data-novel-id="${id}" data-novel-title="${novel.title}" data-total-chapters="${totalChapters}" aria-label="Download for offline">
+                                    <button class="download-btn" data-action="download-novel" data-novel-id="${id}" data-novel-title="${title}" data-total-chapters="${totalChapters}" aria-label="Download for offline">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                                             <polyline points="7,10 12,15 17,10"/>
