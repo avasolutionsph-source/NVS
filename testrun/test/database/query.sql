@@ -1,4 +1,4 @@
--- Enable UUID darren mawi wawie? going back to hana lululemon
+-- Enable UUID 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- PROFILES
