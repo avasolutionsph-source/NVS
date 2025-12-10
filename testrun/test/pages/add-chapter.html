@@ -1185,6 +1185,11 @@
         }
       }
 
+      // Update chapter count in library if this novel is in user's library
+      if (typeof LibrarySystem !== 'undefined' && LibrarySystem.updateChapterCount) {
+        LibrarySystem.updateChapterCount(workId, chapters.length);
+      }
+
       // Clear draft and show success
       clearDraft();
 

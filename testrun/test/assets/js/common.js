@@ -928,6 +928,19 @@ const LibrarySystem = {
     const library = this.getLibrary();
     const item = library.find(item => item.id === novelId || item.novelId === novelId);
     return item ? { progress: item.progress, currentChapter: item.currentChapter } : null;
+  },
+
+  // Update chapter count for a novel in library
+  updateChapterCount(novelId, newChapterCount) {
+    const library = this.getLibrary();
+    const item = library.find(item => item.id === novelId || item.novelId === novelId);
+    if (item) {
+      item.totalChapters = newChapterCount;
+      item.chapters = newChapterCount;
+      localStorage.setItem('novelshare_library', JSON.stringify(library));
+      return true;
+    }
+    return false;
   }
 };
 

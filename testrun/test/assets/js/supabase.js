@@ -776,23 +776,39 @@ const SupabaseSync = {
     try {
       const cloudLibrary = await SupabaseDB.getUserLibrary(user.id);
 
-      // Convert to local format (include all fields needed for display)
-      const localFormat = cloudLibrary.map(item => ({
-        id: item.novel_id,
-        novelId: item.novel_id,
-        title: item.novels?.title || 'Unknown',
-        author: item.novels?.author || 'Unknown',
-        cover: item.novels?.cover_image || null,
-        coverImage: item.novels?.cover_image || null,
-        genre: Array.isArray(item.novels?.genres) ? item.novels.genres[0] : (item.novels?.genre || ''),
-        status: item.novels?.status || 'ongoing',
-        description: item.novels?.description || '',
-        rating: item.novels?.rating || item.novels?.avg_rating || 0,
-        totalChapters: item.novels?.total_chapters || 0,
-        chapters: item.novels?.total_chapters || 0,
-        currentChapter: item.current_chapter || 0,
-        progress: item.progress || 0,
-        addedAt: new Date(item.added_at).getTime()
+      // Convert to local format and fetch actual chapter counts
+      const localFormat = await Promise.all(cloudLibrary.map(async (item) => {
+        // Fetch actual chapter count from chapters table
+        let actualChapterCount = item.novels?.total_chapters || 0;
+        try {
+          const { count } = await supabase
+            .from('chapters')
+            .select('*', { count: 'exact', head: true })
+            .eq('novel_id', item.novel_id);
+          if (count !== null) {
+            actualChapterCount = count;
+          }
+        } catch (e) {
+          // Use total_chapters as fallback
+        }
+
+        return {
+          id: item.novel_id,
+          novelId: item.novel_id,
+          title: item.novels?.title || 'Unknown',
+          author: item.novels?.author || 'Unknown',
+          cover: item.novels?.cover_image || null,
+          coverImage: item.novels?.cover_image || null,
+          genre: Array.isArray(item.novels?.genres) ? item.novels.genres[0] : (item.novels?.genre || ''),
+          status: item.novels?.status || 'ongoing',
+          description: item.novels?.description || '',
+          rating: item.novels?.rating || item.novels?.avg_rating || 0,
+          totalChapters: actualChapterCount,
+          chapters: actualChapterCount,
+          currentChapter: item.current_chapter || 0,
+          progress: item.progress || 0,
+          addedAt: new Date(item.added_at).getTime()
+        };
       }));
 
       // Update localStorage
