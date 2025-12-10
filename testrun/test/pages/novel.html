@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Twin Sisters | NovelShare</title>
+  <title>Novel | NovelShare</title>
   <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" />
   <link rel="stylesheet" href="../assets/css/common.css" />
@@ -387,6 +387,14 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
+    }
+
+    .chapter-empty {
+      padding: 20px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      text-align: center;
     }
 
     .chapter-item {
@@ -1131,7 +1139,7 @@
             </div>
             <div class="profile-dropdown-menu">
               <a href="profile.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>My Profile</a>
-              <a href="profile.html#works"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>My Works</a>
+              <a href="author-dashboard.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>My Works</a>
               <a href="login.html" class="logout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Log Out</a>
             </div>
           </div>
@@ -1161,7 +1169,7 @@
           <div class="novel-stats">
             <div class="stat rating">
               <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              <strong>4.8</strong> (256 ratings)
+              <strong>4.8</strong> <span class="rating-count">(256 ratings)</span>
             </div>
             <div class="stat">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -1224,62 +1232,7 @@
             </div>
           </div>
 
-          <div class="chapter-list" id="chapterList">
-            <a href="reader.html" class="chapter-item">
-              <span class="chapter-number">Ch. 12</span>
-              <div class="chapter-info">
-                <h4 class="chapter-title">Sisters Forever</h4>
-                <span class="chapter-meta">Dec 20, 2024 • 2,450 words</span>
-              </div>
-              <div class="chapter-status">
-                <span class="chapter-new-badge">New</span>
-              </div>
-            </a>
-            <a href="reader.html" class="chapter-item">
-              <span class="chapter-number">Ch. 11</span>
-              <div class="chapter-info">
-                <h4 class="chapter-title">The Truth Emerges</h4>
-                <span class="chapter-meta">Dec 18, 2024 • 2,180 words</span>
-              </div>
-            </a>
-            <a href="reader.html" class="chapter-item">
-              <span class="chapter-number">Ch. 10</span>
-              <div class="chapter-info">
-                <h4 class="chapter-title">Trust No One</h4>
-                <span class="chapter-meta">Dec 15, 2024 • 1,950 words</span>
-              </div>
-            </a>
-            <a href="reader.html" class="chapter-item">
-              <span class="chapter-number">Ch. 9</span>
-              <div class="chapter-info">
-                <h4 class="chapter-title">A Dangerous Game</h4>
-                <span class="chapter-meta">Dec 12, 2024 • 2,100 words</span>
-              </div>
-              <div class="chapter-status">
-                <span class="chapter-read-badge">Read</span>
-              </div>
-            </a>
-            <a href="reader.html" class="chapter-item">
-              <span class="chapter-number">Ch. 8</span>
-              <div class="chapter-info">
-                <h4 class="chapter-title">The Search Begins</h4>
-                <span class="chapter-meta">Dec 10, 2024 • 1,820 words</span>
-              </div>
-              <div class="chapter-status">
-                <span class="chapter-read-badge">Read</span>
-              </div>
-            </a>
-            <a href="reader.html" class="chapter-item">
-              <span class="chapter-number">Ch. 3</span>
-              <div class="chapter-info">
-                <h4 class="chapter-title">The Escape</h4>
-                <span class="chapter-meta">Dec 1, 2024 • 1,650 words</span>
-              </div>
-              <div class="chapter-status">
-                <span class="chapter-read-badge">Read</span>
-              </div>
-            </a>
-          </div>
+          <div class="chapter-list" id="chapterList"></div>
         </div>
 
         <!-- Reviews Tab -->
@@ -1441,14 +1394,474 @@
   <script src="../assets/js/supabase.js"></script>
   <script src="../assets/js/common.js"></script>
   <script>
-    // Novel Data
-    const novelData = {
-      id: 'twin_sisters',
-      title: 'Twin Sisters',
-      cover: '../assets/images/covers/thumbnail.jpg',
-      author: 'JaneWriter',
-      authorId: 'janewriter'
+    // Build novel data from URL (prefer catalog + stored works/library)
+    const params = new URLSearchParams(window.location.search);
+    const novelId = params.get('id') || 'twin-sisters';
+
+    const twinSistersLongDesc = document.getElementById('novelDescription')?.textContent?.trim();
+
+    // Static catalog matching Browse cards
+    const catalog = {
+      'twin-sisters': {
+        title: 'Twin Sisters',
+        cover: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80',
+        author: 'JaneWriter',
+        authorId: 'janewriter',
+        genre: 'Historical Drama',
+        status: 'ongoing',
+        rating: 4.8,
+        reads: '45.2K',
+        chapters: 12,
+        library: '1.2K',
+        description: twinSistersLongDesc || 'Two sisters in ancient China fight to clear their family\'s name while surviving in hiding.'
+      },
+      'shadow-slave': {
+        title: 'Shadow Slave',
+        cover: 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=600&q=80',
+        author: 'Guiltythree',
+        genre: 'Fantasy',
+        status: 'ongoing',
+        rating: 4.79,
+        reads: '9.5M',
+        chapters: 2721,
+        description: 'Growing up in poverty, Sunny never expected anything good from life...'
+      },
+      'legendary-beast-master': {
+        title: 'The First Legendary Beast Master',
+        cover: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80',
+        author: 'Asvald',
+        genre: 'Fantasy',
+        status: 'ongoing',
+        rating: 4.48,
+        reads: '3.2M',
+        chapters: 1434,
+        description: 'Born into a dirt poor mining family, Karl only had one chance to get ahead...'
+      },
+      'lord-of-mysteries': {
+        title: 'Lord of Mysteries',
+        cover: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=600&q=80',
+        author: 'Cuttlefish That Loves Diving',
+        genre: 'Mystery',
+        status: 'completed',
+        rating: 4.83,
+        reads: '8.7M',
+        chapters: 1432,
+        description: 'With the rising tide of steam power and machinery, who can come close to being a Beyonder...'
+      },
+      'supreme-magus': {
+        title: 'Supreme Magus',
+        cover: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=600&q=80',
+        author: 'Legion20',
+        genre: 'Fantasy',
+        status: 'ongoing',
+        rating: 4.62,
+        reads: '7.1M',
+        chapters: 3995,
+        description: 'Derek McCoy was a man who spent his entire life facing adversity and injustice...'
+      },
+      'cultivation-online': {
+        title: 'Cultivation Online',
+        cover: 'https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?auto=format&fit=crop&w=600&q=80',
+        author: 'MyLittle',
+        genre: 'Action',
+        status: 'ongoing',
+        rating: 4.79,
+        reads: '5.8M',
+        chapters: 2260,
+        description: 'Yuan was born with an incurable illness that left him blind at a young age...'
+      },
+      'vampire-system': {
+        title: 'My Vampire System',
+        cover: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=600&q=80',
+        author: 'JKSManga',
+        genre: 'Sci-Fi',
+        status: 'completed',
+        rating: 4.6,
+        reads: '6.2M',
+        chapters: 2551,
+        description: 'The human race is at war with the Vicious Dalki and when they needed heroes...'
+      },
+      'timeless-assassin': {
+        title: 'Timeless Assassin',
+        cover: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=600&q=80',
+        author: 'Shadows',
+        genre: 'Action',
+        status: 'ongoing',
+        rating: 4.66,
+        reads: '2.1M',
+        chapters: 831,
+        description: 'Time-bending assassin walking between shadows.'
+      },
+      'beast-tamer': {
+        title: 'Weakest Beast Tamer',
+        cover: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=600&q=80',
+        author: 'DragonKing',
+        genre: 'Adventure',
+        status: 'ongoing',
+        rating: 4.58,
+        reads: '1.8M',
+        chapters: 726,
+        description: 'From weakest to legendary as a beast tamer.'
+      },
+      'omniscient-reader': {
+        title: "Omniscient Reader's Viewpoint",
+        cover: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80',
+        author: 'Sing Shong',
+        genre: 'Fantasy',
+        status: 'completed',
+        rating: 4.85,
+        reads: '8.1M',
+        chapters: 553,
+        description: 'Reader becomes the protagonist when his favorite novel turns real.'
+      },
+      'reverend-insanity': {
+        title: 'Reverend Insanity',
+        cover: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=600&q=80',
+        author: 'Gu Zhen Ren',
+        genre: 'Horror',
+        status: 'completed',
+        rating: 4.71,
+        reads: '7.5M',
+        chapters: 2463,
+        description: 'A ruthless Gu Master climbs to the apex of the world.'
+      },
+      'solo-leveling': {
+        title: 'Solo Leveling',
+        cover: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=600&q=80',
+        author: 'Chugong',
+        genre: 'Action',
+        status: 'completed',
+        rating: 4.77,
+        reads: '12M',
+        chapters: 270,
+        description: 'Jinwoo rises from weakest hunter to Shadow Monarch.'
+      },
+      'dao-library': {
+        title: 'Heavenly Dao Library',
+        cover: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80',
+        author: 'Heavenly',
+        genre: 'Fantasy',
+        status: 'ongoing',
+        rating: 4.63,
+        reads: '2.5M',
+        chapters: 1233,
+        description: 'A librarian with a mystical catalogue sees flaws in everything and everyone he meets...'
+      }
     };
+
+    const maybeParse = (key) => {
+      try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
+    };
+
+    function getLastViewed(id) {
+      try {
+        const raw = sessionStorage.getItem('novelshare_last_viewed');
+        if (!raw) return null;
+        const payload = JSON.parse(raw);
+        if (payload?.id !== id) return null;
+        return payload;
+      } catch {
+        return null;
+      }
+    }
+
+    function resolveFromStorage(id) {
+      const pools = [
+        ...maybeParse('novelshare_library'),
+        ...maybeParse('novelshare_my_works')
+      ];
+      const match = pools.find(item => {
+        const ids = [item.id, item.novelId, item.novel_id, item.slug, item.workId];
+        return ids.includes(id);
+      });
+      if (!match) return null;
+      return {
+        title: match.title || match.name,
+        author: match.author || match.author_name || match.authorName || match.username,
+        authorId: match.authorId || match.author_id || match.user_id || '',
+        cover: match.cover || match.coverImage || match.cover_image || '',
+        genre: Array.isArray(match.genres) ? match.genres[0] : match.genre,
+        status: match.status,
+        rating: Number(match.rating || match.avg_rating) || 0,
+        reads: match.reads || match.popularity,
+        chapters: match.chapters || match.total_chapters || match.totalChapters,
+        description: match.description || match.summary
+      };
+    }
+
+    function toTitle(str) {
+      return str.split(/[-_]/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+    }
+
+    function isUuidish(val) {
+      return /^[0-9a-f-]{16,}$/i.test((val || '').replace(/-/g, ''));
+    }
+
+    function getLibraryEntry(id) {
+      try {
+        const lib = JSON.parse(localStorage.getItem('novelshare_library') || '[]');
+        return lib.find(item => item.id === id || item.novelId === id) || null;
+      } catch {
+        return null;
+      }
+    }
+
+    const resolved =
+      resolveFromStorage(novelId) ||
+      getLastViewed(novelId) ||
+      getLibraryEntry(novelId) ||
+      catalog[novelId] ||
+      null;
+
+    const profile = (() => {
+      try { return JSON.parse(localStorage.getItem('novelshare_profile') || '{}'); }
+      catch { return {}; }
+    })();
+    const profileDisplay = profile.display_name || profile.username || profile.name || profile.email || 'Unknown';
+    const resolvedAuthor = (() => {
+      const a = resolved?.author;
+      if (a && a.includes('@')) return profileDisplay;
+      return a || profileDisplay;
+    })();
+    const fallbackTitle = (() => {
+      if (resolved?.title) return resolved.title;
+      if (isUuidish(novelId)) return 'Untitled Story';
+      const pretty = toTitle(novelId);
+      return pretty && pretty.trim() ? pretty : 'Untitled Story';
+    })();
+
+    let novelData = {
+      id: novelId,
+      title: resolved?.title || fallbackTitle,
+      cover: resolved?.cover || '',
+      author: resolvedAuthor,
+      authorId: resolved?.authorId || profile.id || '',
+      genre: resolved?.genre,
+      status: resolved?.status ? resolved.status.toLowerCase() : undefined,
+      rating: Number(resolved?.rating || 0),
+      reads: resolved?.reads || 'New',
+      chapters: resolved?.chapters,
+      library: resolved?.library || '—',
+      description: resolved?.description
+    };
+    // Apply sensible defaults if still missing
+    novelData.genre = novelData.genre || 'Fiction';
+    novelData.status = (novelData.status || 'ongoing').toLowerCase();
+    novelData.description = novelData.description || 'Stay tuned for more details on this story.';
+
+    // Refresh library metadata if this novel is already saved (fills genre/status for older entries)
+    try {
+      if (typeof LibrarySystem !== 'undefined' && LibrarySystem.isInLibrary(novelData.id)) {
+        LibrarySystem.addToLibrary({
+          novelId: novelData.id,
+          title: novelData.title,
+          author: novelData.author,
+          genre: novelData.genre,
+          status: novelData.status,
+          rating: novelData.rating,
+          reads: novelData.reads,
+          description: novelData.description,
+          cover: novelData.cover,
+          chapters: novelData.chapters
+        });
+      }
+    } catch (e) {
+      console.warn('Library sync skipped:', e);
+    }
+
+    // Apply data to the static template
+    function applyNovelData() {
+      document.title = `${novelData.title} | NovelShare`;
+
+      const titleEl = document.querySelector('.novel-title');
+      if (titleEl) titleEl.textContent = novelData.title;
+
+      const genreBadge = document.querySelector('.badge-genre');
+      if (genreBadge) {
+        const genreLabel = novelData.genre ? toTitle(novelData.genre.replace(/\s+/g, '-')) : 'Genre';
+        genreBadge.textContent = genreLabel;
+      }
+
+      const statusBadge = document.querySelector('.badge-status');
+      if (statusBadge) {
+        statusBadge.textContent = (novelData.status || 'Ongoing').charAt(0).toUpperCase() + (novelData.status || 'Ongoing').slice(1);
+        statusBadge.classList.toggle('completed', (novelData.status || '').toLowerCase() === 'completed');
+        statusBadge.classList.toggle('ongoing', (novelData.status || '').toLowerCase() !== 'completed');
+      }
+
+      const authorName = document.querySelector('.novel-author .author-name a');
+      if (authorName) {
+        authorName.textContent = novelData.author || 'Unknown';
+        authorName.href = novelData.authorId ? `view-profile.html?id=${encodeURIComponent(novelData.authorId)}` : 'javascript:void(0)';
+      }
+
+      const authorAvatar = document.querySelector('.author-avatar');
+      if (authorAvatar) authorAvatar.textContent = (novelData.author || 'U').charAt(0).toUpperCase();
+
+      const coverEl = document.querySelector('.novel-cover');
+      if (coverEl) {
+        if (novelData.cover) {
+          coverEl.style.backgroundImage = `url('${novelData.cover}')`;
+          coverEl.style.backgroundSize = 'cover';
+          coverEl.style.backgroundPosition = 'center';
+        } else {
+          coverEl.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        }
+      }
+
+      // Update stats text
+      const stats = document.querySelectorAll('.novel-stats .stat');
+      if (stats.length >= 4) {
+        const ratingEl = stats[0].querySelector('strong');
+        const ratingCountEl = stats[0].querySelector('.rating-count');
+        if (ratingEl) ratingEl.textContent = novelData.rating ? Number(novelData.rating).toFixed(1) : '—';
+        if (ratingCountEl) ratingCountEl.textContent = novelData.rating ? 'Ratings' : 'No ratings yet';
+
+        const readsEl = stats[1].querySelector('strong');
+        if (readsEl) readsEl.textContent = novelData.reads || 'New';
+        const chaptersEl = stats[2].querySelector('strong');
+        if (chaptersEl) chaptersEl.textContent = novelData.chapters || 0;
+        const libEl = stats[3].querySelector('strong');
+        if (libEl) libEl.textContent = novelData.library || '—';
+      }
+
+      const descEl = document.getElementById('novelDescription');
+      if (descEl && novelData.description) {
+        descEl.textContent = novelData.description;
+      }
+
+      // Remove reviews tab when there are no ratings
+      if (!novelData.rating) {
+        const reviewsTab = document.querySelector('.novel-tab[data-tab="reviews"]');
+        const reviewsContent = document.getElementById('tab-reviews');
+        reviewsTab?.remove();
+        reviewsContent?.remove();
+        // Ensure first tab stays active
+        const firstTab = document.querySelector('.novel-tab');
+        const firstContent = document.querySelector('.novel-tab-content');
+        if (firstTab) firstTab.classList.add('active');
+        if (firstContent) firstContent.classList.add('active');
+      }
+    }
+    // Chapter rendering (keep numbering consistent and sortable)
+    let chaptersData = [];
+
+    function renderChapters(sort = 'newest') {
+      const list = document.getElementById('chapterList');
+      if (!list) return;
+      if (!chaptersData.length) {
+        list.innerHTML = `<div class="chapter-empty">No chapters published yet.</div>`;
+        return;
+      }
+      const sorted = [...chaptersData].sort((a, b) =>
+        sort === 'oldest' ? a.number - b.number : b.number - a.number
+      );
+
+      list.innerHTML = sorted.map(ch => {
+        const dateLabel = ch.date ? ch.date : '';
+        const wordLabel = ch.words ? `${Number(ch.words).toLocaleString()} words` : '';
+        const meta = [dateLabel, wordLabel].filter(Boolean).join(' • ');
+        const link = ch.id ? `reader.html?chapterId=${encodeURIComponent(ch.id)}&novelId=${encodeURIComponent(novelData.id)}` : 'reader.html';
+        return `
+          <a href="${link}" class="chapter-item">
+            <span class="chapter-number">Ch. ${ch.number || ''}</span>
+            <div class="chapter-info">
+              <h4 class="chapter-title">${ch.title || 'Untitled'}</h4>
+              <span class="chapter-meta">${meta || ''}</span>
+            </div>
+            ${ch.status === 'new' ? `<div class="chapter-status"><span class="chapter-new-badge">New</span></div>` : ''}
+            ${ch.status === 'read' ? `<div class="chapter-status"><span class="chapter-read-badge">Read</span></div>` : ''}
+          </a>
+        `;
+      }).join('');
+    }
+
+    const chapterSort = document.getElementById('chapterSort');
+    if (chapterSort) {
+      chapterSort.addEventListener('change', (e) => {
+        renderChapters(e.target.value === 'oldest' ? 'oldest' : 'newest');
+      });
+    }
+
+    async function loadChapters() {
+      const storeKey = 'novelshare_chapters';
+      let localChapters = [];
+      try {
+        const raw = localStorage.getItem(storeKey) || '{}';
+        const parsed = JSON.parse(raw);
+        localChapters = Array.isArray(parsed[novelData.id]) ? parsed[novelData.id] : [];
+      } catch {
+        localChapters = [];
+      }
+
+      // If no local chapters, try Supabase
+      if (!localChapters.length && typeof SupabaseDB !== 'undefined' && SupabaseDB.getChapters) {
+        try {
+          const supaChapters = await SupabaseDB.getChapters(novelData.id);
+          if (Array.isArray(supaChapters) && supaChapters.length) {
+            const store = (() => { try { return JSON.parse(localStorage.getItem(storeKey) || '{}'); } catch { return {}; } })();
+            store[novelData.id] = supaChapters.map(ch => ({
+              id: ch.id,
+              title: ch.title,
+              content: ch.content,
+              status: ch.status || 'published',
+              number: ch.chapter_number || ch.number || ch.order,
+              createdAt: ch.created_at || ch.updated_at
+            }));
+            localStorage.setItem(storeKey, JSON.stringify(store));
+            localChapters = store[novelData.id];
+          }
+        } catch (err) {
+          console.warn('Supabase chapters fetch failed:', err);
+        }
+      }
+
+      chaptersData = (localChapters || []).map((ch, idx) => ({
+        id: ch.id,
+        title: ch.title || `Chapter ${ch.number || idx + 1}`,
+        number: ch.number || idx + 1,
+        date: ch.createdAt ? new Date(ch.createdAt).toLocaleDateString() : '',
+        words: ch.content ? ch.content.length : undefined,
+        status: ch.status || 'published'
+      }));
+
+      // Update chapter count and stats
+      novelData.chapters = Math.max(novelData.chapters || 0, chaptersData.length);
+      applyNovelData();
+      renderChapters(chapterSort?.value === 'oldest' ? 'oldest' : 'newest');
+    }
+
+    async function loadNovelDetails() {
+      // Fetch freshest details from Supabase when possible
+      if (typeof SupabaseDB !== 'undefined' && SupabaseDB.getNovelById) {
+        try {
+          const supa = await SupabaseDB.getNovelById(novelData.id);
+          if (supa) {
+            novelData = {
+              ...novelData,
+              title: novelData.title || supa.title,
+              cover: novelData.cover || supa.cover_image || supa.cover,
+              author: novelData.author || supa.author,
+              authorId: novelData.authorId || supa.author_id,
+              genre: novelData.genre || (Array.isArray(supa.genres) ? supa.genres[0] : supa.genre) || 'Fiction',
+              status: (novelData.status || supa.status || 'ongoing').toLowerCase(),
+              rating: novelData.rating || Number(supa.rating || 0),
+              reads: novelData.reads || supa.reads || supa.popularity || 'New',
+              chapters: novelData.chapters || supa.total_chapters || supa.chapters,
+              description: novelData.description || supa.description || 'Stay tuned for more details on this story.'
+            };
+          }
+        } catch (err) {
+          console.warn('Supabase novel fetch failed:', err);
+        }
+      }
+
+      // Apply data after enrichment
+      applyNovelData();
+      await loadChapters();
+    }
+
+    loadNovelDetails();
 
     // Tab switching
     const tabs = document.querySelectorAll('.novel-tab');

@@ -34,28 +34,19 @@
       margin: 0;
     }
     .novel-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      background: #f8f9fa;
-      border-radius: 10px;
+      display: none;
     }
     .novel-info .novel-cover {
-      width: 40px;
-      height: 56px;
-      background: linear-gradient(135deg, var(--primary) 0%, #3b82f6 100%);
-      border-radius: 4px;
+      display: none;
     }
     .novel-info .novel-details {
-      font-size: 0.875rem;
+      display: none;
     }
     .novel-info .novel-title {
-      font-weight: 600;
-      color: var(--text-dark);
+      display: none;
     }
     .novel-info .chapter-count {
-      color: var(--text-muted);
+      display: none;
     }
     .form-container form {
       background: #fff;
@@ -620,7 +611,7 @@
                 </svg>
                 My Profile
               </a>
-              <a href="profile.html#works">
+              <a href="author-dashboard.html">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
                 </svg>
@@ -648,16 +639,9 @@
     <!-- Add Chapter Form -->
     <main class="form-container">
       <div class="page-header">
-        <div>
+       <div>
           <h2>Add New Chapter</h2>
           <p class="subtext">Create a new chapter for your novel</p>
-        </div>
-        <div class="novel-info">
-          <div class="novel-cover"></div>
-          <div class="novel-details">
-            <div class="novel-title">Twin Sisters</div>
-            <div class="chapter-count">12 chapters</div>
-          </div>
         </div>
       </div>
 
@@ -677,13 +661,7 @@
             <label for="chapter-title">Chapter Title <span style="color: #ef4444;">*</span></label>
             <input type="text" id="chapter-title" placeholder="Enter your chapter title" required />
           </div>
-          <div class="form-group">
-            <label for="chapter-number">Chapter Number</label>
-            <select id="chapter-number">
-              <option value="13">Chapter 13 (Next)</option>
-              <option value="custom">Custom position...</option>
-            </select>
-          </div>
+          <input type="hidden" id="chapter-number" value="">
         </div>
 
         <div class="editor-wrapper">
@@ -704,7 +682,6 @@
             <button type="button" class="cancel-btn" id="cancelBtn">Cancel</button>
           </div>
           <div class="right-actions">
-            <button type="button" class="preview-btn" id="previewBtn">Preview</button>
             <button type="button" class="draft-btn" id="draftBtn">Save as Draft</button>
             <button type="submit" class="add-btn">Publish Chapter</button>
           </div>
@@ -721,7 +698,6 @@
         <div class="form-buttons" style="margin-top: 24px;">
           <div class="left-actions"></div>
           <div class="right-actions">
-            <button type="button" class="preview-btn" id="exitPreviewBtn">Exit Preview</button>
             <button type="button" class="draft-btn" id="saveDraftFromPreview">Save as Draft</button>
             <button type="button" class="add-btn" id="publishFromPreview">Publish Chapter</button>
           </div>
@@ -783,6 +759,9 @@
     let hasUnsavedChanges = false;
     let autoSaveTimeout = null;
     let draftSaved = false;
+    const chapterStoreKey = 'novelshare_chapters';
+    const workId = new URLSearchParams(window.location.search).get('id') || '';
+    const profile = (() => { try { return JSON.parse(localStorage.getItem('novelshare_profile') || '{}'); } catch { return {}; } })();
 
     // DOM Elements
     const form = document.getElementById('addChapterForm');
@@ -870,10 +849,47 @@
       const draft = {
         title: titleInput.value,
         content: contentTextarea.value,
-        chapterNumber: document.getElementById('chapter-number').value,
+        chapterNumber: '',
         savedAt: new Date().toISOString()
       };
       localStorage.setItem('novelshare_chapter_draft', JSON.stringify(draft));
+    }
+
+    function getStoredChapters() {
+      try { return JSON.parse(localStorage.getItem(chapterStoreKey) || '{}'); }
+      catch { return {}; }
+    }
+
+    function persistChapters(store) {
+      localStorage.setItem(chapterStoreKey, JSON.stringify(store));
+    }
+
+    function updateWorkChapterCount(workId, newCount) {
+      try {
+        const works = JSON.parse(localStorage.getItem('novelshare_my_works') || '[]');
+        const idx = works.findIndex(w => (w.id || w.novelId || w.slug) === workId);
+        if (idx >= 0) {
+          const current = Number(works[idx].chapters || works[idx].total_chapters || 0);
+          works[idx].chapters = newCount ?? current + 1;
+          works[idx].updatedAt = Date.now();
+          localStorage.setItem('novelshare_my_works', JSON.stringify(works));
+        }
+      } catch (err) {
+        console.warn('Failed to update work chapter count:', err);
+      }
+
+      try {
+        const library = LibrarySystem.getLibrary();
+        const idxLib = library.findIndex(item => (item.id || item.novelId) === workId);
+        if (idxLib >= 0) {
+          const current = Number(library[idxLib].totalChapters || 0);
+          library[idxLib].totalChapters = newCount ?? current + 1;
+          library[idxLib].updatedAt = Date.now();
+          localStorage.setItem('novelshare_library', JSON.stringify(library));
+        }
+      } catch (err) {
+        console.warn('Failed to update library entry:', err);
+      }
     }
 
     function loadDraft() {
@@ -884,9 +900,6 @@
           if (draft.title || draft.content) {
             titleInput.value = draft.title || '';
             contentTextarea.value = draft.content || '';
-            if (draft.chapterNumber) {
-              document.getElementById('chapter-number').value = draft.chapterNumber;
-            }
             updateContentStats();
             showToast('Draft restored from previous session');
           }
@@ -989,33 +1002,6 @@
     });
 
     // ============================================
-    // Preview Mode
-    // ============================================
-    document.getElementById('previewBtn').addEventListener('click', () => {
-      form.classList.add('hidden');
-      previewContainer.classList.add('active');
-
-      document.getElementById('previewTitle').textContent = titleInput.value || 'Untitled Chapter';
-      document.getElementById('previewContent').textContent = contentTextarea.value || 'No content yet...';
-    });
-
-    document.getElementById('exitPreviewBtn').addEventListener('click', () => {
-      form.classList.remove('hidden');
-      previewContainer.classList.remove('active');
-    });
-
-    document.getElementById('publishFromPreview').addEventListener('click', () => {
-      form.classList.remove('hidden');
-      previewContainer.classList.remove('active');
-      form.dispatchEvent(new Event('submit'));
-    });
-
-    document.getElementById('saveDraftFromPreview').addEventListener('click', () => {
-      form.classList.remove('hidden');
-      previewContainer.classList.remove('active');
-      saveDraft();
-    });
-
     // ============================================
     // Save Draft Button
     // ============================================
@@ -1073,6 +1059,11 @@
     form.addEventListener('submit', (e) => {
       e.preventDefault();
 
+      if (!workId) {
+        showToast('Missing work id. Open Add Chapter from a work.');
+        return;
+      }
+
       // Validate title
       if (!titleInput.value.trim()) {
         titleInput.classList.add('invalid');
@@ -1089,6 +1080,59 @@
       }
 
       titleInput.classList.remove('invalid');
+
+      // Persist chapter locally
+      const store = getStoredChapters();
+      const chapters = Array.isArray(store[workId]) ? store[workId] : [];
+      const nextNumber = chapters.length + 1;
+      const newChapter = {
+        id: `chap-${Date.now()}`,
+        workId,
+        title: titleInput.value.trim(),
+        content: contentTextarea.value.trim(),
+        status: 'published',
+        createdAt: Date.now(),
+        order: nextNumber,
+        number: nextNumber,
+      };
+      chapters.push(newChapter);
+      store[workId] = chapters;
+      persistChapters(store);
+      updateWorkChapterCount(workId, chapters.length);
+
+      // Push to Supabase
+      if (typeof SupabaseAuth !== 'undefined' && typeof SupabaseDB !== 'undefined' && SupabaseDB.upsertChapter) {
+        try {
+          const user = await SupabaseAuth.getCurrentUser();
+          if (user) {
+            await SupabaseDB.upsertChapter({
+              id: newChapter.id,
+              novel_id: workId,
+              title: newChapter.title,
+              content: newChapter.content,
+              status: newChapter.status,
+              chapter_number: nextNumber,
+              author_id: user.id,
+              updated_at: new Date().toISOString(),
+            });
+            // Also update novel chapter count if we know the title locally
+            const works = JSON.parse(localStorage.getItem('novelshare_my_works') || '[]');
+            const found = works.find(w => (w.id || w.novelId || w.slug) === workId);
+            await SupabaseDB.upsertNovel({
+              id: workId,
+              title: found?.title || '',
+              status: found?.status || 'ongoing',
+              cover: found?.cover,
+              genre: found?.genre,
+              total_chapters: chapters.length,
+              author_id: user.id,
+              author: found?.author || profile?.display_name || profile?.username || profile?.name || user.email,
+            });
+          }
+        } catch (err) {
+          console.warn('Supabase chapter upsert failed:', err);
+        }
+      }
 
       // Clear draft and show success
       clearDraft();
@@ -1116,7 +1160,7 @@
 
     document.getElementById('viewChapter').addEventListener('click', () => {
       document.getElementById('successModal').classList.remove('open');
-      window.location.href = 'library.html';
+      window.location.href = `work-detail.html?id=${encodeURIComponent(workId || '')}`;
     });
 
     // ============================================

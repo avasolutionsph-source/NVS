@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reading: Twin Sisters - Chapter 3 | NovelShare</title>
+  <title>Reading | NovelShare</title>
   <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&display=swap" />
@@ -789,8 +789,8 @@
           <span>Back</span>
         </a>
         <div class="novel-info-header">
-          <span class="novel-title-header">Twin Sisters</span>
-          <span class="chapter-title-header">Chapter 3: The Escape</span>
+          <span class="novel-title-header" id="headerNovelTitle">Loading...</span>
+          <span class="chapter-title-header" id="headerChapterTitle"></span>
         </div>
       </div>
 
@@ -837,22 +837,22 @@
     <!-- Reader Content -->
     <main class="reader-content">
       <div class="chapter-header">
-        <div class="chapter-number">Chapter 3</div>
-        <h1 class="chapter-title">The Escape</h1>
+        <div class="chapter-number">Chapter</div>
+        <h1 class="chapter-title">Loading…</h1>
         <div class="chapter-meta">
           <span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"/>
               <polyline points="12 6 12 12 16 14"/>
             </svg>
-            8 min read
+            —
           </span>
           <span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
               <circle cx="12" cy="12" r="3"/>
             </svg>
-            2,847 views
+            —
           </span>
           <span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -861,7 +861,7 @@
               <line x1="8" y1="2" x2="8" y2="6"/>
               <line x1="3" y1="10" x2="21" y2="10"/>
             </svg>
-            Dec 15, 2024
+            —
           </span>
         </div>
       </div>
@@ -902,7 +902,7 @@
 
       <!-- Chapter End Section -->
       <div class="chapter-end">
-        <h3>End of Chapter 3</h3>
+        <h3 id="chapterEndHeading">End of Chapter</h3>
         <p>Did you enjoy this chapter? Let the author know!</p>
         <div class="chapter-end-actions">
           <button class="btn-rate" id="rateChapterBtn">
@@ -929,7 +929,7 @@
           Previous Chapter
         </button>
         <button class="chapter-list-btn" id="chapterListBtn2">
-          Chapter 3 of 12
+          <span id="chapterNavLabel">Chapter</span>
         </button>
         <button class="nav-btn" id="nextChapterBtn">
           Next Chapter
@@ -989,66 +989,7 @@
           </svg>
         </button>
       </div>
-      <div class="chapter-list">
-        <a href="#" class="chapter-list-item read">
-          <span class="chapter-list-number">1</span>
-          <span class="chapter-list-title">The Song Family</span>
-          <span class="chapter-list-check">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </span>
-        </a>
-        <a href="#" class="chapter-list-item read">
-          <span class="chapter-list-number">2</span>
-          <span class="chapter-list-title">Dark Clouds Gather</span>
-          <span class="chapter-list-check">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </span>
-        </a>
-        <a href="#" class="chapter-list-item current">
-          <span class="chapter-list-number">3</span>
-          <span class="chapter-list-title">The Escape</span>
-        </a>
-        <a href="#" class="chapter-list-item">
-          <span class="chapter-list-number">4</span>
-          <span class="chapter-list-title">A New Identity</span>
-        </a>
-        <a href="#" class="chapter-list-item">
-          <span class="chapter-list-number">5</span>
-          <span class="chapter-list-title">Village Life</span>
-        </a>
-        <a href="#" class="chapter-list-item">
-          <span class="chapter-list-number">6</span>
-          <span class="chapter-list-title">Unexpected Encounter</span>
-        </a>
-        <a href="#" class="chapter-list-item">
-          <span class="chapter-list-number">7</span>
-          <span class="chapter-list-title">Secrets Revealed</span>
-        </a>
-        <a href="#" class="chapter-list-item">
-          <span class="chapter-list-number">8</span>
-          <span class="chapter-list-title">The Search Begins</span>
-        </a>
-        <a href="#" class="chapter-list-item">
-          <span class="chapter-list-number">9</span>
-          <span class="chapter-list-title">A Dangerous Game</span>
-        </a>
-        <a href="#" class="chapter-list-item">
-          <span class="chapter-list-number">10</span>
-          <span class="chapter-list-title">Trust No One</span>
-        </a>
-        <a href="#" class="chapter-list-item">
-          <span class="chapter-list-number">11</span>
-          <span class="chapter-list-title">The Truth Emerges</span>
-        </a>
-        <a href="#" class="chapter-list-item">
-          <span class="chapter-list-number">12</span>
-          <span class="chapter-list-title">Sisters Forever</span>
-        </a>
-      </div>
+      <div class="chapter-list chapter-list-grid"></div>
     </div>
   </div>
 
@@ -1095,498 +1036,485 @@
   <div class="toast" id="toast"></div>
 
   <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/supabase.js"></script>
   <script>
-    // Novel/Chapter Data
-    const novelData = {
-      id: 'twin_sisters',
-      title: 'Twin Sisters',
-      cover: '../assets/images/covers/thumbnail.jpg',
-      author: 'Jane Writer',
-      authorId: 'janewriter'
-    };
-    const chapterData = {
-      id: 3,
-      title: 'The Escape',
-      totalChapters: 12
-    };
+    const params = new URLSearchParams(window.location.search);
+    const novelId = params.get('novelId') || params.get('novel') || '';
+    const chapterId = params.get('chapterId') || '';
+    const chapterNumberParam = Number(params.get('chapter') || params.get('chapterNumber') || 0);
+    const chapterStoreKey = 'novelshare_chapters';
 
-    // Mock chapter titles for demo
-    const chapterTitles = {
-      1: 'The Beginning',
-      2: 'A New Discovery',
-      3: 'The Escape',
-      4: 'Unexpected Allies',
-      5: 'The Journey North',
-      6: 'Secrets Revealed',
-      7: 'The Confrontation',
-      8: 'A Narrow Escape',
-      9: 'New Horizons',
-      10: 'The Truth',
-      11: 'Final Preparations',
-      12: 'The End'
-    };
+    let novelData = { id: novelId, title: 'Loading...', cover: '', author: '', authorId: '', totalChapters: 0 };
+    let chapterData = { id: chapterId, title: 'Loading...', number: 1, content: '', createdAt: null, totalChapters: 0 };
+    let chaptersList = [];
 
-    // Mock chapter content for demo
-    const chapterContents = {
-      1: `<p>The morning sun cast long shadows across the ancient cobblestone streets of the old city. Sarah stood at her window, watching the world wake up below. Today would be different, she could feel it in her bones.</p>
-          <p>Her twin sister Emma was already downstairs, the familiar sounds of breakfast preparation drifting up through the floorboards. They had lived in this house their entire lives, but something felt different today.</p>
-          <p>"Sarah! Breakfast is ready!" Emma's voice echoed through the hallway.</p>
-          <p>Little did they know that this ordinary morning would be the beginning of an extraordinary journey that would change their lives forever.</p>`,
-      2: `<p>The letter arrived without warning. It was tucked between the usual bills and advertisements, its aged envelope standing out like a beacon of mystery.</p>
-          <p>"What's this?" Emma asked, turning the envelope over in her hands. There was no return address, only their names written in elegant, flowing script.</p>
-          <p>Sarah leaned closer, her heart quickening. "Open it."</p>
-          <p>Inside was a single page, yellowed with age, bearing words that would unravel everything they thought they knew about their family.</p>`,
-      3: `<p>The night was dark and foreboding as Sarah and Emma made their way through the narrow alleyways of the old quarter. Behind them, the sound of pursuit grew ever closer.</p>
-          <p>"This way," Sarah whispered urgently, pulling her sister into a shadowed doorway. They pressed themselves against the cold stone wall, barely breathing as footsteps echoed past.</p>
-          <p>The letter had led them here, to this ancient part of the city where secrets had been buried for generations. But they weren't the only ones seeking answers.</p>
-          <p>"We need to find the old church," Emma said once the footsteps faded. "That's where the next clue is hidden."</p>
-          <p>They moved through the darkness like ghosts, two sisters bound by blood and united by a mystery that stretched back through time itself.</p>`,
-      4: `<p>The stranger appeared from nowhere, stepping out of the shadows with hands raised in peace. "Don't be afraid," he said softly. "I'm here to help."</p>
-          <p>Sarah positioned herself protectively in front of Emma. "Who are you?"</p>
-          <p>"My name is Marcus. I knew your grandmother." His eyes held a weight of years and secrets. "She asked me to watch over you, should this day ever come."</p>
-          <p>The twins exchanged glances. Could they trust this mysterious man? They had no choice but to find out.</p>`,
-      5: `<p>The train rattled northward through landscapes of increasing wildness. Mountains rose in the distance, their peaks shrouded in mist and mystery.</p>
-          <p>Marcus had explained everything—the ancient order, the family legacy, the reason they had been kept in the dark for so long. It was almost too much to believe.</p>
-          <p>"The sanctuary is three days journey from here," he said, studying an old map. "We'll need to be careful. There are those who would stop us."</p>
-          <p>Sarah watched the scenery blur past the window. Somewhere ahead lay answers, and perhaps, the truth about who they really were.</p>`,
-      6: `<p>The sanctuary was not what they expected. Hidden within a mountain valley, it was a place of breathtaking beauty and profound peace.</p>
-          <p>The Elder welcomed them with knowing eyes. "We have waited long for this moment," she said. "The daughters of the prophecy have finally arrived."</p>
-          <p>"Prophecy?" Emma's voice trembled. "What prophecy?"</p>
-          <p>What followed was a revelation that shattered everything they thought they knew about themselves, their family, and the very nature of the world.</p>`,
-      7: `<p>They found them at midnight—the pursuers who had been tracking them since the beginning. The sanctuary's ancient protections could only hold for so long.</p>
-          <p>"Give us the girls," demanded the leader, his voice echoing across the moonlit courtyard. "They don't belong with you."</p>
-          <p>But Sarah and Emma were no longer the frightened twins who had fled the city. They had learned things, discovered powers within themselves that had lain dormant for generations.</p>
-          <p>"We belong wherever we choose," Sarah replied, her voice steady despite the pounding of her heart.</p>`,
-      8: `<p>The escape route led through ancient tunnels beneath the sanctuary, paths that hadn't been walked in centuries. Marcus led the way with a flickering torch.</p>
-          <p>"They won't follow us here," he assured them. "These passages are sacred, warded against those with ill intent."</p>
-          <p>But the twins could feel it—something waiting in the darkness ahead. Something that had been sleeping for a very long time.</p>
-          <p>They pressed on regardless. There was no turning back now.</p>`,
-      9: `<p>They emerged into a world transformed. The sun was rising over a landscape they had never seen before—vast plains stretching to distant horizons, dotted with ancient ruins that spoke of civilizations long forgotten.</p>
-          <p>"Where are we?" Emma breathed.</p>
-          <p>"Home," Marcus replied simply. "The true home of your ancestors. Welcome to the Old World."</p>
-          <p>Sarah reached for her sister's hand. Whatever challenges lay ahead, they would face them together.</p>`,
-      10: `<p>The archives contained everything—records stretching back millennia, documenting the rise and fall of empires, the birth and death of gods, and at the center of it all, their family.</p>
-          <p>"We were never ordinary," Sarah said, running her fingers over an ancient genealogy. "We were never meant to be hidden away."</p>
-          <p>Emma nodded, tears streaming down her face. "Mother knew. Father knew. They sacrificed everything to protect us."</p>
-          <p>The truth was beautiful and terrible all at once. But it was their truth, and they would carry it forward.</p>`,
-      11: `<p>The final confrontation was approaching. They could feel it in the very air around them, a gathering storm of ancient forces.</p>
-          <p>"Are you ready?" Marcus asked, watching them complete the ritual preparations.</p>
-          <p>The twins looked at each other, communicating in that silent way only they could understand. They had come so far, learned so much, grown in ways they never imagined possible.</p>
-          <p>"We're ready," they said in unison.</p>`,
-      12: `<p>In the end, it wasn't about power or prophecy. It was about choice—the choice to embrace who they were, to accept their heritage while forging their own path.</p>
-          <p>The enemy was defeated not through violence, but through understanding. The ancient conflict that had driven their family into hiding was finally, irrevocably ended.</p>
-          <p>Sarah and Emma stood together on the balcony of their ancestral home, watching the sun set over a world at peace.</p>
-          <p>"What now?" Emma asked.</p>
-          <p>Sarah smiled. "Now we live. Really live, for the first time."</p>
-          <p>And so begins a new chapter—not just in their story, but in the story of the world itself.</p>
-          <p class="chapter-end" style="text-align: center; margin-top: 40px; font-style: italic; color: var(--text-muted);">~ The End ~</p>`
-    };
-
-    // Reading Progress
     const progressFill = document.getElementById('progressFill');
-    const chapterContent = document.getElementById('chapterContent');
-
-    function updateProgress() {
-      const scrollTop = window.scrollY;
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      const progress = (scrollTop / docHeight) * 100;
-      progressFill.style.width = Math.min(progress, 100) + '%';
-
-      // Save reading position using debounce
-      clearTimeout(window.savePositionTimeout);
-      window.savePositionTimeout = setTimeout(() => {
-        localStorage.setItem(`reading_position_${novelData.id}_${chapterData.id}`, scrollTop);
-
-        // Update library progress if in library
-        if (LibrarySystem.isInLibrary(novelData.id)) {
-          LibrarySystem.updateProgress(novelData.id, Math.round(progress), chapterData.id);
-        }
-      }, 300);
-    }
-
-    window.addEventListener('scroll', updateProgress);
-
-    // Restore reading position
-    const savedPosition = localStorage.getItem(`reading_position_${novelData.id}_${chapterData.id}`);
-    if (savedPosition) {
-      window.scrollTo(0, parseInt(savedPosition));
-    }
-
-    // Add to reading history
-    ReadingHistory.addToHistory(novelData.id, chapterData.id, {
-      title: novelData.title,
-      chapterTitle: chapterData.title,
-      cover: novelData.cover
-    });
-
-    // Settings Panel
-    const settingsBtn = document.getElementById('settingsBtn');
-    const settingsPanel = document.getElementById('settingsPanel');
-    const closeSettings = document.getElementById('closeSettings');
-    const panelOverlay = document.getElementById('panelOverlay');
-
-    settingsBtn.addEventListener('click', () => {
-      settingsPanel.classList.add('open');
-      panelOverlay.classList.add('active');
-    });
-
-    closeSettings.addEventListener('click', () => {
-      settingsPanel.classList.remove('open');
-      panelOverlay.classList.remove('active');
-    });
-
-    // Chapter List Panel
-    const chapterListBtn = document.getElementById('chapterListBtn');
-    const chapterListBtn2 = document.getElementById('chapterListBtn2');
-    const chapterListPanel = document.getElementById('chapterListPanel');
-    const closeChapterList = document.getElementById('closeChapterList');
-
-    [chapterListBtn, chapterListBtn2].forEach(btn => {
-      btn.addEventListener('click', () => {
-        chapterListPanel.classList.add('open');
-        panelOverlay.classList.add('active');
-      });
-    });
-
-    closeChapterList.addEventListener('click', () => {
-      chapterListPanel.classList.remove('open');
-      panelOverlay.classList.remove('active');
-    });
-
-    panelOverlay.addEventListener('click', () => {
-      settingsPanel.classList.remove('open');
-      chapterListPanel.classList.remove('open');
-      panelOverlay.classList.remove('active');
-    });
-
-    // Font Size
-    const fontSizeBtns = document.querySelectorAll('.font-size-btn');
-    fontSizeBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        fontSizeBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
-        document.body.classList.remove('font-small', 'font-large', 'font-xlarge');
-        const size = btn.dataset.size;
-        if (size !== 'medium') {
-          document.body.classList.add('font-' + size);
-        }
-
-        localStorage.setItem('reader_font_size', size);
-      });
-    });
-
-    // Load saved font size
-    const savedFontSize = localStorage.getItem('reader_font_size');
-    if (savedFontSize) {
-      fontSizeBtns.forEach(btn => btn.classList.remove('active'));
-      document.querySelector(`[data-size="${savedFontSize}"]`)?.classList.add('active');
-      if (savedFontSize !== 'medium') {
-        document.body.classList.add('font-' + savedFontSize);
-      }
-    }
-
-    // Theme
-    const themeBtns = document.querySelectorAll('.theme-btn');
-    themeBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        themeBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
-        document.body.classList.remove('dark-mode', 'sepia-mode');
-        const theme = btn.dataset.theme;
-        if (theme === 'dark') {
-          document.body.classList.add('dark-mode');
-        } else if (theme === 'sepia') {
-          document.body.classList.add('sepia-mode');
-        }
-
-        localStorage.setItem('reader_theme', theme);
-      });
-    });
-
-    // Load saved theme
-    const savedTheme = localStorage.getItem('reader_theme');
-    if (savedTheme) {
-      themeBtns.forEach(btn => btn.classList.remove('active'));
-      document.querySelector(`[data-theme="${savedTheme}"]`)?.classList.add('active');
-      if (savedTheme === 'dark') {
-        document.body.classList.add('dark-mode');
-      } else if (savedTheme === 'sepia') {
-        document.body.classList.add('sepia-mode');
-      }
-    }
-
-    // Bookmark using BookmarkSystem
+    const chapterContentEl = document.getElementById('chapterContent');
+    const addToLibraryBtn = document.getElementById('addToLibraryBtn');
     const bookmarkBtn = document.getElementById('bookmarkBtn');
-
-    function updateBookmarkUI() {
-      const isBookmarked = BookmarkSystem.isBookmarked(novelData.id, chapterData.id);
-      if (isBookmarked) {
-        bookmarkBtn.classList.add('active');
-        bookmarkBtn.querySelector('svg').setAttribute('fill', 'currentColor');
-      } else {
-        bookmarkBtn.classList.remove('active');
-        bookmarkBtn.querySelector('svg').setAttribute('fill', 'none');
-      }
-    }
-
-    updateBookmarkUI();
-
-    bookmarkBtn.addEventListener('click', () => {
-      const isBookmarked = BookmarkSystem.isBookmarked(novelData.id, chapterData.id);
-
-      if (isBookmarked) {
-        // Remove all bookmarks for this chapter
-        const bookmarks = BookmarkSystem.getChapterBookmarks(novelData.id, chapterData.id);
-        bookmarks.forEach(b => BookmarkSystem.removeBookmark(b.id));
-        showToast('Bookmark removed');
-      } else {
-        // Add bookmark at current position
-        const scrollPosition = window.scrollY;
-        BookmarkSystem.addBookmark(novelData.id, chapterData.id, scrollPosition, `Bookmarked at ${new Date().toLocaleString()}`, novelData.title, chapterData.title);
-        showToast('Bookmark added');
-      }
-
-      updateBookmarkUI();
-    });
-
-    // Download for Offline Reading
-    document.getElementById('downloadBtn').addEventListener('click', () => {
-      // Store chapter content for offline access (grouped by novel)
-      const offline = JSON.parse(localStorage.getItem('novelshare_offline') || '{}');
-      if (!offline[novelData.id]) {
-        offline[novelData.id] = {
-          novelId: novelData.id,
-          novelTitle: novelData.title,
-          cover: novelData.cover || novelData.coverImage || '',
-          chapters: {}
-        };
-      }
-
-      const existingChapters = offline[novelData.id].chapters || {};
-
-      if (existingChapters[chapterData.id]) {
-        delete existingChapters[chapterData.id];
-        if (Object.keys(existingChapters).length === 0) {
-          delete offline[novelData.id];
-        } else {
-          offline[novelData.id].chapters = existingChapters;
-        }
-        localStorage.setItem('novelshare_offline', JSON.stringify(offline));
-        showToast('Removed from offline reading');
-      } else {
-        existingChapters[chapterData.id] = {
-          chapterId: chapterData.id,
-          chapterTitle: chapterData.title,
-          content: chapterContent.innerHTML,
-          downloadedAt: Date.now()
-        };
-        offline[novelData.id].chapters = existingChapters;
-        localStorage.setItem('novelshare_offline', JSON.stringify(offline));
-        showToast('Chapter saved for offline reading');
-      }
-    });
-
-    // Rating Modal using RatingSystem
     const ratingModal = document.getElementById('ratingModal');
     const rateChapterBtn = document.getElementById('rateChapterBtn');
     const cancelRating = document.getElementById('cancelRating');
     const submitRating = document.getElementById('submitRating');
     const starBtns = document.querySelectorAll('.star-btn');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const closeSettings = document.getElementById('closeSettings');
+    const panelOverlay = document.getElementById('panelOverlay');
+    const chapterListBtn = document.getElementById('chapterListBtn');
+    const chapterListBtn2 = document.getElementById('chapterListBtn2');
+    const chapterListPanel = document.getElementById('chapterListPanel');
+    const closeChapterList = document.getElementById('closeChapterList');
+    const chapterListGrid = document.querySelector('.chapter-list-grid');
+    const prevBtn = document.getElementById('prevChapterBtn');
+    const nextBtn = document.getElementById('nextChapterBtn');
 
-    // Load existing rating
-    const existingRating = RatingSystem.getRating(`${novelData.id}_chapter_${chapterData.id}`);
-    let currentRating = existingRating ? existingRating.rating : 0;
-
-    // Update star display for existing rating
-    function updateStarDisplay(rating) {
-      starBtns.forEach((b, index) => {
-        if (index < rating) {
-          b.classList.add('active');
-        } else {
-          b.classList.remove('active');
-        }
-      });
-    }
-
-    if (currentRating > 0) {
-      updateStarDisplay(currentRating);
-    }
-
-    rateChapterBtn.addEventListener('click', () => {
-      ratingModal.classList.add('open');
-      // Show existing rating in modal
-      updateStarDisplay(currentRating);
-    });
-
-    cancelRating.addEventListener('click', () => {
-      ratingModal.classList.remove('open');
-    });
-
-    ratingModal.addEventListener('click', (e) => {
-      if (e.target === ratingModal) {
-        ratingModal.classList.remove('open');
+    function getLocalChapters(id) {
+      try {
+        const store = JSON.parse(localStorage.getItem(chapterStoreKey) || '{}');
+        return Array.isArray(store[id]) ? store[id] : [];
+      } catch {
+        return [];
       }
-    });
+    }
 
-    starBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        currentRating = parseInt(btn.dataset.rating);
-        updateStarDisplay(currentRating);
-      });
+    async function fetchChapter() {
+      const local = novelId ? getLocalChapters(novelId) : [];
+      let chapter = null;
+      if (chapterId) {
+        chapter = local.find(ch => ch.id === chapterId);
+      } else if (chapterNumberParam > 0) {
+        chapter = local.find(ch => (ch.number || ch.chapter_number || ch.order) === chapterNumberParam);
+      }
+      if (!chapter && local.length) chapter = local[0];
 
-      btn.addEventListener('mouseenter', () => {
-        const rating = parseInt(btn.dataset.rating);
-        updateStarDisplay(rating);
-      });
+      if (!chapter && chapterId && typeof SupabaseDB !== 'undefined' && SupabaseDB.getChapterById) {
+        try {
+          const supa = await SupabaseDB.getChapterById(novelId, chapterId);
+          if (supa) {
+            chapter = {
+              id: supa.id,
+              title: supa.title,
+              content: supa.content,
+              number: supa.chapter_number || 1,
+              createdAt: supa.created_at,
+              status: supa.status || 'published'
+            };
+            // persist fetched chapter into local store for TOC
+            const store = (() => { try { return JSON.parse(localStorage.getItem(chapterStoreKey) || '{}'); } catch { return {}; } })();
+            const existing = Array.isArray(store[novelId]) ? store[novelId] : [];
+            const next = [...existing.filter(ch => ch.id !== chapter.id), chapter];
+            store[novelId] = next;
+            localStorage.setItem(chapterStoreKey, JSON.stringify(store));
+            chaptersList = next;
+          }
+        } catch (err) {
+          console.warn('Supabase chapter fetch failed:', err);
+        }
+      }
 
-      btn.addEventListener('mouseleave', () => {
-        updateStarDisplay(currentRating);
-      });
-    });
+      // If still no chapter but we have a number, try Supabase getChapters and cache them
+      if (!chapter && typeof SupabaseDB !== 'undefined' && SupabaseDB.getChapters && novelId) {
+        try {
+          const supaList = await SupabaseDB.getChapters(novelId);
+          if (Array.isArray(supaList) && supaList.length) {
+            const store = (() => { try { return JSON.parse(localStorage.getItem(chapterStoreKey) || '{}'); } catch { return {}; } })();
+            store[novelId] = supaList.map(ch => ({
+              id: ch.id,
+              title: ch.title,
+              content: ch.content,
+              status: ch.status || 'published',
+              number: ch.chapter_number || ch.number || ch.order,
+              createdAt: ch.created_at || ch.updated_at
+            }));
+            localStorage.setItem(chapterStoreKey, JSON.stringify(store));
+            chaptersList = store[novelId];
+            if (chapterId) chapter = chaptersList.find(c => c.id === chapterId);
+            if (!chapter && chapterNumberParam > 0) chapter = chaptersList.find(c => c.number === chapterNumberParam);
+            if (!chapter) chapter = chaptersList[0];
+          }
+        } catch (err) {
+          console.warn('Supabase chapter list fetch failed:', err);
+        }
+      }
 
-    submitRating.addEventListener('click', () => {
-      if (currentRating === 0) {
-        showToast('Please select a rating');
+      if (!chapter && local.length) chapter = local[0];
+      if (!chaptersList.length) {
+        chaptersList = local.length ? local : (chapter ? [chapter] : []);
+      }
+      return chapter;
+    }
+
+    async function fetchNovelMeta() {
+      const pools = ['novelshare_library', 'novelshare_my_works'];
+      for (const key of pools) {
+        try {
+          const arr = JSON.parse(localStorage.getItem(key) || '[]');
+          const match = arr.find(item => [item.id, item.novelId, item.novel_id, item.slug, item.workId].includes(novelId));
+          if (match) return match;
+        } catch { /* ignore */ }
+      }
+      if (typeof SupabaseDB !== 'undefined' && SupabaseDB.getNovelById) {
+        try {
+          return await SupabaseDB.getNovelById(novelId);
+        } catch (err) {
+          console.warn('Supabase novel fetch failed:', err);
+        }
+      }
+      return null;
+    }
+
+    async function ensureChapterList() {
+      if (chaptersList.length || !novelId) return;
+      // Try Supabase for full list
+      if (typeof SupabaseDB !== 'undefined' && SupabaseDB.getChapters) {
+        try {
+          const supaList = await SupabaseDB.getChapters(novelId);
+          if (Array.isArray(supaList) && supaList.length) {
+            const store = (() => { try { return JSON.parse(localStorage.getItem(chapterStoreKey) || '{}'); } catch { return {}; } })();
+            store[novelId] = supaList.map(ch => ({
+              id: ch.id,
+              title: ch.title,
+              content: ch.content,
+              status: ch.status || 'published',
+              number: ch.chapter_number || ch.number || ch.order,
+              createdAt: ch.created_at || ch.updated_at
+            }));
+            localStorage.setItem(chapterStoreKey, JSON.stringify(store));
+            chaptersList = store[novelId];
+          }
+        } catch (err) {
+          console.warn('Supabase chapter list fetch (ensure) failed:', err);
+        }
+      }
+      if (!chaptersList.length && chapterData.id) {
+        chaptersList = [chapterData];
+      }
+    }
+
+    function renderChapter(data, novelMeta) {
+      if (!data) {
+        chapterContentEl.innerHTML = '<p>No chapter found.</p>';
         return;
       }
+      novelData = {
+        ...novelData,
+        ...novelMeta,
+        id: novelId || novelMeta?.id || '',
+        title: novelMeta?.title || novelData.title || 'Untitled Story',
+        cover: novelMeta?.cover || novelMeta?.coverImage || novelMeta?.cover_image || '',
+        totalChapters: novelMeta?.chapters || novelMeta?.total_chapters || chaptersList.length || 1
+      };
+      chapterData = {
+        ...chapterData,
+        ...data,
+        id: data.id || chapterId || '',
+        number: data.number || data.chapter_number || 1,
+        totalChapters: data.totalChapters || novelData.totalChapters || chaptersList.length || 1
+      };
 
-      // Save using RatingSystem
-      RatingSystem.saveRating(`${novelData.id}_chapter_${chapterData.id}`, currentRating);
-
-      ratingModal.classList.remove('open');
-      showToast(`Thanks for rating! You gave ${currentRating} stars`);
-    });
-
-    // Add to Library using LibrarySystem
-    const addToLibraryBtn = document.getElementById('addToLibraryBtn');
-
-    function updateLibraryBtnUI() {
-      const inLibrary = LibrarySystem.isInLibrary(novelData.id);
-      if (inLibrary) {
-        addToLibraryBtn.innerHTML = `
-          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-          </svg>
-          In Library
-        `;
-        addToLibraryBtn.style.background = 'var(--primary)';
-        addToLibraryBtn.style.borderColor = 'var(--primary)';
-        addToLibraryBtn.style.color = '#fff';
-      } else {
-        addToLibraryBtn.innerHTML = `
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-          </svg>
-          Add to Library
-        `;
-        addToLibraryBtn.style.background = '';
-        addToLibraryBtn.style.borderColor = '';
-        addToLibraryBtn.style.color = '';
+      document.title = `Reading: ${novelData.title}${chapterData.number ? ` - Chapter ${chapterData.number}` : ''} | NovelShare`;
+      document.getElementById('headerNovelTitle').textContent = novelData.title || 'Untitled Story';
+      document.getElementById('headerChapterTitle').textContent = chapterData.title ? `Chapter ${chapterData.number}: ${chapterData.title}` : '';
+      document.querySelector('.chapter-number').textContent = chapterData.number ? `Chapter ${chapterData.number}` : 'Chapter';
+      document.querySelector('.chapter-title').textContent = chapterData.title || 'Untitled Chapter';
+      const endHeading = document.getElementById('chapterEndHeading');
+      if (endHeading) {
+        const labelNum = chapterData.number || chapterData.id || '';
+        endHeading.textContent = labelNum ? `End of Chapter ${labelNum}` : 'End of Chapter';
       }
+      const centerLabel = document.getElementById('chapterNavLabel');
+      if (centerLabel) {
+        const total = chapterData.totalChapters || chaptersList.length || '';
+        const num = chapterData.number || '';
+        centerLabel.textContent = num && total ? `Chapter ${num} of ${total}` : (num ? `Chapter ${num}` : 'Chapter');
+      }
+
+      const readTime = chapterData.content ? `${Math.max(1, Math.ceil(chapterData.content.split(/\s+/).length / 200))} min read` : '—';
+      const dateLabel = chapterData.createdAt ? new Date(chapterData.createdAt).toLocaleDateString() : '';
+      const chapterMeta = document.querySelector('.chapter-meta');
+      if (chapterMeta) {
+        chapterMeta.innerHTML = `
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> ${readTime}</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg> —</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 17l-5-5 5-5"/><path d="M21 12H3"/></svg> ${dateLabel}</span>
+        `;
+      }
+
+      const paragraphs = (chapterData.content || '').trim().split(/\n\s*\n/).filter(Boolean);
+      chapterContentEl.innerHTML = paragraphs.length ? paragraphs.map(p => `<p>${p.trim()}</p>`).join('') : '<p>No content available.</p>';
+
+      // reading position
+      const savedPos = novelData.id ? localStorage.getItem(`reading_position_${novelData.id}_${chapterData.id || ''}`) : null;
+      if (savedPos) {
+        setTimeout(() => window.scrollTo(0, parseInt(savedPos, 10)), 50);
+      }
+
+      // history
+      if (novelData.id && chapterData.id && typeof ReadingHistory !== 'undefined') {
+        ReadingHistory.addToHistory(novelData.id, chapterData.id, {
+          title: novelData.title,
+          chapterTitle: chapterData.title,
+          cover: novelData.cover || ''
+        });
+      }
+
+      updateLibraryBtnUI();
+      updateBookmarkUI();
+      populateChapterList();
+      updateNavButtonStates();
     }
 
-    updateLibraryBtnUI();
+    async function loadData() {
+      const [chapter, novelMeta] = await Promise.all([fetchChapter(), fetchNovelMeta()]);
+      renderChapter(chapter, novelMeta || {});
+      await ensureChapterList();
+      populateChapterList();
+      updateNavButtonStates();
+    }
 
-    addToLibraryBtn.addEventListener('click', () => {
+    // Reading progress
+    function updateProgress() {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+      if (progressFill) progressFill.style.width = Math.min(progress, 100) + '%';
+
+      clearTimeout(window.savePositionTimeout);
+      window.savePositionTimeout = setTimeout(() => {
+        if (novelData.id) {
+          localStorage.setItem(`reading_position_${novelData.id}_${chapterData.id || ''}`, scrollTop);
+          if (LibrarySystem.isInLibrary(novelData.id)) {
+            LibrarySystem.updateProgress(novelData.id, Math.round(progress), chapterData.number || chapterData.id || 0);
+          }
+        }
+      }, 300);
+    }
+    window.addEventListener('scroll', updateProgress);
+
+    // Settings/overlays
+    settingsBtn?.addEventListener('click', () => {
+      settingsPanel?.classList.add('open');
+      panelOverlay?.classList.add('active');
+    });
+    closeSettings?.addEventListener('click', () => {
+      settingsPanel?.classList.remove('open');
+      panelOverlay?.classList.remove('active');
+    });
+    [chapterListBtn, chapterListBtn2].forEach(btn => {
+      btn?.addEventListener('click', () => {
+        chapterListPanel?.classList.add('open');
+        panelOverlay?.classList.add('active');
+      });
+    });
+    closeChapterList?.addEventListener('click', () => {
+      chapterListPanel?.classList.remove('open');
+      panelOverlay?.classList.remove('active');
+    });
+    panelOverlay?.addEventListener('click', () => {
+      settingsPanel?.classList.remove('open');
+      chapterListPanel?.classList.remove('open');
+      panelOverlay?.classList.remove('active');
+    });
+
+    // Font size/theme toggles (unchanged)
+    const fontSizeBtns = document.querySelectorAll('.font-size-btn');
+    fontSizeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        fontSizeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.body.classList.remove('font-small', 'font-large', 'font-xlarge');
+        const size = btn.dataset.size;
+        if (size !== 'medium') document.body.classList.add('font-' + size);
+        localStorage.setItem('reader_font_size', size);
+      });
+    });
+    const savedFontSize = localStorage.getItem('reader_font_size');
+    if (savedFontSize) {
+      fontSizeBtns.forEach(btn => btn.classList.remove('active'));
+      document.querySelector(`[data-size="${savedFontSize}"]`)?.classList.add('active');
+      if (savedFontSize !== 'medium') document.body.classList.add('font-' + savedFontSize);
+    }
+    const themeBtns = document.querySelectorAll('.theme-btn');
+    themeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        themeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.body.classList.remove('dark-mode', 'sepia-mode');
+        const theme = btn.dataset.theme;
+        if (theme === 'dark') document.body.classList.add('dark-mode');
+        else if (theme === 'sepia') document.body.classList.add('sepia-mode');
+        localStorage.setItem('reader_theme', theme);
+      });
+    });
+    const savedTheme = localStorage.getItem('reader_theme');
+    if (savedTheme) {
+      themeBtns.forEach(btn => btn.classList.remove('active'));
+      document.querySelector(`[data-theme="${savedTheme}"]`)?.classList.add('active');
+      if (savedTheme === 'dark') document.body.classList.add('dark-mode');
+      else if (savedTheme === 'sepia') document.body.classList.add('sepia-mode');
+    }
+
+    // Library button
+    function updateLibraryBtnUI() {
+      if (!addToLibraryBtn) return;
+      const inLibrary = LibrarySystem.isInLibrary(novelData.id);
+      addToLibraryBtn.innerHTML = inLibrary
+        ? `<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> In Library`
+        : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> Add to Library`;
+      addToLibraryBtn.classList.toggle('primary', inLibrary);
+    }
+    addToLibraryBtn?.addEventListener('click', () => {
       const added = LibrarySystem.toggleLibrary(novelData.id, novelData);
       updateLibraryBtnUI();
       showToast(added ? 'Added to your library' : 'Removed from library');
     });
 
-    // Chapter navigation
-    function navigateToChapter(newChapterId) {
-      if (newChapterId < 1 || newChapterId > chapterData.totalChapters) {
-        showToast(newChapterId < 1 ? 'This is the first chapter' : 'This is the last chapter');
+    // Bookmark
+    function updateBookmarkUI() {
+      if (!bookmarkBtn) return;
+      const isBookmarked = BookmarkSystem.isBookmarked(novelData.id, chapterData.id);
+      bookmarkBtn.classList.toggle('active', isBookmarked);
+      bookmarkBtn.querySelector('svg')?.setAttribute('fill', isBookmarked ? 'currentColor' : 'none');
+    }
+    bookmarkBtn?.addEventListener('click', () => {
+      const isBookmarked = BookmarkSystem.isBookmarked(novelData.id, chapterData.id);
+      if (isBookmarked) {
+        const bookmarks = BookmarkSystem.getChapterBookmarks(novelData.id, chapterData.id);
+        bookmarks.forEach(b => BookmarkSystem.removeBookmark(b.id));
+        showToast('Bookmark removed');
+      } else {
+        BookmarkSystem.addBookmark(
+          novelData.id,
+          chapterData.id,
+          window.scrollY,
+          `Bookmarked at ${new Date().toLocaleString()}`,
+          novelData.title,
+          chapterData.title
+        );
+        showToast('Bookmark added');
+      }
+      updateBookmarkUI();
+    });
+
+    // Download for offline
+    document.getElementById('downloadBtn')?.addEventListener('click', () => {
+      if (!novelData.id || !chapterData.id) return;
+      const offline = JSON.parse(localStorage.getItem('novelshare_offline') || '{}');
+      if (!offline[novelData.id]) {
+        offline[novelData.id] = { novelId: novelData.id, novelTitle: novelData.title, cover: novelData.cover || '', chapters: {} };
+      }
+      const existingChapters = offline[novelData.id].chapters || {};
+      if (existingChapters[chapterData.id]) {
+        delete existingChapters[chapterData.id];
+        if (Object.keys(existingChapters).length === 0) delete offline[novelData.id];
+        else offline[novelData.id].chapters = existingChapters;
+        showToast('Removed from offline reading');
+      } else {
+        existingChapters[chapterData.id] = {
+          chapterId: chapterData.id,
+          chapterTitle: chapterData.title,
+          content: chapterContentEl.innerHTML,
+          downloadedAt: Date.now()
+        };
+        offline[novelData.id].chapters = existingChapters;
+        showToast('Chapter saved for offline reading');
+      }
+      localStorage.setItem('novelshare_offline', JSON.stringify(offline));
+    });
+
+    // Rating
+    let currentRating = 0;
+    function updateStarDisplay(rating) {
+      starBtns.forEach((b, index) => b.classList.toggle('active', index < rating));
+    }
+    rateChapterBtn?.addEventListener('click', () => {
+      ratingModal?.classList.add('open');
+      updateStarDisplay(currentRating);
+    });
+    cancelRating?.addEventListener('click', () => ratingModal?.classList.remove('open'));
+    ratingModal?.addEventListener('click', (e) => { if (e.target === ratingModal) ratingModal.classList.remove('open'); });
+    starBtns.forEach(btn => {
+      btn.addEventListener('click', () => { currentRating = parseInt(btn.dataset.rating, 10); updateStarDisplay(currentRating); });
+      btn.addEventListener('mouseenter', () => updateStarDisplay(parseInt(btn.dataset.rating, 10)));
+      btn.addEventListener('mouseleave', () => updateStarDisplay(currentRating));
+    });
+    submitRating?.addEventListener('click', () => {
+      if (!currentRating) return showToast('Please select a rating');
+      if (novelData.id && chapterData.id) {
+        RatingSystem.saveRating(`${novelData.id}_chapter_${chapterData.id}`, currentRating);
+      }
+      ratingModal?.classList.remove('open');
+      showToast(`Thanks for rating! You gave ${currentRating} stars`);
+    });
+
+    // Chapter list / navigation
+    function populateChapterList() {
+      if (!chapterListGrid) return;
+      const readChapters = (() => {
+        try { return JSON.parse(localStorage.getItem(`read_chapters_${novelId}`) || '[]'); }
+        catch { return []; }
+      })();
+      if (!chaptersList.length) {
+        chapterListGrid.innerHTML = `<div class="chapter-list-item" style="opacity:0.7;">No chapters yet.</div>`;
         return;
       }
-
-      // Update chapter data
-      chapterData.id = newChapterId;
-      chapterData.title = chapterTitles[newChapterId];
-
-      // Update UI elements
-      document.querySelector('.chapter-number').textContent = `Chapter ${newChapterId}`;
-      document.querySelector('.chapter-title').textContent = chapterData.title;
-      document.getElementById('chapterListBtn2').textContent = `Chapter ${newChapterId} of ${chapterData.totalChapters}`;
-
-      // Update content
-      chapterContent.innerHTML = chapterContents[newChapterId] || '<p>Chapter content loading...</p>';
-
-      // Reset scroll and progress
-      window.scrollTo(0, 0);
-      progressFill.style.width = '0%';
-
-      // Add to reading history
-      ReadingHistory.addToHistory(novelData.id, chapterData.id, {
-        title: novelData.title,
-        chapterTitle: `Chapter ${newChapterId}: ${chapterData.title}`,
-        cover: novelData.cover
-      });
-
-      // Mark chapter as read
-      const readChapters = JSON.parse(localStorage.getItem(`read_chapters_${novelData.id}`) || '[]');
-      if (!readChapters.includes(newChapterId)) {
-        readChapters.push(newChapterId);
-        localStorage.setItem(`read_chapters_${novelData.id}`, JSON.stringify(readChapters));
-      }
-
-      // Update button states
-      updateNavButtonStates();
-
-      showToast(`Chapter ${newChapterId}: ${chapterData.title}`);
+      const ordered = [...chaptersList].sort((a, b) => (a.number || 0) - (b.number || 0));
+      chapterListGrid.innerHTML = ordered.map(ch => `
+        <a href="reader.html?novelId=${encodeURIComponent(novelId)}&chapterId=${encodeURIComponent(ch.id || '')}" class="chapter-list-item${ch.id === chapterData.id ? ' current' : ''}">
+          <span class="chapter-list-number">${ch.number || ''}</span>
+          <span class="chapter-list-title">${ch.title || 'Untitled'}</span>
+          ${readChapters.includes(ch.id) ? `<span class="chapter-list-check">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </span>` : ''}
+        </a>
+      `).join('');
     }
 
     function updateNavButtonStates() {
-      const prevBtn = document.getElementById('prevChapterBtn');
-      const nextBtn = document.getElementById('nextChapterBtn');
+      const ordered = chaptersList.length
+        ? [...chaptersList].sort((a, b) => (a.number || 0) - (b.number || 0))
+        : (chapterData.id ? [chapterData] : []);
+      const idx = ordered.findIndex(ch => ch.id === chapterData.id);
+      const prev = ordered.length ? (idx > 0 ? ordered[idx - 1] : null) : null;
+      const next = ordered.length ? (idx >= 0 && idx < ordered.length - 1 ? ordered[idx + 1] : null) : null;
+      const total = chapterData.totalChapters || ordered.length || 1;
 
-      // Disable/enable based on current chapter
-      prevBtn.style.opacity = chapterData.id <= 1 ? '0.5' : '1';
-      prevBtn.style.cursor = chapterData.id <= 1 ? 'not-allowed' : 'pointer';
-      nextBtn.style.opacity = chapterData.id >= chapterData.totalChapters ? '0.5' : '1';
-      nextBtn.style.cursor = chapterData.id >= chapterData.totalChapters ? 'not-allowed' : 'pointer';
-    }
+      prevBtn.style.opacity = prev ? '1' : '0.5';
+      prevBtn.style.cursor = prev ? 'pointer' : 'not-allowed';
+      nextBtn.style.opacity = next ? '1' : '0.5';
+      nextBtn.style.cursor = next ? 'pointer' : 'not-allowed';
 
-    // Initialize button states
-    updateNavButtonStates();
+      prevBtn.onclick = prev
+        ? () => window.location.href = `reader.html?novelId=${encodeURIComponent(novelId)}&chapterId=${encodeURIComponent(prev.id)}`
+        : () => showToast('This is the first chapter');
+      nextBtn.onclick = next
+        ? () => window.location.href = `reader.html?novelId=${encodeURIComponent(novelId)}&chapterId=${encodeURIComponent(next.id)}`
+        : () => showToast('This is the last chapter');
 
-    document.getElementById('prevChapterBtn').addEventListener('click', () => {
-      navigateToChapter(chapterData.id - 1);
-    });
-
-    document.getElementById('nextChapterBtn').addEventListener('click', () => {
-      navigateToChapter(chapterData.id + 1);
-    });
-
-    // Mark chapter as read in localStorage
-    const readChapters = JSON.parse(localStorage.getItem(`read_chapters_${novelData.id}`) || '[]');
-    if (!readChapters.includes(chapterData.id)) {
-      readChapters.push(chapterData.id);
-      localStorage.setItem(`read_chapters_${novelData.id}`, JSON.stringify(readChapters));
+      const centerLabel = document.getElementById('chapterNavLabel');
+      if (centerLabel) {
+        centerLabel.textContent = chapterData.number && total ? `Chapter ${chapterData.number} of ${total}` : `Chapter ${chapterData.number || ''}`;
+      }
     }
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        settingsPanel.classList.remove('open');
-        chapterListPanel.classList.remove('open');
-        ratingModal.classList.remove('open');
-        panelOverlay.classList.remove('active');
+        settingsPanel?.classList.remove('open');
+        chapterListPanel?.classList.remove('open');
+        ratingModal?.classList.remove('open');
+        panelOverlay?.classList.remove('active');
       }
+    });
 
-      // Arrow keys for navigation
-      if (e.key === 'ArrowLeft') {
-        document.getElementById('prevChapterBtn').click();
-      } else if (e.key === 'ArrowRight') {
-        document.getElementById('nextChapterBtn').click();
-      }
-
-      // B for bookmark
-      if (e.key === 'b' || e.key === 'B') {
-        bookmarkBtn.click();
-      }
+    document.addEventListener('DOMContentLoaded', () => {
+      loadData();
+      initFontSizeToggle?.();
+      initThemeToggle?.();
+      initBookmark?.();
     });
   </script>
 </body>

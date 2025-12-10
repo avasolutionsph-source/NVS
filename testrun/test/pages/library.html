@@ -1090,7 +1090,7 @@
                                 </svg>
                                 My Profile
                             </a>
-                            <a href="profile.html#works">
+                            <a href="author-dashboard.html">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
                                 </svg>
@@ -1350,6 +1350,7 @@
                         console.log('Syncing library with Supabase...');
                         await SupabaseSync.syncLibrary();
                         await SupabaseSync.syncHistory();
+                        await SupabaseSync.syncBookmarks();
                     }
                 } catch (error) {
                     console.log('Supabase sync not available, using local data');
@@ -1400,8 +1401,84 @@
             }
 
             // Update library stats in hero
+            const DELETED_KEY = 'novelshare_deleted_ids';
+            function getDeletedIds() {
+                try { return new Set(JSON.parse(localStorage.getItem(DELETED_KEY) || '[]')); }
+                catch { return new Set(); }
+            }
+
+            function getProfileDisplayName() {
+                try {
+                    const profile = JSON.parse(localStorage.getItem('novelshare_profile') || '{}');
+                    return profile.display_name || profile.username || profile.name || profile.email || 'You';
+                } catch {
+                    return 'You';
+                }
+            }
+
+            function getAuthorDisplayName(rawAuthor) {
+                const profileName = getProfileDisplayName();
+                if (!rawAuthor) return profileName;
+                if (typeof rawAuthor === 'string' && rawAuthor.includes('@')) return profileName;
+                return rawAuthor;
+            }
+
+            async function resolveChapterId(novelId, hintedId) {
+                if (hintedId) return hintedId;
+                // Local cache
+                try {
+                    const store = JSON.parse(localStorage.getItem('novelshare_chapters') || '{}');
+                    const list = Array.isArray(store[novelId]) ? store[novelId] : [];
+                    if (list.length) return list[0].id || '';
+                } catch {}
+                // Supabase
+                if (typeof SupabaseDB !== 'undefined' && SupabaseDB.getChapters) {
+                    try {
+                        const supa = await SupabaseDB.getChapters(novelId);
+                        if (Array.isArray(supa) && supa.length) {
+                            // cache it
+                            const store = (() => { try { return JSON.parse(localStorage.getItem('novelshare_chapters') || '{}'); } catch { return {}; } })();
+                            store[novelId] = supa.map(ch => ({
+                                id: ch.id,
+                                title: ch.title,
+                                content: ch.content,
+                                status: ch.status || 'published',
+                                number: ch.chapter_number || ch.number || ch.order,
+                                createdAt: ch.created_at || ch.updated_at
+                            }));
+                            localStorage.setItem('novelshare_chapters', JSON.stringify(store));
+                            return supa[0].id || '';
+                        }
+                    } catch (err) {
+                        console.warn('Supabase getChapters failed:', err);
+                    }
+                }
+                return '';
+            }
+
+            function attachContinueHandlers(scope) {
+                const buttons = (scope || document).querySelectorAll('.continue-btn');
+                buttons.forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const href = e.currentTarget.getAttribute('href') || '';
+                        const url = new URL(href, window.location.origin);
+                        const novelId = url.searchParams.get('novelId') || url.searchParams.get('novel') || e.currentTarget.closest('[data-novel-id]')?.dataset.novelId;
+                        const hinted = url.searchParams.get('chapterId') || '';
+                        if (!novelId) return;
+                        e.preventDefault();
+                        const chapterId = await resolveChapterId(novelId, hinted);
+                        if (!chapterId) {
+                            showToast('No chapters available for this novel yet.');
+                            return;
+                        }
+                        window.location.href = `reader.html?novelId=${encodeURIComponent(novelId)}&chapterId=${encodeURIComponent(chapterId)}`;
+                    });
+                });
+            }
+
             function updateLibraryStats() {
-                const library = LibrarySystem.getLibrary();
+                const deleted = getDeletedIds();
+                const library = LibrarySystem.getLibrary().filter(n => !deleted.has(n.id || n.novelId));
                 const total = library.length;
                 let completed = 0;
                 let inProgress = 0;
@@ -1438,7 +1515,8 @@
             function renderLibrary() {
                 const grid = document.getElementById('libraryGrid');
                 const emptyState = document.getElementById('libraryEmpty');
-                const library = LibrarySystem.getLibrary();
+                const deleted = getDeletedIds();
+                const library = LibrarySystem.getLibrary().filter(n => !deleted.has(n.id || n.novelId));
                 const fallbackCover = "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='450'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop stop-color='%233b82f6' offset='0%25'/%3E%3Cstop stop-color='%231b4aa9' offset='100%25'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='300' height='450' rx='24' ry='24' fill='url(%23g)'/%3E%3C/svg%3E";
 
                 updateLibraryStats();
@@ -1462,6 +1540,7 @@
                         ? Math.round((currentChapter / totalChapters) * 100)
                         : 0;
                     const status = getReadingStatus({ ...novel, totalChapters, currentChapter });
+                    const authorName = getAuthorDisplayName(novel.author);
 
                     return `
                         <div class="library-card" data-novel-id="${id}" data-title="${novel.title.toLowerCase()}">
@@ -1472,7 +1551,7 @@
                                 </div>
                                 <div class="library-card-info">
                                     <h3 class="library-card-title">${novel.title}</h3>
-                                    <p class="library-card-author">by ${novel.author || 'Unknown'}</p>
+                                    <p class="library-card-author">by ${authorName}</p>
                                     <div class="library-card-progress">
                                         <div class="progress-label">
                                             <span>Chapter ${currentChapter}/${totalChapters}</span>
@@ -1485,7 +1564,7 @@
                                 </div>
                             </div>
                             <div class="library-card-footer">
-                                <a href="reader.html?novel=${id}&chapter=${currentChapter}" class="continue-btn">
+                                <a href="reader.html?novelId=${id}&chapterId=${novel.currentChapterId || ''}" class="continue-btn">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polygon points="5 3 19 12 5 21 5 3"/>
                                     </svg>
@@ -1511,6 +1590,8 @@
                         </div>
                     `;
                 }).join('');
+
+                attachContinueHandlers(grid);
 
                 // Add remove handlers
                 grid.querySelectorAll('[data-action="remove-library"]').forEach(btn => {
@@ -1566,7 +1647,7 @@
                             </p>
                         </div>
                         <div class="history-card-action">
-                            <a href="reader.html?novel=${item.novelId}&chapter=${item.chapterId}" class="continue-btn">
+                            <a href="reader.html?novelId=${item.novelId}&chapterId=${item.chapterId}" class="continue-btn">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polygon points="5 3 19 12 5 21 5 3"/>
                                 </svg>
@@ -1575,6 +1656,8 @@
                         </div>
                     </div>
                 `).join('');
+
+                attachContinueHandlers(grid);
             }
 
             // Render Bookmarks
@@ -1615,7 +1698,7 @@
                             </p>` : ''}
                         </div>
                         <div class="bookmark-card-action">
-                            <a href="reader.html?novel=${bookmark.novelId}&chapter=${bookmark.chapterId}" class="continue-btn">
+                            <a href="reader.html?novelId=${bookmark.novelId}&chapterId=${bookmark.chapterId}" class="continue-btn">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M5 12h14M12 5l7 7-7 7"/>
                                 </svg>
@@ -1639,6 +1722,8 @@
                         renderBookmarks();
                     });
                 });
+
+                attachContinueHandlers(grid);
             }
 
             // Render Downloads
@@ -1731,7 +1816,7 @@
                             </p>
                         </div>
                         <div class="download-card-action">
-                            <a href="reader.html?novel=${download.novelId}&chapter=${firstChapterId || 1}&offline=true" class="continue-btn">
+                            <a href="reader.html?novelId=${download.novelId}&chapterId=${firstChapterId || ''}&offline=true" class="continue-btn">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
                                     <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
@@ -1761,6 +1846,8 @@
                         }
                     });
                 });
+
+                attachContinueHandlers(grid);
             }
 
             // Clear History Handler

@@ -10,15 +10,16 @@
   <style>
     /* Chapter Form Specific Styles */
     .form-container {
-      max-width: 900px;
-      margin: 40px auto;
-      padding: 0 24px;
+      max-width: 1100px;
+      margin: 60px auto 40px;
+      padding: 0 24px 40px;
     }
     .page-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 24px;
+      margin-top: 12px;
+      margin-bottom: 32px;
       flex-wrap: wrap;
       gap: 16px;
     }
@@ -33,43 +34,12 @@
       color: var(--text-muted);
       margin: 0;
     }
-    .chapter-nav {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    .chapter-nav button {
-      padding: 8px 16px;
-      border: 1px solid var(--border-color);
-      background: #fff;
-      border-radius: 8px;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--text-dark);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s;
-    }
-    .chapter-nav button:hover:not(:disabled) {
-      border-color: var(--primary);
-      color: var(--primary);
-    }
-    .chapter-nav button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    .chapter-nav .chapter-indicator {
-      font-size: 0.875rem;
-      color: var(--text-muted);
-      padding: 0 8px;
-    }
+    .chapter-nav { display: none; }
     .form-container form {
-      background: #fff;
-      border-radius: 16px;
-      padding: 32px;
-      box-shadow: var(--shadow-sm);
+      background: transparent;
+      border-radius: 0;
+      padding: 0 0 24px;
+      box-shadow: none;
     }
     .form-row {
       display: grid;
@@ -133,14 +103,7 @@
       margin-bottom: 24px;
     }
     .formatting-toolbar {
-      display: flex;
-      gap: 4px;
-      padding: 8px 12px;
-      background: #f8f9fa;
-      border: 1px solid var(--border-color);
-      border-bottom: none;
-      border-radius: 10px 10px 0 0;
-      flex-wrap: wrap;
+      display: none;
     }
     .toolbar-btn {
       padding: 8px 12px;
@@ -196,7 +159,7 @@
       padding: 12px 16px;
       background: #f8f9fa;
       border-radius: 8px;
-      margin-bottom: 24px;
+      margin-bottom: 16px;
       flex-wrap: wrap;
     }
     .stat-item {
@@ -241,6 +204,8 @@
       gap: 12px;
       justify-content: space-between;
       flex-wrap: wrap;
+      margin-top: 16px;
+      margin-bottom: 12px;
     }
     .form-buttons .left-actions {
       display: flex;
@@ -688,7 +653,7 @@
                 </svg>
                 My Profile
               </a>
-              <a href="profile.html#works">
+              <a href="author-dashboard.html">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
                 </svg>
@@ -720,21 +685,7 @@
           <h2>Edit Chapter</h2>
           <p class="subtext">Refine the chapter content as needed</p>
         </div>
-        <div class="chapter-nav">
-          <button id="prevChapter" disabled>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M15 18l-6-6 6-6"/>
-            </svg>
-            Previous
-          </button>
-          <span class="chapter-indicator">Chapter 3 of 12</span>
-          <button id="nextChapter">
-            Next
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 18l6-6-6-6"/>
-            </svg>
-          </button>
-        </div>
+        <div class="chapter-nav"></div>
       </div>
 
       <!-- Auto-save Indicator -->
@@ -749,7 +700,7 @@
         <div class="form-row">
           <div class="form-group">
             <label for="chapter-title">Chapter Title <span style="color: #ef4444;">*</span></label>
-            <input type="text" id="chapter-title" value="Twin Sisters" required />
+            <input type="text" id="chapter-title" value="" placeholder="Enter chapter title" required />
           </div>
           <div class="form-group status-wrapper">
             <label for="status">Status</label>
@@ -803,17 +754,7 @@
               </svg>
             </button>
           </div>
-          <textarea id="chapter-content">Huizhou Prefecture, She County.
-
-At night, the streets and alleys are quiet, and you can occasionally hear a few dogs barking.
-A group of officials suddenly broke into the Song family's home. The leading official claimed that the medicinal materials sold by the Song family to the Northwest Army were inferior and had resulted in deaths. They were ordered to search the family's home and investigate the crime.
-"Oh no! There's a flood in the backyard!"
-"Go put out the fire! The eldest and second young ladies are still in the house!"
-"Rescue!"
-The Song family was in chaos and there were cries everywhere.
-An ordinary horse-drawn carriage came out of the alley next to the Song residence and hurried towards the city gate. Inside the carriage,
-Song Jin hugged his half sister Song Xiu. Even though he was extremely frightened in his heart, his face remained calm.
-The old man Qin who was driving the car said, "Miss, when you get to Qinjiagou, tell everyone that you are from the next county and both your parents are dead."</textarea>
+          <textarea id="chapter-content" placeholder="Start writing your chapter content..."></textarea>
         </div>
 
         <!-- Content Stats -->
@@ -835,27 +776,10 @@ The old man Qin who was driving the car said, "Miss, when you get to Qinjiagou, 
           </div>
           <div class="right-actions">
             <button type="button" class="cancel-btn" id="cancelBtn">Cancel</button>
-            <button type="button" class="preview-btn" id="previewBtn">Preview</button>
             <button type="submit" class="save-btn">Save Changes</button>
           </div>
         </div>
       </form>
-
-      <!-- Preview Container -->
-      <div class="preview-container" id="previewContainer">
-        <div class="preview-header">
-          <h3 class="preview-title" id="previewTitle">Twin Sisters</h3>
-          <span class="preview-status status-badge draft" id="previewStatus">Draft</span>
-        </div>
-        <div class="preview-content" id="previewContent"></div>
-        <div class="form-buttons" style="margin-top: 24px;">
-          <div class="left-actions"></div>
-          <div class="right-actions">
-            <button type="button" class="preview-btn" id="exitPreviewBtn">Exit Preview</button>
-            <button type="button" class="save-btn" id="publishFromPreview">Save Changes</button>
-          </div>
-        </div>
-      </div>
     </main>
 
     <!-- Footer -->
@@ -927,8 +851,11 @@ The old man Qin who was driving the car said, "Miss, when you get to Qinjiagou, 
     let hasUnsavedChanges = false;
     let originalContent = {};
     let autoSaveTimeout = null;
-    let currentChapter = 3;
-    const totalChapters = 12;
+    const chapterStoreKey = 'novelshare_chapters';
+    const params = new URLSearchParams(window.location.search);
+    const workId = params.get('workId') || params.get('id') || '';
+    const chapterId = params.get('chapterId') || '';
+    const profile = (() => { try { return JSON.parse(localStorage.getItem('novelshare_profile') || '{}'); } catch { return {}; } })();
 
     // DOM Elements
     const form = document.getElementById('editChapterForm');
@@ -937,17 +864,72 @@ The old man Qin who was driving the car said, "Miss, when you get to Qinjiagou, 
     const statusSelect = document.getElementById('status');
     const statusBadge = document.getElementById('statusBadge');
     const autosaveIndicator = document.getElementById('autosaveIndicator');
-    const previewContainer = document.getElementById('previewContainer');
+
+    function getStoredChapters() {
+      try { return JSON.parse(localStorage.getItem(chapterStoreKey) || '{}'); }
+      catch { return {}; }
+    }
+
+    function persistChapters(store) {
+      localStorage.setItem(chapterStoreKey, JSON.stringify(store));
+    }
+
+    async function loadChapter() {
+      const store = getStoredChapters();
+      const list = Array.isArray(store[workId]) ? store[workId] : [];
+      let chapter = chapterId ? list.find(ch => ch.id === chapterId) : list[list.length - 1];
+
+      if ((!chapter && chapterId) && typeof SupabaseAuth !== 'undefined' && typeof SupabaseDB !== 'undefined' && SupabaseDB.getChapterById) {
+        try {
+          const user = await SupabaseAuth.getCurrentUser();
+          if (user) {
+            const supa = await SupabaseDB.getChapterById(workId, chapterId);
+            if (supa) {
+              chapter = {
+                id: supa.id,
+                workId,
+                title: supa.title,
+                content: supa.content,
+                status: supa.status,
+                number: supa.chapter_number,
+                createdAt: supa.created_at,
+              };
+              list.push(chapter);
+              store[workId] = list;
+              persistChapters(store);
+            }
+          }
+        } catch (err) {
+          console.warn('Supabase chapter fetch failed:', err);
+        }
+      }
+      if (!chapter && chapterId) {
+        // Create a placeholder so edits persist even if missing locally
+        chapter = {
+          id: chapterId,
+          workId,
+          title: '',
+          content: '',
+          status: 'draft',
+          createdAt: Date.now(),
+          number: list.length + 1,
+        };
+        list.push(chapter);
+        store[workId] = list;
+        persistChapters(store);
+      }
+      if (!chapter) return;
+      titleInput.value = chapter.title || '';
+      contentTextarea.value = chapter.content || '';
+      statusSelect.value = chapter.status || 'draft';
+      updateStatusBadge(statusSelect.value);
+      originalContent = { title: titleInput.value, content: contentTextarea.value, status: statusSelect.value, id: chapter.id };
+      updateContentStats();
+    }
 
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
-      // Store original content
-      originalContent = {
-        title: titleInput.value,
-        content: contentTextarea.value,
-        status: statusSelect.value
-      };
-
+      loadChapter();
       // Update stats
       updateContentStats();
 
@@ -1153,31 +1135,6 @@ The old man Qin who was driving the car said, "Miss, when you get to Qinjiagou, 
       }
     });
 
-    // ============================================
-    // Preview Mode
-    // ============================================
-    document.getElementById('previewBtn').addEventListener('click', () => {
-      form.classList.add('hidden');
-      previewContainer.classList.add('active');
-
-      document.getElementById('previewTitle').textContent = titleInput.value || 'Untitled';
-      document.getElementById('previewContent').textContent = contentTextarea.value;
-
-      const previewStatus = document.getElementById('previewStatus');
-      previewStatus.className = `preview-status status-badge ${statusSelect.value}`;
-      previewStatus.textContent = statusSelect.value.charAt(0).toUpperCase() + statusSelect.value.slice(1);
-    });
-
-    document.getElementById('exitPreviewBtn').addEventListener('click', () => {
-      form.classList.remove('hidden');
-      previewContainer.classList.remove('active');
-    });
-
-    document.getElementById('publishFromPreview').addEventListener('click', () => {
-      form.classList.remove('hidden');
-      previewContainer.classList.remove('active');
-      form.dispatchEvent(new Event('submit'));
-    });
 
     // ============================================
     // Chapter Navigation
@@ -1283,6 +1240,11 @@ The old man Qin who was driving the car said, "Miss, when you get to Qinjiagou, 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
 
+      if (!workId) {
+        showToast('Missing work id');
+        return;
+      }
+
       // Validate title
       if (!titleInput.value.trim()) {
         titleInput.classList.add('invalid');
@@ -1298,8 +1260,46 @@ The old man Qin who was driving the car said, "Miss, when you get to Qinjiagou, 
       originalContent = {
         title: titleInput.value,
         content: contentTextarea.value,
-        status: statusSelect.value
+        status: statusSelect.value,
+        id: originalContent.id || chapterId || `chap-${Date.now()}`
       };
+
+      // Persist back to local chapters
+      const store = getStoredChapters();
+      const list = Array.isArray(store[workId]) ? store[workId] : [];
+      const idx = list.findIndex(ch => ch.id === originalContent.id);
+      const updated = {
+        ...list[idx] || {},
+        id: originalContent.id,
+        workId,
+        title: originalContent.title,
+        content: originalContent.content,
+        status: originalContent.status,
+        updatedAt: Date.now()
+      };
+      if (idx >= 0) list[idx] = updated; else list.push(updated);
+      store[workId] = list;
+      persistChapters(store);
+
+      if (typeof SupabaseAuth !== 'undefined' && typeof SupabaseDB !== 'undefined' && SupabaseDB.upsertChapter) {
+        try {
+          const user = await SupabaseAuth.getCurrentUser();
+          if (user) {
+            await SupabaseDB.upsertChapter({
+              id: updated.id,
+              novel_id: workId,
+              title: updated.title,
+              content: updated.content,
+              status: updated.status,
+              chapter_number: updated.number || updated.order || idx + 1,
+              author_id: user.id,
+              updated_at: new Date().toISOString(),
+            });
+          }
+        } catch (err) {
+          console.warn('Supabase chapter save failed:', err);
+        }
+      }
 
       showToast('Changes saved successfully!');
     });

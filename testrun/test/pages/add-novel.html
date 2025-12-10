@@ -486,7 +486,7 @@
                 </svg>
                 My Profile
               </a>
-              <a href="profile.html#works">
+              <a href="author-dashboard.html">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
                 </svg>
@@ -755,7 +755,7 @@
       hasUnsavedChanges = false;
     }
 
-    function upsertMyWork(statusLabel) {
+    async function upsertMyWork(statusLabel) {
       const title = titleInput.value.trim();
       if (!title) {
         showToast('Add a title to save to My Works');
@@ -764,16 +764,50 @@
 
       const works = JSON.parse(localStorage.getItem('novelshare_my_works') || '[]');
       const statusValue = statusLabel || statusSelect.value || 'Ongoing';
-      const payload = {
-        id: `work-${Date.now()}`,
+      const profile = (() => {
+        try { return JSON.parse(localStorage.getItem('novelshare_profile') || '{}'); }
+        catch { return {}; }
+      })();
+      const authorName = profile.display_name || profile.username || profile.name || profile.email || 'Unknown';
+
+      let payload = {
         title,
         status: statusValue,
         chapters: 0,
         reads: 0,
+        author: authorName,
         cover: coverData,
         genre: genreSelect.value || 'Uncategorized',
         description: descTextarea.value.trim()
       };
+
+      // Save to Supabase when logged in
+      if (typeof SupabaseAuth !== 'undefined' && typeof SupabaseDB !== 'undefined' && SupabaseDB.upsertNovel) {
+        try {
+          const user = await SupabaseAuth.getCurrentUser();
+          if (user) {
+            const supa = await SupabaseDB.upsertNovel({
+              id: payload.id,
+              title: payload.title,
+              description: payload.description,
+              cover: payload.cover,
+              genre: payload.genre,
+              status: payload.status,
+              author_id: user.id,
+              author: authorName || user.email || 'Unknown'
+            });
+            if (supa?.id) {
+              payload = { ...payload, id: supa.id, authorId: user.id };
+            }
+          }
+        } catch (err) {
+          console.warn('Supabase upsert failed, keeping local copy:', err);
+        }
+      }
+
+      if (!payload.id) {
+        payload.id = `work-${Date.now()}`;
+      }
 
       const existingIndex = works.findIndex(w => (w.title || '').toLowerCase() === payload.title.toLowerCase());
       if (existingIndex >= 0) {
@@ -786,13 +820,13 @@
       return true;
     }
 
-    function savePublishedNovel() {
-      upsertMyWork(statusSelect.value || 'Ongoing');
+    async function savePublishedNovel() {
+      await upsertMyWork(statusSelect.value || 'Ongoing');
     }
 
-    document.getElementById('draftBtn').addEventListener('click', () => {
+    document.getElementById('draftBtn').addEventListener('click', async () => {
       saveDraftToStorage();
-      const saved = upsertMyWork('Draft');
+      const saved = await upsertMyWork('Draft');
       if (saved) {
         hasUnsavedChanges = false;
         draftStatus.innerHTML = `
@@ -819,9 +853,9 @@
       history.back();
     });
 
-    document.getElementById('saveDraftAndLeave').addEventListener('click', () => {
+    document.getElementById('saveDraftAndLeave').addEventListener('click', async () => {
       saveDraftToStorage();
-      upsertMyWork('Draft');
+      await upsertMyWork('Draft');
       document.getElementById('unsavedModal').classList.remove('open');
       setTimeout(() => history.back(), 400);
     });
@@ -833,7 +867,7 @@
       }
     });
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
       if (!titleInput.value.trim()) {
@@ -851,7 +885,7 @@
       }
 
       clearDraft();
-      savePublishedNovel();
+      await savePublishedNovel();
       document.getElementById('successModal').classList.add('open');
       document.getElementById('successTitle').textContent = 'Novel Published!';
       document.getElementById('successMessage').textContent = 'Your novel is now live and visible to readers.';

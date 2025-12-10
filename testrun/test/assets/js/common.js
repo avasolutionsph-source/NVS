@@ -850,6 +850,11 @@ const LibrarySystem = {
       novelId: novelId,
       title: novelData.title || '',
       author: novelData.author || '',
+      genre: novelData.genre || '',
+      status: novelData.status || '',
+      description: novelData.description || '',
+      rating: novelData.rating || 0,
+      reads: novelData.reads || novelData.popularity || 0,
       coverImage: novelData.coverImage || novelData.cover || '',
       cover: novelData.coverImage || novelData.cover || '',
       totalChapters: novelData.totalChapters || novelData.chapters || 0,
@@ -867,7 +872,7 @@ const LibrarySystem = {
       localStorage.setItem('novelshare_library', JSON.stringify(library));
       // Push to Supabase when logged in
       if (!GuestMode.isGuest() && typeof SupabaseSync !== 'undefined' && SupabaseSync.pushLibraryItem) {
-        SupabaseSync.pushLibraryItem(novelId, 'add');
+        SupabaseSync.pushLibraryItem(novelId, 'add', item);
       }
       return true;
     }
@@ -1007,7 +1012,7 @@ const ReadingHistory = {
 
     // Push to Supabase when logged in
     if (!GuestMode.isGuest() && typeof SupabaseSync !== 'undefined' && SupabaseSync.pushHistoryEntry) {
-      SupabaseSync.pushHistoryEntry(novelId, chapterId, novelData.chapterTitle || '');
+      SupabaseSync.pushHistoryEntry(novelId, chapterId, novelData.chapterTitle || '', novelData);
     }
   },
 
@@ -1048,6 +1053,18 @@ const BookmarkSystem = {
     };
     bookmarks.push(bookmark);
     localStorage.setItem('novelshare_bookmarks', JSON.stringify(bookmarks));
+
+    // Push to Supabase when logged in
+    if (!GuestMode.isGuest() && typeof SupabaseSync !== 'undefined' && SupabaseSync.pushBookmark) {
+      SupabaseSync.pushBookmark(novelId, chapterId, note, 'add', {
+        title: novelTitle,
+        author: '',
+        cover: '',
+        chapterTitle,
+        totalChapters: 0,
+        status: 'ongoing'
+      });
+    }
     return bookmark;
   },
 
@@ -1583,7 +1600,7 @@ const GuestMode = {
             </svg>
             My Profile
           </a>
-          <a href="profile.html#works">
+          <a href="author-dashboard.html">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
             </svg>

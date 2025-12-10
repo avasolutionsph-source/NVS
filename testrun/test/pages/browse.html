@@ -672,7 +672,7 @@
                                 </svg>
                                 My Profile
                             </a>
-                            <a href="profile.html#works">
+                            <a href="author-dashboard.html">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
                                 </svg>
@@ -770,6 +770,33 @@
             </div>
 
             <section class="card-grid">
+                <article class="card" data-genre="historical" data-status="ongoing" data-rating="4.8" data-title="Twin Sisters" data-novel-id="twin-sisters" data-chapters="12" data-author="JaneWriter" data-popularity="45200" data-updated="1735689600000" data-published="1733097600000">
+                    <a class="card-link" href="novel.html?id=twin-sisters">
+                        <div class="card-cover" style="background-image: url('https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80');">
+                            <span class="status-badge ongoing">Ongoing</span>
+                            <div class="rating-badge">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.2 6.8.6-5.2 4.8 1.5 6.7L12 16.9l-6 3.4 1.5-6.7-5.2-4.8 6.8-.6z"/></svg>
+                                <span>4.8</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="tags"><span class="tag">Historical Drama</span></div>
+                            <h2>Twin Sisters</h2>
+                            <p>Two sisters in ancient China fight to clear their family's name while surviving in hiding.</p>
+                        </div>
+                    </a>
+                    <div class="card-meta">
+                        <div class="meta-left">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                                <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15z"/>
+                            </svg>
+                            <span>12 chapters</span>
+                        </div>
+                        <button class="add-btn" data-novel-id="twin-sisters">+ Add</button>
+                    </div>
+                </article>
+
                 <article class="card" data-genre="fantasy" data-status="ongoing" data-rating="4.79" data-title="Shadow Slave" data-novel-id="shadow-slave" data-chapters="2721" data-author="Guiltythree" data-popularity="9500000" data-updated="1732665600000" data-published="1609459200000">
                     <a class="card-link" href="novel.html?id=shadow-slave">
                         <div class="card-cover" style="background-image: url('https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=600&q=80');">
@@ -1090,7 +1117,7 @@
     <script src="../assets/js/common.js"></script>
     <!-- Page-specific JavaScript -->
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             // ============================================
             // Unified Filter State Management
             // ============================================
@@ -1098,6 +1125,197 @@
             let activeStatus = 'all';
             let activeSort = 'popular';
             let searchQuery = '';
+            const cardGrid = document.querySelector('.card-grid');
+
+            const escapeHtml = (str = '') => String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+
+            function normalizeGenre(value = '') {
+                const slug = value.toLowerCase().replace(/[^a-z0-9]+/g, '');
+                return slug || 'other';
+            }
+
+            function getProfileAuthor() {
+                try {
+                    const profile = JSON.parse(localStorage.getItem('novelshare_profile') || '{}');
+                    return profile.username || profile.name || 'You';
+                } catch {
+                    return 'You';
+                }
+            }
+
+            function buildCardMarkup(card) {
+                const title = (card.title || 'Untitled').trim();
+                const id = card.id || `work-${Date.now()}`;
+                const author = card.author || 'Unknown';
+                const genreLabel = card.genre || 'Original';
+                const genreSlug = normalizeGenre(genreLabel);
+                const statusLower = (card.status || 'ongoing').toLowerCase();
+                if (statusLower === 'draft') return '';
+                const statusClass = statusLower === 'completed' ? 'completed' : 'ongoing';
+                const statusLabel = statusLower === 'completed' ? 'Completed' : 'Ongoing';
+                const description = card.description || `A new ${genreLabel.toLowerCase()} story by ${author}.`;
+                const cover = card.cover || '';
+                const chapters = Number(card.chapters) || 0;
+                const reads = Number(card.reads) || 0;
+                const ratingValue = Number(card.rating) || 0;
+                const ratingDisplay = ratingValue ? ratingValue.toFixed(2) : 'New';
+                const popularity = Number(card.popularity) || (reads ? reads : 1);
+                const timestamp = Number(card.updatedAt || card.publishedAt || Date.now());
+                const coverStyle = cover
+                    ? `style="background-image: url('${cover.replace(/'/g, "\\'")}');"`
+                    : `style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 1.8rem;"`;
+                const coverFallback = cover ? '' : escapeHtml(title.charAt(0).toUpperCase() || 'N');
+
+                return `
+                    <article class="card user-card" data-genre="${genreSlug}" data-status="${statusLower}" data-rating="${ratingValue || 0}" data-title="${escapeHtml(title)}" data-novel-id="${escapeHtml(id)}" data-chapters="${chapters}" data-author="${escapeHtml(author)}" data-popularity="${popularity}" data-updated="${timestamp}" data-published="${timestamp}">
+                        <a class="card-link" href="novel.html?id=${encodeURIComponent(id)}">
+                            <div class="card-cover" ${coverStyle}>
+                                <span class="status-badge ${statusClass}">${statusLabel}</span>
+                                <div class="rating-badge">
+                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.2 6.8.6-5.2 4.8 1.5 6.7L12 16.9l-6 3.4 1.5-6.7-5.2-4.8 6.8-.6z"/></svg>
+                                    <span>${ratingDisplay}</span>
+                                </div>
+                                ${cover ? '' : `<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">${coverFallback}</div>`}
+                            </div>
+                            <div class="card-body">
+                                <div class="tags"><span class="tag">${escapeHtml(genreLabel)}</span></div>
+                                <h2>${escapeHtml(title)}</h2>
+                                <p>${escapeHtml(description)}</p>
+                            </div>
+                        </a>
+                        <div class="card-meta">
+                            <div class="meta-left">
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                                    <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15z"/>
+                                </svg>
+                                <span>${chapters} chapters</span>
+                            </div>
+                            <button class="add-btn" data-novel-id="${escapeHtml(id)}">+ Add</button>
+                        </div>
+                    </article>
+                `;
+            }
+
+            function updateGenreCounts() {
+                const cards = document.querySelectorAll('.card');
+                const totals = {};
+                cards.forEach(card => {
+                    const g = card.dataset.genre || 'all';
+                    totals[g] = (totals[g] || 0) + 1;
+                });
+                document.querySelectorAll('.genre-list li').forEach(li => {
+                    const key = li.dataset.genre;
+                    const countEl = li.querySelector('.genre-count');
+                    if (!countEl) return;
+                    if (key === 'all') {
+                        countEl.textContent = cards.length;
+                    } else {
+                        countEl.textContent = totals[key] || 0;
+                    }
+                });
+            }
+
+            function getLocalWorks() {
+                try {
+                    const works = JSON.parse(localStorage.getItem('novelshare_my_works') || '[]');
+                    if (!Array.isArray(works)) return [];
+                    return works;
+                } catch {
+                    return [];
+                }
+            }
+
+            async function fetchSupabaseNovelsSafe(limit = 30) {
+                if (typeof SupabaseDB === 'undefined') return [];
+                try {
+                    return await SupabaseDB.getNovels(limit, 0);
+                } catch (err) {
+                    console.warn('Supabase novel fetch failed:', err);
+                    return [];
+                }
+            }
+            const DELETED_KEY = 'novelshare_deleted_ids';
+            function getDeletedIds() {
+                try { return new Set(JSON.parse(localStorage.getItem(DELETED_KEY) || '[]')); }
+                catch { return new Set(); }
+            }
+
+            async function injectDynamicNovels() {
+                if (!cardGrid) return;
+                const deleted = getDeletedIds();
+                const existingIds = new Set(Array.from(cardGrid.querySelectorAll('.card')).map(c => c.dataset.novelId));
+                const additions = [];
+                const authorName = getProfileAuthor();
+
+                getLocalWorks().forEach(work => {
+                    const statusLower = (work.status || '').toLowerCase();
+                    if (statusLower === 'draft') return;
+                    if (deleted.has(work.id)) return;
+                    const payload = {
+                        id: work.id,
+                        title: work.title,
+                        author: authorName,
+                        genre: work.genre || 'Original',
+                        status: work.status || 'Ongoing',
+                        description: work.description || '',
+                        cover: work.cover || '',
+                        chapters: work.chapters || 0,
+                        reads: work.reads || 0,
+                        rating: work.rating || 0,
+                        popularity: work.reads || 1,
+                        updatedAt: work.updatedAt || work.createdAt || Date.now(),
+                        publishedAt: work.publishedAt || work.createdAt || Date.now()
+                    };
+                    if (payload.id && existingIds.has(payload.id)) return;
+                    const markup = buildCardMarkup(payload);
+                    if (markup) {
+                        additions.push(markup);
+                        if (payload.id) existingIds.add(payload.id);
+                    }
+                });
+
+                const supabaseNovels = await fetchSupabaseNovelsSafe();
+                supabaseNovels.forEach(novel => {
+                    const novelId = novel.id || novel.novel_id;
+                    if (!novelId || existingIds.has(novelId) || deleted.has(novelId)) return;
+                    const genres = Array.isArray(novel.genres) ? novel.genres : [];
+                    const payload = {
+                        id: novelId,
+                        title: novel.title,
+                        author: novel.author || novel.author_name || 'Unknown',
+                        genre: genres[0] || novel.genre || 'Original',
+                        status: novel.status || 'ongoing',
+                        description: novel.description || '',
+                        cover: novel.cover_image || '',
+                        chapters: novel.total_chapters || novel.chapters || 0,
+                        reads: novel.reads || novel.popularity || 0,
+                        rating: novel.avg_rating || novel.rating || 0,
+                        popularity: novel.popularity || novel.reads || 1,
+                        updatedAt: novel.updated_at || novel.created_at,
+                        publishedAt: novel.created_at || Date.now()
+                    };
+                    const markup = buildCardMarkup(payload);
+                    if (markup) {
+                        additions.push(markup);
+                        existingIds.add(novelId);
+                    }
+                });
+
+                if (additions.length > 0) {
+                    cardGrid.insertAdjacentHTML('beforeend', additions.join(''));
+                    bindLibraryButtons();
+                    updateLibraryButtons();
+                }
+
+                updateGenreCounts();
+                applyFilters();
+            }
 
             // Update empty state and visible count helper
             function updateEmptyState() {
@@ -1244,59 +1462,106 @@
                 });
             }
 
-            // Initialize add to library buttons
-            document.querySelectorAll('.add-btn[data-novel-id]').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
+            function bindLibraryButtons() {
+                document.querySelectorAll('.add-btn[data-novel-id]').forEach(btn => {
+                    if (btn.dataset.bound === 'true') return;
+                    btn.dataset.bound = 'true';
 
-                    // Check if user is in guest mode
-                    if (GuestMode.isGuest()) {
-                        showToast('Please sign up to add novels to your library');
-                        setTimeout(() => {
-                            window.location.href = 'signup.html';
-                        }, 1500);
-                        return;
-                    }
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
 
-                    const novelId = btn.dataset.novelId;
-                    const card = btn.closest('.card');
-                    const title = card.dataset.title;
-                    const author = card.dataset.author;
-                    const chapters = parseInt(card.dataset.chapters) || 0;
-                    const coverStyle = card.querySelector('.card-cover').style.backgroundImage;
-                    const coverUrl = coverStyle ? coverStyle.replace(/url\(['"]?|['"]?\)/g, '') : '';
-
-                    if (LibrarySystem.isInLibrary(novelId)) {
-                        // Remove from library
-                        if (confirm(`Remove "${title}" from your library?`)) {
-                            LibrarySystem.removeFromLibrary(novelId);
-                            updateLibraryButtons();
+                        // Check if user is in guest mode
+                        if (GuestMode.isGuest()) {
+                            showToast('Please sign up to add novels to your library');
+                            setTimeout(() => {
+                                window.location.href = 'signup.html';
+                            }, 1500);
+                            return;
                         }
-                    } else {
-                        // Add to library
-                        LibrarySystem.addToLibrary({
-                            novelId,
-                            title,
-                            author,
-                            coverImage: coverUrl,
-                            totalChapters: chapters,
-                            currentChapter: 0
-                        });
-                        updateLibraryButtons();
 
-                        // Show feedback
-                        const originalText = btn.textContent;
-                        btn.textContent = 'Added!';
-                        setTimeout(() => {
+                        const novelId = btn.dataset.novelId;
+                        const card = btn.closest('.card');
+                        const title = card.dataset.title;
+                        const author = card.dataset.author;
+                        const chapters = parseInt(card.dataset.chapters) || 0;
+                        const genre = card.dataset.genre || '';
+                        const status = card.dataset.status || '';
+                        const rating = Number(card.dataset.rating) || 0;
+                        const description = card.querySelector('.card-body p')?.textContent || '';
+                        const coverStyle = card.querySelector('.card-cover').style.backgroundImage;
+                        const coverUrl = coverStyle ? coverStyle.replace(/url\(['"]?|['"]?\)/g, '') : '';
+
+                        if (LibrarySystem.isInLibrary(novelId)) {
+                            // Remove from library
+                            if (confirm(`Remove "${title}" from your library?`)) {
+                                LibrarySystem.removeFromLibrary(novelId);
+                                updateLibraryButtons();
+                            }
+                        } else {
+                            // Add to library
+                            LibrarySystem.addToLibrary({
+                                novelId,
+                                title,
+                                author,
+                                genre,
+                                status,
+                                rating,
+                                description,
+                                coverImage: coverUrl,
+                                totalChapters: chapters,
+                                currentChapter: 0
+                            });
                             updateLibraryButtons();
-                        }, 1000);
-                    }
-                });
-            });
 
-            // Initial update of library buttons
+                            // Show feedback
+                            const originalText = btn.textContent;
+                            btn.textContent = 'Added!';
+                            setTimeout(() => {
+                                updateLibraryButtons();
+                            }, 1000);
+                        }
+                    });
+                });
+            }
+
+            bindLibraryButtons();
             updateLibraryButtons();
+            updateGenreCounts();
+            applyFilters();
+            await injectDynamicNovels();
+
+            // Persist card metadata so novel page can render genre/status/rating correctly
+            function bindCardLinks() {
+                document.querySelectorAll('.card-link').forEach(link => {
+                    if (link.dataset.bound === 'true') return;
+                    link.dataset.bound = 'true';
+                    link.addEventListener('click', () => {
+                        const card = link.closest('.card');
+                        if (!card) return;
+                        const coverStyle = card.querySelector('.card-cover')?.style?.backgroundImage || '';
+                        const coverUrl = coverStyle ? coverStyle.replace(/url\(['"]?|['"]?\)/g, '') : '';
+                        const payload = {
+                            id: card.dataset.novelId,
+                            title: card.dataset.title,
+                            author: card.dataset.author,
+                            genre: card.dataset.genre,
+                            status: card.dataset.status,
+                            rating: Number(card.dataset.rating || 0),
+                            chapters: Number(card.dataset.chapters || 0),
+                            cover: coverUrl,
+                            description: card.querySelector('.card-body p')?.textContent || ''
+                        };
+                        try {
+                            sessionStorage.setItem('novelshare_last_viewed', JSON.stringify(payload));
+                        } catch (err) {
+                            console.warn('Failed to store last viewed novel', err);
+                        }
+                    });
+                });
+            }
+
+            bindCardLinks();
         });
     </script>
 </body>

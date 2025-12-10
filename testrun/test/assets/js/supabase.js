@@ -265,6 +265,24 @@ const SupabaseDB = {
     return data;
   },
 
+  async upsertNovel(novel) {
+    if (!novel || !novel.title) return null;
+    const payload = {
+      title: novel.title,
+      description: novel.description || '',
+      cover_image: novel.cover_image || novel.cover || null,
+      genres: novel.genres || (novel.genre ? [novel.genre] : []),
+      status: (novel.status || 'ongoing').toLowerCase(),
+      total_chapters: novel.total_chapters || novel.totalChapters || novel.chapters || 0,
+      author_id: novel.author_id || novel.authorId || null,
+      author: novel.author || 'Unknown'
+    };
+    if (novel.id) payload.id = novel.id;
+    const { data, error } = await supabase.from('novels').upsert(payload).select().limit(1);
+    if (error) throw error;
+    return data?.[0] || null;
+  },
+
   async getNovelById(novelId) {
     const { data, error } = await supabase
       .from('novels')
@@ -272,6 +290,27 @@ const SupabaseDB = {
       .eq('id', novelId)
       .single();
 
+    if (error) throw error;
+    return data;
+  },
+
+  async getNovelsByAuthor(authorId, limit = 50, offset = 0) {
+    const { data, error } = await supabase
+      .from('novels')
+      .select('*')
+      .eq('author_id', authorId)
+      .order('updated_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteNovels(ids = [], authorId) {
+    if (!ids.length) return [];
+    let query = supabase.from('novels').delete().in('id', ids);
+    if (authorId) query = query.eq('author_id', authorId);
+    const { data, error } = await query.select('id');
     if (error) throw error;
     return data;
   },
@@ -317,6 +356,42 @@ const SupabaseDB = {
       .eq('novel_id', novelId)
       .eq('chapter_number', chapterNumber)
       .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getChapterById(novelId, chapterId) {
+    const query = supabase.from('chapters').select('*').eq('novel_id', novelId).eq('id', chapterId).single();
+    const { data, error } = await query;
+    if (error) throw error;
+    return data;
+  },
+
+  async upsertChapter(chapter) {
+    if (!chapter || !chapter.novel_id) throw new Error('Chapter requires novel_id');
+    const payload = {
+      novel_id: chapter.novel_id,
+      title: chapter.title || '',
+      content: chapter.content || '',
+      status: chapter.status || 'draft',
+      chapter_number: chapter.chapter_number || chapter.number || chapter.order || 1,
+      author_id: chapter.author_id || null,
+      updated_at: chapter.updated_at || new Date().toISOString(),
+    };
+    if (chapter.id) payload.id = chapter.id;
+    const { data, error } = await supabase.from('chapters').upsert(payload).select().limit(1);
+    if (error) throw error;
+    return data?.[0] || null;
+  },
+
+  async deleteChapter(novelId, chapterId) {
+    const { data, error } = await supabase
+      .from('chapters')
+      .delete()
+      .eq('novel_id', novelId)
+      .eq('id', chapterId)
+      .select('id');
 
     if (error) throw error;
     return data;
@@ -578,6 +653,18 @@ const SupabaseSync = {
 
     try {
       const cloudLibrary = await SupabaseDB.getUserLibrary(user.id);
+      const cloudIds = new Set(cloudLibrary.map(item => item.novel_id));
+      const localLibrary = JSON.parse(localStorage.getItem('novelshare_library') || '[]');
+
+      // Push any local items that are missing in cloud (one-time catch-up)
+      const missing = localLibrary.filter(item => !cloudIds.has(item.novelId || item.id));
+      for (const item of missing) {
+        try {
+          await this.pushLibraryItem(item.novelId || item.id, 'add', item);
+        } catch (e) {
+          console.warn('Failed to push local library item:', e);
+        }
+      }
 
       // Convert to local format
       const localFormat = cloudLibrary.map(item => ({
@@ -626,11 +713,36 @@ const SupabaseSync = {
     }
   },
 
+  // Sync bookmarks
+  async syncBookmarks() {
+    const user = await SupabaseAuth.getCurrentUser();
+    if (!user) return;
+
+    try {
+      const cloudBookmarks = await SupabaseDB.getBookmarks(user.id);
+      const localFormat = cloudBookmarks.map(b => ({
+        id: b.id,
+        novelId: b.novel_id,
+        chapterId: b.chapter_id,
+        note: b.note || '',
+        novelTitle: b.novels?.title || '',
+        chapterTitle: b.chapters?.title || '',
+        createdAt: new Date(b.created_at).getTime()
+      }));
+      localStorage.setItem('novelshare_bookmarks', JSON.stringify(localFormat));
+      return localFormat;
+    } catch (error) {
+      console.error('Failed to sync bookmarks:', error);
+      return null;
+    }
+  },
+
   // Full sync on login
   async fullSync() {
     await Promise.all([
       this.syncLibrary(),
-      this.syncHistory()
+      this.syncHistory(),
+      this.syncBookmarks()
     ]);
   },
 
@@ -644,11 +756,31 @@ const SupabaseSync = {
     if (!user) return { error: 'Not logged in' };
 
     if (!NetworkStatus.isOnline()) {
-      SyncQueue.add({ type: 'library', novelId, action, userId: user.id });
+      const novelData = arguments.length > 2 ? arguments[2] : undefined;
+      SyncQueue.add({ type: 'library', novelId, action, userId: user.id, novelData });
       return { queued: true };
     }
 
     try {
+      // Best-effort upsert of novel to avoid FK errors
+      if (action === 'add' && arguments.length > 2) {
+        const novelData = arguments[2] || {};
+        const upsertPayload = {
+          id: novelId,
+          title: novelData.title,
+          author: novelData.author,
+          cover_image: novelData.coverImage || novelData.cover,
+          total_chapters: novelData.totalChapters,
+          status: novelData.status,
+          genres: novelData.genre ? [novelData.genre] : []
+        };
+        try {
+          await SupabaseDB.upsertNovel(upsertPayload);
+        } catch (e) {
+          console.warn('Novel upsert failed (continuing):', e);
+        }
+      }
+
       if (action === 'add') {
         await SupabaseDB.addToLibrary(user.id, novelId);
       } else if (action === 'remove') {
@@ -688,11 +820,28 @@ const SupabaseSync = {
     if (!user) return { error: 'Not logged in' };
 
     if (!NetworkStatus.isOnline()) {
-      SyncQueue.add({ type: 'bookmark', novelId, chapterId, note, action, userId: user.id });
+      const novelData = arguments.length > 4 ? arguments[4] : undefined;
+      SyncQueue.add({ type: 'bookmark', novelId, chapterId, note, action, userId: user.id, novelData });
       return { queued: true };
     }
 
     try {
+      if (action === 'add' && arguments.length > 4) {
+        const novelData = arguments[4] || {};
+        try {
+          await SupabaseDB.upsertNovel({
+            id: novelId,
+            title: novelData.title,
+            author: novelData.author,
+            cover_image: novelData.coverImage || novelData.cover,
+            total_chapters: novelData.totalChapters,
+            status: novelData.status,
+            genres: novelData.genre ? [novelData.genre] : []
+          });
+        } catch (e) {
+          console.warn('Bookmark upsert failed (continuing):', e);
+        }
+      }
       if (action === 'add') {
         await SupabaseDB.addBookmark(user.id, novelId, chapterId, note);
       }
@@ -754,16 +903,34 @@ const SupabaseSync = {
     if (!user) return { error: 'Not logged in' };
 
     if (!NetworkStatus.isOnline()) {
-      SyncQueue.add({ type: 'history', novelId, chapterId, chapterTitle, userId: user.id });
+      const novelData = arguments.length > 3 ? arguments[3] : undefined;
+      SyncQueue.add({ type: 'history', novelId, chapterId, chapterTitle, userId: user.id, novelData });
       return { queued: true };
     }
 
     try {
+      if (arguments.length > 3) {
+        const novelData = arguments[3] || {};
+        try {
+          await SupabaseDB.upsertNovel({
+            id: novelId,
+            title: novelData.title,
+            author: novelData.author,
+            cover_image: novelData.coverImage || novelData.cover,
+            total_chapters: novelData.totalChapters,
+            status: novelData.status,
+            genres: novelData.genre ? [novelData.genre] : []
+          });
+        } catch (e) {
+          console.warn('History upsert failed (continuing):', e);
+        }
+      }
       await SupabaseDB.addToHistory(user.id, novelId, chapterId, chapterTitle);
       return { success: true };
     } catch (error) {
       console.error('Push history failed:', error);
-      SyncQueue.add({ type: 'history', novelId, chapterId, chapterTitle, userId: user.id });
+      const novelData = arguments.length > 3 ? arguments[3] : undefined;
+      SyncQueue.add({ type: 'history', novelId, chapterId, chapterTitle, userId: user.id, novelData });
       return { queued: true, error };
     }
   },
@@ -788,6 +955,13 @@ const SupabaseSync = {
         switch (operation.type) {
           case 'library':
             if (operation.action === 'add') {
+              if (operation.novelData) {
+                try {
+                  await SupabaseDB.upsertNovel(operation.novelData);
+                } catch (e) {
+                  console.warn('Upsert during queue failed:', e);
+                }
+              }
               await SupabaseDB.addToLibrary(operation.userId, operation.novelId);
             } else {
               await SupabaseDB.removeFromLibrary(operation.userId, operation.novelId);
@@ -802,6 +976,13 @@ const SupabaseSync = {
 
           case 'bookmark':
             if (operation.action === 'add') {
+              if (operation.novelData) {
+                try {
+                  await SupabaseDB.upsertNovel(operation.novelData);
+                } catch (e) {
+                  console.warn('Upsert during bookmark queue failed:', e);
+                }
+              }
               await SupabaseDB.addBookmark(operation.userId, operation.novelId, operation.chapterId, operation.note || '');
             }
             success = true;
@@ -822,6 +1003,13 @@ const SupabaseSync = {
             break;
 
           case 'history':
+            if (operation.novelData) {
+              try {
+                await SupabaseDB.upsertNovel(operation.novelData);
+              } catch (e) {
+                console.warn('Upsert during history queue failed:', e);
+              }
+            }
             await SupabaseDB.addToHistory(operation.userId, operation.novelId, operation.chapterId, operation.chapterTitle);
             success = true;
             break;

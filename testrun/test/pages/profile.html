@@ -1277,7 +1277,7 @@
                   <line x1="3" y1="10" x2="21" y2="10"/>
                 </svg>
                 <span class="about-item-label">Joined</span>
-                <span class="about-item-value">January 2024</span>
+                <span class="about-item-value" id="aboutJoined">January 2024</span>
               </div>
               <div class="about-item">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1624,6 +1624,17 @@
       document.getElementById('bioCount').textContent = editBio.value.length;
     });
 
+    function formatJoined(dateStr) {
+      try {
+        const d = new Date(dateStr);
+        if (isNaN(d)) throw new Error('invalid');
+        return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      } catch {
+        const now = new Date();
+        return now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      }
+    }
+
     // Save Profile
     saveProfile.addEventListener('click', async () => {
       const name = editName.value.trim();
@@ -1685,6 +1696,7 @@
     // Load profile (prefer Supabase, fallback to localStorage)
     async function loadProfile() {
       let profile = null;
+      let joinedAt = null;
       try {
         const user = await SupabaseAuth.getCurrentUser();
         if (user) {
@@ -1696,6 +1708,7 @@
             location: dbProfile?.location || '',
             bio: dbProfile?.bio || ''
           };
+          joinedAt = dbProfile?.created_at || user?.created_at || null;
           localStorage.setItem('novelshare_profile', JSON.stringify(profile));
         }
       } catch (err) {
@@ -1721,6 +1734,8 @@
       document.getElementById('aboutName').textContent = name;
       document.getElementById('aboutEmail').textContent = email;
       document.getElementById('aboutLocation').textContent = location;
+      const joinedStr = joinedAt || profile.joined_at;
+      document.getElementById('aboutJoined').textContent = formatJoined(joinedStr || new Date());
       document.getElementById('profileAvatarLarge').textContent = name.charAt(0).toUpperCase();
 
       // Edit form
@@ -1809,12 +1824,36 @@
       const container = document.querySelector('.reading-list-grid');
       const header = document.querySelector('#tab-reading .works-header h3');
       const fallbackCover = "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='450'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop stop-color='%233b82f6' offset='0%25'/%3E%3Cstop stop-color='%231b4aa9' offset='100%25'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='300' height='450' rx='24' ry='24' fill='url(%23g)'/%3E%3C/svg%3E";
+      const DELETED_KEY = 'novelshare_deleted_ids';
+
+      const profileName = (() => {
+        try {
+          const p = JSON.parse(localStorage.getItem('novelshare_profile') || '{}');
+          return p.display_name || p.username || p.name || 'You';
+        } catch { return 'You'; }
+      })();
+      const deletedSet = (() => {
+        try { return new Set(JSON.parse(localStorage.getItem(DELETED_KEY) || '[]')); }
+        catch { return new Set(); }
+      })();
+
+      // Filter out deleted or empty entries
+      const filtered = (library || []).filter(n => {
+        const id = n.novelId || n.id;
+        if (!id) return false;
+        if (deletedSet.has(id)) return false;
+        return true;
+      });
+      if (filtered.length !== library.length) {
+        // persist cleaned list to keep UI in sync
+        localStorage.setItem('novelshare_library', JSON.stringify(filtered));
+      }
 
       if (header) {
         header.textContent = 'Currently Reading';
       }
 
-      if (library.length === 0) {
+      if (filtered.length === 0) {
         container.innerHTML = `
           <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
             <p>No novels in your reading list yet.</p>
@@ -1824,7 +1863,7 @@
         return;
       }
 
-      container.innerHTML = library.map(novel => {
+      container.innerHTML = filtered.map(novel => {
         const id = novel.novelId || novel.id;
         const coverImgRaw = (novel.coverImage || novel.cover || '').trim();
         const coverImg = coverImgRaw || fallbackCover;
@@ -1833,6 +1872,11 @@
         const progress = totalChapters > 0
           ? Math.round((currentChapter / totalChapters) * 100)
           : 0;
+        const authorSafe = (() => {
+          if (!novel.author) return profileName;
+          if (typeof novel.author === 'string' && novel.author.includes('@')) return profileName;
+          return novel.author;
+        })();
 
         return `
           <a class="reading-card" href="novel.html?id=${id}" style="text-decoration: none;">
@@ -1840,7 +1884,7 @@
               ${!coverImg ? `<div style="width:100%;height:100%;background:var(--primary-gradient);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2rem;font-weight:700;">${(novel.title || 'N').charAt(0)}</div>` : ''}
             </div>
             <h4 class="reading-title">${novel.title}</h4>
-            <p class="reading-author">by ${novel.author || 'Unknown'}</p>
+            <p class="reading-author">by ${authorSafe}</p>
             <div class="reading-progress">
               <div class="progress-bar">
                 <div class="progress-fill" style="width: ${progress}%"></div>
