@@ -1343,6 +1343,7 @@
         document.addEventListener('DOMContentLoaded', async () => {
             // Try to sync with Supabase if user is logged in
             const isGuest = GuestMode.isGuest();
+            let syncCompleted = false;
             if (!isGuest) {
                 try {
                     const user = await SupabaseAuth.getCurrentUser();
@@ -1351,10 +1352,24 @@
                         await SupabaseSync.syncLibrary();
                         await SupabaseSync.syncHistory();
                         await SupabaseSync.syncBookmarks();
+                        syncCompleted = true;
+                        // Render after sync completes
+                        renderLibrary();
+                        renderHistory();
+                        renderBookmarks();
+                        renderDownloads();
                     }
                 } catch (error) {
                     console.log('Supabase sync not available, using local data');
                 }
+            }
+
+            // If sync didn't complete (guest or no user), render with local data
+            if (!syncCompleted) {
+                renderLibrary();
+                renderHistory();
+                renderBookmarks();
+                renderDownloads();
             }
             // Initialize tabs
             const tabs = document.querySelectorAll('.tabs .tab');
@@ -2063,13 +2078,6 @@
                 }, 1500);
             });
 
-            // Initialize mock data only for logged-in users, not guests
-            // This uses the centralized MockDataInitializer from common.js
-            // Guests will see empty library (no mock data)
-            renderLibrary();
-            renderHistory();
-            renderBookmarks();
-            renderDownloads();
         });
     </script>
 </body>
