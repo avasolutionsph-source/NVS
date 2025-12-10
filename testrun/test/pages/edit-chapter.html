@@ -1145,33 +1145,40 @@
       document.querySelector('.chapter-indicator').textContent = `Chapter ${currentChapter} of ${totalChapters}`;
     }
 
-    document.getElementById('prevChapter').addEventListener('click', () => {
-      if (hasUnsavedChanges) {
-        showUnsavedModal(() => {
+    const prevChapterBtn = document.getElementById('prevChapter');
+    const nextChapterBtn = document.getElementById('nextChapter');
+
+    if (prevChapterBtn) {
+      prevChapterBtn.addEventListener('click', () => {
+        if (hasUnsavedChanges) {
+          showUnsavedModal(() => {
+            currentChapter--;
+            updateChapterNav();
+            showToast(`Navigated to Chapter ${currentChapter}`);
+          });
+        } else {
           currentChapter--;
           updateChapterNav();
           showToast(`Navigated to Chapter ${currentChapter}`);
-        });
-      } else {
-        currentChapter--;
-        updateChapterNav();
-        showToast(`Navigated to Chapter ${currentChapter}`);
-      }
-    });
+        }
+      });
+    }
 
-    document.getElementById('nextChapter').addEventListener('click', () => {
-      if (hasUnsavedChanges) {
-        showUnsavedModal(() => {
+    if (nextChapterBtn) {
+      nextChapterBtn.addEventListener('click', () => {
+        if (hasUnsavedChanges) {
+          showUnsavedModal(() => {
+            currentChapter++;
+            updateChapterNav();
+            showToast(`Navigated to Chapter ${currentChapter}`);
+          });
+        } else {
           currentChapter++;
           updateChapterNav();
           showToast(`Navigated to Chapter ${currentChapter}`);
-        });
-      } else {
-        currentChapter++;
-        updateChapterNav();
-        showToast(`Navigated to Chapter ${currentChapter}`);
-      }
-    });
+        }
+      });
+    }
 
     // ============================================
     // Delete Chapter
@@ -1395,6 +1402,5 @@
   <!-- Supabase SDK + app scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../assets/js/supabase.js"></script>
-  <script src="../assets/js/common.js"></script>
 </body>
 </html>
