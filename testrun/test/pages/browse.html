@@ -1531,6 +1531,118 @@
             applyFilters();
             await injectDynamicNovels();
 
+            // Pagination functionality
+            const ITEMS_PER_PAGE = 18;
+            let currentPage = 1;
+
+            function getVisibleCards() {
+                // Get cards that pass filters (not hidden by filters)
+                return Array.from(document.querySelectorAll('.card')).filter(card => {
+                    const cardGenre = (card.dataset.genre || '').toLowerCase();
+                    const cardStatus = card.dataset.status || '';
+                    const cardTitle = (card.dataset.title || '').toLowerCase();
+                    const cardAuthor = (card.dataset.author || '').toLowerCase();
+
+                    const matchesGenre = activeGenre === 'all' || cardGenre === activeGenre;
+                    const matchesStatus = activeStatus === 'all' || cardStatus === activeStatus;
+                    const matchesSearch = searchQuery === '' ||
+                        cardTitle.includes(searchQuery) ||
+                        cardAuthor.includes(searchQuery) ||
+                        cardGenre.includes(searchQuery);
+
+                    return matchesGenre && matchesStatus && matchesSearch;
+                });
+            }
+
+            function applyPagination() {
+                const filteredCards = getVisibleCards();
+                const totalPages = Math.ceil(filteredCards.length / ITEMS_PER_PAGE);
+                const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+                const endIndex = startIndex + ITEMS_PER_PAGE;
+
+                // Hide all cards first
+                document.querySelectorAll('.card').forEach(card => {
+                    card.style.display = 'none';
+                });
+
+                // Show only cards for current page
+                filteredCards.slice(startIndex, endIndex).forEach(card => {
+                    card.style.display = '';
+                });
+
+                // Update pagination UI
+                updatePaginationUI(totalPages);
+
+                // Update visible count
+                document.getElementById('visibleCount').textContent = Math.min(filteredCards.length, endIndex) - startIndex + ' of ' + filteredCards.length;
+            }
+
+            function updatePaginationUI(totalPages) {
+                const paginationNav = document.querySelector('.pagination');
+                if (!paginationNav) return;
+
+                if (totalPages <= 1) {
+                    paginationNav.style.display = 'none';
+                    return;
+                }
+                paginationNav.style.display = '';
+
+                let html = `<button class="page-link" data-action="prev" ${currentPage === 1 ? 'disabled' : ''}>← Previous</button>`;
+
+                // Show page numbers (max 5 visible)
+                const maxVisible = 5;
+                let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+
+                if (endPage - startPage < maxVisible - 1) {
+                    startPage = Math.max(1, endPage - maxVisible + 1);
+                }
+
+                if (startPage > 1) {
+                    html += `<button class="page-link" data-page="1">1</button>`;
+                    if (startPage > 2) html += `<span class="page-ellipsis">...</span>`;
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                    html += `<button class="page-link ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
+                }
+
+                if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) html += `<span class="page-ellipsis">...</span>`;
+                    html += `<button class="page-link" data-page="${totalPages}">${totalPages}</button>`;
+                }
+
+                html += `<button class="page-link" data-action="next" ${currentPage === totalPages ? 'disabled' : ''}>Next →</button>`;
+
+                paginationNav.innerHTML = html;
+
+                // Bind pagination events
+                paginationNav.querySelectorAll('.page-link').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        if (btn.disabled) return;
+                        if (btn.dataset.action === 'prev') {
+                            currentPage = Math.max(1, currentPage - 1);
+                        } else if (btn.dataset.action === 'next') {
+                            currentPage = Math.min(totalPages, currentPage + 1);
+                        } else if (btn.dataset.page) {
+                            currentPage = parseInt(btn.dataset.page);
+                        }
+                        applyPagination();
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    });
+                });
+            }
+
+            // Override applyFilters to include pagination
+            const originalApplyFilters = applyFilters;
+            applyFilters = function() {
+                currentPage = 1; // Reset to page 1 when filters change
+                applyPagination();
+            };
+
+            // Initial pagination
+            applyPagination();
+
             // Persist card metadata so novel page can render genre/status/rating correctly
             function bindCardLinks() {
                 document.querySelectorAll('.card-link').forEach(link => {
