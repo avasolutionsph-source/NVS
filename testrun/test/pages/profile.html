@@ -13,6 +13,11 @@
       max-width: 1000px;
       margin: 0 auto;
       width: 100%;
+      transition: opacity 0.2s ease;
+    }
+    .profile-content.loading {
+      opacity: 0;
+      pointer-events: none;
     }
 
     /* Profile Header Card */
@@ -1180,7 +1185,7 @@
     </header>
 
     <!-- Profile Content -->
-    <main class="profile-content">
+    <main class="profile-content loading">
       <!-- Profile Header Card -->
       <div class="profile-header-card">
         <div class="profile-cover">
@@ -1736,6 +1741,10 @@
       document.querySelector('.profile-dropdown-header .avatar-lg').textContent = name.charAt(0).toUpperCase();
       document.querySelector('.profile-dropdown-header .name').textContent = name;
       document.querySelector('.profile-dropdown-header .email').textContent = email;
+
+      // Reveal content once data is applied
+      const content = document.querySelector('.profile-content');
+      if (content) content.classList.remove('loading');
     }
 
     // Notification dropdown
@@ -1881,8 +1890,9 @@
         const chapters = Number.isFinite(work.chapters) ? work.chapters : 0;
         const reads = Number.isFinite(work.reads) ? `${work.reads.toLocaleString()} reads` : 'Just published';
 
+        const url = `edit-novel.html${work.id ? `?id=${encodeURIComponent(work.id)}` : ''}`;
         return `
-          <div class="work-card">
+          <div class="work-card" data-href="${url}" data-id="${work.id || ''}">
             <div class="work-cover" style="${coverStyle}">${coverFallback}</div>
             <div class="work-info">
               <h4 class="work-title">${work.title || 'Untitled'}</h4>
@@ -1895,6 +1905,14 @@
           </div>
         `;
       }).join('');
+
+      // Click to edit novel
+      grid.querySelectorAll('.work-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const href = card.dataset.href || 'edit-novel.html';
+          window.location.href = href;
+        });
+      });
     }
 
     // Render ratings given
@@ -1968,6 +1986,11 @@
       renderUserRatings();
       renderFollowing();
       openTabFromLocation();
+      // safety: ensure content isn't stuck hidden
+      setTimeout(() => {
+        const content = document.querySelector('.profile-content');
+        if (content) content.classList.remove('loading');
+      }, 500);
     });
 
     window.addEventListener('hashchange', openTabFromLocation);

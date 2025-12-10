@@ -573,7 +573,15 @@
               </select>
             </div>
 
-              <div class="field">
+            <div class="field">
+              <label for="status">Status</label>
+              <select id="status">
+                <option value="Ongoing">Ongoing</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+
+            <div class="field">
               <label for="description">Story Description</label>
               <textarea id="description" placeholder="Write a brief description of your novel"></textarea>
             </div>
@@ -632,11 +640,15 @@
     </div>
   </div>
 
+  <!-- Supabase SDK + app scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../assets/js/supabase.js"></script>
   <script src="../assets/js/common.js"></script>
   <script>
     const form = document.getElementById('addNovelForm');
     const titleInput = document.getElementById('novel-title');
     const genreSelect = document.getElementById('genre');
+    const statusSelect = document.getElementById('status');
     const descTextarea = document.getElementById('description');
     const coverInput = document.getElementById('coverInput');
     const coverPreview = document.getElementById('coverPreview');
@@ -673,7 +685,7 @@
       }, 900);
     }
 
-    [titleInput, genreSelect, descTextarea].forEach(el => {
+    [titleInput, genreSelect, statusSelect, descTextarea].forEach(el => {
       el.addEventListener('input', markUnsaved);
       el.addEventListener('change', markUnsaved);
     });
@@ -703,6 +715,7 @@
       const draft = {
         title: titleInput.value,
         genre: genreSelect.value,
+        status: statusSelect.value,
         description: descTextarea.value,
         cover: coverData,
         savedAt: new Date().toISOString()
@@ -717,6 +730,7 @@
         const draft = JSON.parse(savedDraft);
         titleInput.value = draft.title || '';
         genreSelect.value = draft.genre || '';
+        statusSelect.value = draft.status || 'Ongoing';
         descTextarea.value = draft.description || '';
         if (draft.cover) {
           coverData = draft.cover;
@@ -749,10 +763,11 @@
       }
 
       const works = JSON.parse(localStorage.getItem('novelshare_my_works') || '[]');
+      const statusValue = statusLabel || statusSelect.value || 'Ongoing';
       const payload = {
         id: `work-${Date.now()}`,
         title,
-        status: statusLabel || 'Ongoing',
+        status: statusValue,
         chapters: 0,
         reads: 0,
         cover: coverData,
@@ -772,7 +787,7 @@
     }
 
     function savePublishedNovel() {
-      upsertMyWork('Ongoing');
+      upsertMyWork(statusSelect.value || 'Ongoing');
     }
 
     document.getElementById('draftBtn').addEventListener('click', () => {
