@@ -1147,9 +1147,9 @@
           </div>
           <div class="profile-dropdown" id="profileDropdown">
             <div class="profile-dropdown-header">
-              <div class="avatar-lg">J</div>
-              <div class="name">Jane Writer</div>
-              <div class="email">jane@example.com</div>
+              <div class="avatar-lg">U</div>
+              <div class="name">User</div>
+              <div class="email">user@example.com</div>
             </div>
             <div class="profile-dropdown-menu">
               <a href="profile.html">
@@ -1211,10 +1211,10 @@
 
           <div class="profile-details">
             <div class="profile-name-row">
-              <h1 class="profile-name" id="displayName">Jane Writer</h1>
+              <h1 class="profile-name" id="displayName">Loading...</h1>
             </div>
-            <p class="profile-username" id="displayUsername">@janewriter</p>
-            <p class="profile-bio" id="displayBio">Passionate storyteller who loves crafting fantasy worlds and romance tales. Writing has been my escape and joy for over 5 years. Always open to feedback and connecting with fellow book lovers!</p>
+            <p class="profile-username" id="displayUsername">@...</p>
+            <p class="profile-bio" id="displayBio">Loading profile...</p>
 
           </div>
 
@@ -1259,7 +1259,7 @@
                   <circle cx="12" cy="7" r="4"/>
                 </svg>
                 <span class="about-item-label">Name</span>
-                <span class="about-item-value" id="aboutName">Jane Writer</span>
+                <span class="about-item-value" id="aboutName">...</span>
               </div>
               <div class="about-item">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1518,26 +1518,26 @@
       <div class="modal-body">
         <div class="form-group">
           <label for="editName">Display Name</label>
-          <input type="text" id="editName" value="Jane Writer" maxlength="50">
-          <div class="char-count"><span id="nameCount">11</span>/50</div>
+          <input type="text" id="editName" value="" maxlength="50">
+          <div class="char-count"><span id="nameCount">0</span>/50</div>
         </div>
         <div class="form-group">
           <label for="editUsername">Username</label>
-          <input type="text" id="editUsername" value="janewriter" maxlength="30">
-          <div class="char-count"><span id="usernameCount">10</span>/30</div>
+          <input type="text" id="editUsername" value="" maxlength="30">
+          <div class="char-count"><span id="usernameCount">0</span>/30</div>
         </div>
         <div class="form-group">
           <label for="editEmail">Email</label>
-          <input type="email" id="editEmail" value="jane@example.com">
+          <input type="email" id="editEmail" value="">
         </div>
         <div class="form-group">
           <label for="editLocation">Location</label>
-          <input type="text" id="editLocation" value="New York, USA">
+          <input type="text" id="editLocation" value="">
         </div>
         <div class="form-group">
           <label for="editBio">Bio</label>
-          <textarea id="editBio" maxlength="250">Passionate storyteller who loves crafting fantasy worlds and romance tales. Writing has been my escape and joy for over 5 years. Always open to feedback and connecting with fellow book lovers!</textarea>
-          <div class="char-count"><span id="bioCount">186</span>/250</div>
+          <textarea id="editBio" maxlength="250"></textarea>
+          <div class="char-count"><span id="bioCount">0</span>/250</div>
         </div>
       </div>
       <div class="modal-footer">
@@ -1986,44 +1986,8 @@
       }
     }
 
-    // Initialize mock data
-    function initMockData() {
-      // Initialize profile if not exists
-      if (!localStorage.getItem('novelshare_profile')) {
-        const mockProfile = {
-          name: 'Jane Writer',
-          username: 'janewriter',
-          email: 'jane@example.com',
-          location: 'New York, USA',
-          bio: 'Passionate storyteller who loves crafting fantasy worlds and romance tales. Writing has been my escape and joy for over 5 years. Always open to feedback and connecting with fellow book lovers!'
-        };
-        localStorage.setItem('novelshare_profile', JSON.stringify(mockProfile));
-      }
-
-      // Initialize following if not exists
-      if (FollowingSystem.getFollowing().length === 0) {
-        const mockFollowing = [
-          { id: 'guiltythree', name: 'Guiltythree', followedAt: Date.now() - 86400000 * 30 },
-          { id: 'cuttlefish', name: 'Cuttlefish That Loves Diving', followedAt: Date.now() - 86400000 * 60 },
-          { id: 'chugong', name: 'Chugong', followedAt: Date.now() - 86400000 * 15 }
-        ];
-        localStorage.setItem('novelshare_following', JSON.stringify(mockFollowing));
-      }
-
-      // Initialize ratings if not exists
-      if (Object.keys(RatingSystem.getAllRatings()).length === 0) {
-        const mockRatings = {
-          'shadow-slave': { rating: 5, review: 'Best novel I have ever read!', timestamp: Date.now() - 86400000 * 10 },
-          'lord-of-mysteries': { rating: 5, review: 'Masterpiece of mystery and fantasy.', timestamp: Date.now() - 86400000 * 30 },
-          'solo-leveling': { rating: 4, review: 'Great action and progression.', timestamp: Date.now() - 86400000 * 5 }
-        };
-        localStorage.setItem('novelshare_ratings', JSON.stringify(mockRatings));
-      }
-    }
-
-    // Initialize
+    // Initialize (no mock data - data comes from Supabase)
     document.addEventListener('DOMContentLoaded', () => {
-      initMockData();
       loadProfile();
       renderMyWorks();
       renderReadingList();

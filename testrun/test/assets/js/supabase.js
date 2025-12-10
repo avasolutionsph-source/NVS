@@ -545,12 +545,18 @@ const SupabaseDB = {
 
   // --- Reading History ---
   async addToHistory(userId, novelId, chapterId, chapterTitle) {
+    // chapter_id in database is INTEGER - ensure we pass a number
+    let chapterNum = parseInt(chapterId, 10);
+    if (isNaN(chapterNum) || chapterNum < 1) {
+      chapterNum = 1; // Default to 1 if invalid/UUID passed
+    }
+
     const { data, error } = await supabase
       .from('reading_history')
       .upsert({
         user_id: userId,
         novel_id: novelId,
-        chapter_id: chapterId,
+        chapter_id: chapterNum,
         chapter_title: chapterTitle,
         read_at: new Date().toISOString()
       }, {
@@ -588,12 +594,18 @@ const SupabaseDB = {
 
   // --- Bookmarks ---
   async addBookmark(userId, novelId, chapterId, note = '') {
+    // chapter_id in database is INTEGER - ensure we pass a number
+    let chapterNum = parseInt(chapterId, 10);
+    if (isNaN(chapterNum) || chapterNum < 1) {
+      chapterNum = 1; // Default to 1 if invalid/UUID passed
+    }
+
     const { data, error } = await supabase
       .from('bookmarks')
       .insert({
         user_id: userId,
         novel_id: novelId,
-        chapter_id: chapterId,
+        chapter_id: chapterNum,
         note: note,
         created_at: new Date().toISOString()
       });

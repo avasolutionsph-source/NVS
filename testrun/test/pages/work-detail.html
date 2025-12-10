@@ -433,16 +433,31 @@
         }
       });
 
-      const drafts = [];
-      const published = chapters
-        .filter(ch => (ch.status || 'published') !== 'trash')
+      // Filter chapters by status
+      const drafts = chapters
+        .filter(ch => ch.status === 'draft')
         .map(ch => ({
           id: ch.id,
           number: ch.number || ch.order,
           title: ch.title || 'Untitled',
           updated: formatDate(ch.createdAt || Date.now())
         }));
-      const trash = [];
+      const published = chapters
+        .filter(ch => (ch.status || 'published') === 'published')
+        .map(ch => ({
+          id: ch.id,
+          number: ch.number || ch.order,
+          title: ch.title || 'Untitled',
+          updated: formatDate(ch.createdAt || Date.now())
+        }));
+      const trash = chapters
+        .filter(ch => ch.status === 'trash')
+        .map(ch => ({
+          id: ch.id,
+          number: ch.number || ch.order,
+          title: ch.title || 'Untitled',
+          updated: formatDate(ch.createdAt || Date.now())
+        }));
       const buildList = (el, items, emptyLabel) => {
         if (!el) return;
         if (!items.length) {

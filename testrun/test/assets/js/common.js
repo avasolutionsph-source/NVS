@@ -1105,234 +1105,22 @@ const BookmarkSystem = {
 };
 
 // ============================================
-// Mock Data Initializer
+// Mock Data Initializer (DISABLED - All data comes from Supabase)
 // ============================================
 const MockDataInitializer = {
-  // Check if mock data should be initialized
-  // DISABLED - All new accounts start with empty library
+  // Mock data is disabled - all new accounts start with empty library
+  // Data should come from Supabase cloud sync
   shouldInitialize() {
     return false;
   },
 
-  // Initialize all mock data
+  // No-op - mock data initialization is disabled
   initialize() {
-    if (!this.shouldInitialize()) return;
-
-    const isGuest = GuestMode.isGuest();
-
-    // Mock Library Data - Only for logged-in users, guests get empty
-    if (LibrarySystem.getLibrary().length === 0 && !isGuest) {
-      const mockLibrary = [
-        {
-          id: 'shadow-slave',
-          novelId: 'shadow-slave',
-          title: 'Shadow Slave',
-          author: 'Guiltythree',
-          cover: 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=300&q=80',
-          coverImage: 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=300&q=80',
-          totalChapters: 2721,
-          currentChapter: 847,
-          progress: 31,
-          addedAt: Date.now() - 86400000 * 30
-        },
-        {
-          id: 'lord-of-mysteries',
-          novelId: 'lord-of-mysteries',
-          title: 'Lord of Mysteries',
-          author: 'Cuttlefish That Loves Diving',
-          cover: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=300&q=80',
-          coverImage: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=300&q=80',
-          totalChapters: 1432,
-          currentChapter: 1432,
-          progress: 100,
-          addedAt: Date.now() - 86400000 * 60
-        },
-        {
-          id: 'solo-leveling',
-          novelId: 'solo-leveling',
-          title: 'Solo Leveling',
-          author: 'Chugong',
-          cover: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=300&q=80',
-          coverImage: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=300&q=80',
-          totalChapters: 270,
-          currentChapter: 156,
-          progress: 58,
-          addedAt: Date.now() - 86400000 * 15
-        },
-        {
-          id: 'supreme-magus',
-          novelId: 'supreme-magus',
-          title: 'Supreme Magus',
-          author: 'Legion20',
-          cover: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=300&q=80',
-          coverImage: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=300&q=80',
-          totalChapters: 3995,
-          currentChapter: 2100,
-          progress: 53,
-          addedAt: Date.now() - 86400000 * 7
-        }
-      ];
-      localStorage.setItem('novelshare_library', JSON.stringify(mockLibrary));
-    }
-
-    // Mock Reading History - Only for logged-in users, guests get empty
-    if (ReadingHistory.getHistory().length === 0 && !isGuest) {
-      const mockHistory = [
-        {
-          novelId: 'shadow-slave',
-          chapterId: 847,
-          title: 'Shadow Slave',
-          novelTitle: 'Shadow Slave',
-          chapterTitle: 'Chapter 847: Dark Awakening',
-          cover: 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=300&q=80',
-          coverImage: 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=300&q=80',
-          timestamp: Date.now() - 3600000
-        },
-        {
-          novelId: 'supreme-magus',
-          chapterId: 2100,
-          title: 'Supreme Magus',
-          novelTitle: 'Supreme Magus',
-          chapterTitle: 'Chapter 2100: The Final Test',
-          cover: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=300&q=80',
-          coverImage: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=300&q=80',
-          timestamp: Date.now() - 7200000
-        },
-        {
-          novelId: 'solo-leveling',
-          chapterId: 156,
-          title: 'Solo Leveling',
-          novelTitle: 'Solo Leveling',
-          chapterTitle: 'Chapter 156: Shadow Army',
-          cover: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=300&q=80',
-          coverImage: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=300&q=80',
-          timestamp: Date.now() - 86400000
-        },
-        {
-          novelId: 'lord-of-mysteries',
-          chapterId: 1432,
-          title: 'Lord of Mysteries',
-          novelTitle: 'Lord of Mysteries',
-          chapterTitle: 'Chapter 1432: The End',
-          cover: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=300&q=80',
-          coverImage: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=300&q=80',
-          timestamp: Date.now() - 86400000 * 3
-        }
-      ];
-      localStorage.setItem('novelshare_history', JSON.stringify(mockHistory));
-    }
-
-    // Mock Bookmarks - Only for logged-in users, guests get empty
-    if (BookmarkSystem.getBookmarks().length === 0 && !isGuest) {
-      const mockBookmarks = [
-        {
-          id: 'shadow-slave_847_1',
-          novelId: 'shadow-slave',
-          chapterId: 847,
-          novelTitle: 'Shadow Slave',
-          chapterTitle: 'Chapter 847: Dark Awakening',
-          position: 1500,
-          note: 'Epic fight scene starts here!',
-          timestamp: Date.now() - 3600000,
-          createdAt: Date.now() - 3600000
-        },
-        {
-          id: 'lord-of-mysteries_500_1',
-          novelId: 'lord-of-mysteries',
-          chapterId: 500,
-          novelTitle: 'Lord of Mysteries',
-          chapterTitle: 'Chapter 500: The Fool',
-          position: 2000,
-          note: 'Major plot revelation',
-          timestamp: Date.now() - 86400000 * 2,
-          createdAt: Date.now() - 86400000 * 2
-        },
-        {
-          id: 'solo-leveling_100_1',
-          novelId: 'solo-leveling',
-          chapterId: 100,
-          novelTitle: 'Solo Leveling',
-          chapterTitle: 'Chapter 100: Arise',
-          position: 800,
-          note: 'Best chapter so far',
-          timestamp: Date.now() - 86400000 * 5,
-          createdAt: Date.now() - 86400000 * 5
-        }
-      ];
-      localStorage.setItem('novelshare_bookmarks', JSON.stringify(mockBookmarks));
-    }
-
-    // Mock Ratings - Only for logged-in users, guests get empty
-    if (Object.keys(RatingSystem.getAllRatings()).length === 0 && !isGuest) {
-      const mockRatings = {
-        'shadow-slave': { rating: 5, review: 'Best novel I have ever read! The world-building is incredible.', timestamp: Date.now() - 86400000 * 10 },
-        'lord-of-mysteries': { rating: 5, review: 'Masterpiece of mystery and fantasy. Klein Moretti is one of the best MCs ever.', timestamp: Date.now() - 86400000 * 30 },
-        'solo-leveling': { rating: 4, review: 'Great action and progression. Jinwoo is badass!', timestamp: Date.now() - 86400000 * 5 },
-        'supreme-magus': { rating: 4, review: 'Interesting magic system and character development.', timestamp: Date.now() - 86400000 * 7 }
-      };
-      localStorage.setItem('novelshare_ratings', JSON.stringify(mockRatings));
-    }
-
-    // Mock Following - Only for logged-in users, guests get empty
-    if (FollowingSystem.getFollowing().length === 0 && !isGuest) {
-      const mockFollowing = [
-        { id: 'guiltythree', name: 'Guiltythree', avatar: '', followedAt: Date.now() - 86400000 * 30 },
-        { id: 'cuttlefish', name: 'Cuttlefish That Loves Diving', avatar: '', followedAt: Date.now() - 86400000 * 60 },
-        { id: 'chugong', name: 'Chugong', avatar: '', followedAt: Date.now() - 86400000 * 15 },
-        { id: 'legion20', name: 'Legion20', avatar: '', followedAt: Date.now() - 86400000 * 7 }
-      ];
-      localStorage.setItem('novelshare_following', JSON.stringify(mockFollowing));
-    }
-
-    // Mock Offline Downloads - Only for logged-in users, guests get empty
-    const offlineData = JSON.parse(localStorage.getItem('novelshare_offline') || '{}');
-    if (Object.keys(offlineData).length === 0 && !isGuest) {
-      const mockDownloads = {
-        'shadow-slave': {
-          '847': {
-            novelTitle: 'Shadow Slave',
-            chapterTitle: 'Chapter 847: Dark Awakening',
-            content: '<p>The darkness swirled around Sunny as he prepared for the battle ahead...</p>',
-            downloadedAt: Date.now() - 3600000
-          },
-          '848': {
-            novelTitle: 'Shadow Slave',
-            chapterTitle: 'Chapter 848: The Choice',
-            content: '<p>Every choice has consequences, and Sunny knew this better than anyone...</p>',
-            downloadedAt: Date.now() - 3600000
-          }
-        },
-        'solo-leveling': {
-          '156': {
-            novelTitle: 'Solo Leveling',
-            chapterTitle: 'Chapter 156: Shadow Army',
-            content: '<p>Jinwoo stood before his army of shadows, feeling their power surge through him...</p>',
-            downloadedAt: Date.now() - 86400000
-          }
-        }
-      };
-      localStorage.setItem('novelshare_offline', JSON.stringify(mockDownloads));
-    }
-
-    // Mock Profile - Only for logged-in users, guests get empty profile
-    if (!localStorage.getItem('novelshare_profile') && !isGuest) {
-      const mockProfile = {
-        name: 'Jane Writer',
-        username: 'janewriter',
-        email: 'jane@example.com',
-        location: 'New York, USA',
-        bio: 'Passionate storyteller who loves crafting fantasy worlds and romance tales. Writing has been my escape and joy for over 5 years. Always open to feedback and connecting with fellow book lovers!'
-      };
-      localStorage.setItem('novelshare_profile', JSON.stringify(mockProfile));
-    }
-
-    // Mark as initialized - separate for guest and user
-    const initKey = isGuest ? 'novelshare_guest_mock_initialized' : 'novelshare_user_mock_initialized';
-    localStorage.setItem(initKey, 'true');
-    console.log(`NovelShare: Mock data initialized successfully for ${isGuest ? 'guest' : 'user'}!`);
+    // All user data comes from Supabase, not mock data
+    return;
   },
 
-  // Reset all mock data (useful for testing)
+  // Clear all user data (useful for testing/logout)
   reset() {
     localStorage.removeItem('novelshare_library');
     localStorage.removeItem('novelshare_history');
@@ -1343,8 +1131,7 @@ const MockDataInitializer = {
     localStorage.removeItem('novelshare_profile');
     localStorage.removeItem('novelshare_guest_mock_initialized');
     localStorage.removeItem('novelshare_user_mock_initialized');
-    this.initialize();
-    console.log('NovelShare: Mock data reset successfully!');
+    console.log('NovelShare: User data cleared');
   }
 };
 

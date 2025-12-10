@@ -1006,16 +1006,67 @@
     // ============================================
     // Save Draft Button
     // ============================================
-    function saveDraft() {
+    async function saveDraft() {
       if (!titleInput.value.trim() && !contentTextarea.value.trim()) {
         showToast('Nothing to save');
         return;
       }
 
-      saveDraftToStorage();
+      if (!workId) {
+        showToast('Missing work id. Open Add Chapter from a work.');
+        return;
+      }
+
+      // Save to the actual chapters storage with status 'draft'
+      const store = getStoredChapters();
+      const chapters = Array.isArray(store[workId]) ? store[workId] : [];
+      const nextNumber = chapters.filter(ch => ch.status !== 'trash').length + 1;
+
+      const newChapter = {
+        id: `chap-${Date.now()}`,
+        workId,
+        title: titleInput.value.trim() || 'Untitled Draft',
+        content: contentTextarea.value.trim(),
+        status: 'draft',  // Mark as draft
+        createdAt: Date.now(),
+        order: nextNumber,
+        number: nextNumber,
+      };
+
+      chapters.push(newChapter);
+      store[workId] = chapters;
+      persistChapters(store);
+
+      // Push to Supabase with draft status
+      if (typeof SupabaseAuth !== 'undefined' && typeof SupabaseDB !== 'undefined' && SupabaseDB.upsertChapter) {
+        try {
+          const user = await SupabaseAuth.getCurrentUser();
+          if (user) {
+            await SupabaseDB.upsertChapter({
+              id: newChapter.id,
+              novel_id: workId,
+              title: newChapter.title,
+              content: newChapter.content,
+              status: 'draft',
+              chapter_number: nextNumber,
+              updated_at: new Date().toISOString(),
+            });
+          }
+        } catch (err) {
+          console.warn('Supabase draft save failed:', err);
+        }
+      }
+
+      // Clear the temp draft and redirect
+      clearDraft();
       hasUnsavedChanges = false;
       draftSaved = true;
       showToast('Chapter saved as draft');
+
+      // Redirect back to work detail after short delay
+      setTimeout(() => {
+        window.location.href = `work-detail.html?id=${encodeURIComponent(workId)}`;
+      }, 1000);
     }
 
     document.getElementById('draftBtn').addEventListener('click', saveDraft);

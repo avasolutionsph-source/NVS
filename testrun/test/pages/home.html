@@ -770,77 +770,11 @@
             </div>
 
             <div class="novel-grid" id="popularNovelsGrid">
-                <a class="novel-card" href="novel.html?id=shadow-slave" data-novel-id="shadow-slave">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=300&q=80" alt="Shadow Slave">
-                    </div>
-                    <h4>Shadow Slave</h4>
-                    <p class="author">by Guiltythree</p>
-                    <div class="rating">
-                        <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                        <span class="rating-value" data-novel-id="shadow-slave">4.9</span>
-                    </div>
-                </a>
-
-                <a class="novel-card" href="novel.html?id=lord-of-mysteries" data-novel-id="lord-of-mysteries">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=300&q=80" alt="Lord of Mysteries">
-                    </div>
-                    <h4>Lord of Mysteries</h4>
-                    <p class="author">by Cuttlefish That Loves Diving</p>
-                    <div class="rating">
-                        <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                        <span class="rating-value" data-novel-id="lord-of-mysteries">4.8</span>
-                    </div>
-                </a>
-
-                <a class="novel-card" href="novel.html?id=solo-leveling" data-novel-id="solo-leveling">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=300&q=80" alt="Solo Leveling">
-                    </div>
-                    <h4>Solo Leveling</h4>
-                    <p class="author">by Chugong</p>
-                    <div class="rating">
-                        <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                        <span class="rating-value" data-novel-id="solo-leveling">4.7</span>
-                    </div>
-                </a>
-
-                <a class="novel-card" href="novel.html?id=supreme-magus" data-novel-id="supreme-magus">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=300&q=80" alt="Supreme Magus">
-                    </div>
-                    <h4>Supreme Magus</h4>
-                    <p class="author">by Legion20</p>
-                    <div class="rating">
-                        <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                        <span class="rating-value" data-novel-id="supreme-magus">4.6</span>
-                    </div>
-                </a>
-
-                <a class="novel-card" href="novel.html?id=omniscient-reader" data-novel-id="omniscient-reader">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=300&q=80" alt="Omniscient Reader">
-                    </div>
-                    <h4>Omniscient Reader's Viewpoint</h4>
-                    <p class="author">by Sing Shong</p>
-                    <div class="rating">
-                        <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                        <span class="rating-value" data-novel-id="omniscient-reader">4.8</span>
-                    </div>
-                </a>
-
-                <a class="novel-card" href="novel.html?id=reverend-insanity" data-novel-id="reverend-insanity">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=300&q=80" alt="Reverend Insanity">
-                    </div>
-                    <h4>Reverend Insanity</h4>
-                    <p class="author">by Gu Zhen Ren</p>
-                    <div class="rating">
-                        <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                        <span class="rating-value" data-novel-id="reverend-insanity">4.9</span>
-                    </div>
-                </a>
+                <!-- Dynamically loaded from Supabase -->
+                <div class="loading-placeholder" style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
+                    <div style="width: 30px; height: 30px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px;"></div>
+                    Loading novels...
+                </div>
             </div>
         </section>
 
@@ -854,86 +788,12 @@
                 <a href="browse.html" class="view-all-btn">View All</a>
             </div>
 
-            <div class="newly-grid">
-                <a class="newly-card" href="novel.html?id=star-money">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=200&q=80" alt="The Star">
-                    </div>
-                    <div class="info">
-                        <h4>The Star Just Wants to Make Money</h4>
-                        <span class="time">about 3 days ago</span>
-                    </div>
-                </a>
-
-                <a class="newly-card" href="novel.html?id=cultivation-online">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?auto=format&fit=crop&w=200&q=80" alt="Cultivation">
-                    </div>
-                    <div class="info">
-                        <h4>Cultivation Online</h4>
-                        <span class="time">about 5 days ago</span>
-                    </div>
-                </a>
-
-                <a class="newly-card" href="novel.html?id=vampire-system">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=200&q=80" alt="Vampire">
-                    </div>
-                    <div class="info">
-                        <h4>My Vampire System</h4>
-                        <span class="time">about 1 week ago</span>
-                    </div>
-                </a>
-
-                <a class="newly-card" href="novel.html?id=timeless-assassin">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=200&q=80" alt="Timeless">
-                    </div>
-                    <div class="info">
-                        <h4>Timeless Assassin</h4>
-                        <span class="time">about 1 week ago</span>
-                    </div>
-                </a>
-
-                <a class="newly-card" href="novel.html?id=beast-tamer">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=200&q=80" alt="Beast Tamer">
-                    </div>
-                    <div class="info">
-                        <h4>Weakest Beast Tamer</h4>
-                        <span class="time">about 2 weeks ago</span>
-                    </div>
-                </a>
-
-                <a class="newly-card" href="novel.html?id=dao-library">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=200&q=80" alt="Heavenly">
-                    </div>
-                    <div class="info">
-                        <h4>Heavenly Dao Library</h4>
-                        <span class="time">about 2 weeks ago</span>
-                    </div>
-                </a>
-
-                <a class="newly-card" href="novel.html?id=legendary-beast-master">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=200&q=80" alt="Legendary">
-                    </div>
-                    <div class="info">
-                        <h4>First Legendary Beast Master</h4>
-                        <span class="time">about 3 weeks ago</span>
-                    </div>
-                </a>
-
-                <a class="newly-card" href="novel.html?id=made-fortune">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=200&q=80" alt="Fortune">
-                    </div>
-                    <div class="info">
-                        <h4>I Made a Fortune</h4>
-                        <span class="time">about 3 weeks ago</span>
-                    </div>
-                </a>
+            <div class="newly-grid" id="newlyReleasedGrid">
+                <!-- Dynamically loaded from Supabase -->
+                <div class="loading-placeholder" style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
+                    <div style="width: 30px; height: 30px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px;"></div>
+                    Loading novels...
+                </div>
             </div>
         </section>
 
@@ -947,72 +807,12 @@
                 <a href="browse.html" class="view-all-btn">View All</a>
             </div>
 
-            <div class="updated-grid">
-                <a class="updated-card" href="novel.html?id=shadow-slave">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=200&q=80" alt="Shadow Slave">
-                    </div>
-                    <div class="info">
-                        <h4>Shadow Slave</h4>
-                        <p class="chapter">Chapter 2721: Eternal Night</p>
-                        <span class="time">Updated 2 hours ago</span>
-                    </div>
-                </a>
-
-                <a class="updated-card" href="novel.html?id=supreme-magus">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=200&q=80" alt="Supreme Magus">
-                    </div>
-                    <div class="info">
-                        <h4>Supreme Magus</h4>
-                        <p class="chapter">Chapter 3995: Final Battle</p>
-                        <span class="time">Updated 5 hours ago</span>
-                    </div>
-                </a>
-
-                <a class="updated-card" href="novel.html?id=lord-of-mysteries-2">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=200&q=80" alt="Lord of Mysteries">
-                    </div>
-                    <div class="info">
-                        <h4>Lord of Mysteries 2</h4>
-                        <p class="chapter">Chapter 165: Hope of Life</p>
-                        <span class="time">Updated 7 hours ago</span>
-                    </div>
-                </a>
-
-                <a class="updated-card" href="novel.html?id=forbidden-nightmare">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=200&q=80" alt="Forbidden Nightmare">
-                    </div>
-                    <div class="info">
-                        <h4>Forbidden Nightmare</h4>
-                        <p class="chapter">Chapter 892: Dark Awakening</p>
-                        <span class="time">Updated 12 hours ago</span>
-                    </div>
-                </a>
-
-                <a class="updated-card" href="novel.html?id=cultivation-online">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?auto=format&fit=crop&w=200&q=80" alt="Cultivation Online">
-                    </div>
-                    <div class="info">
-                        <h4>Cultivation Online</h4>
-                        <p class="chapter">Chapter 2260: Heavenly Tribulation</p>
-                        <span class="time">Updated 1 day ago</span>
-                    </div>
-                </a>
-
-                <a class="updated-card" href="novel.html?id=legendary-beast-master">
-                    <div class="cover">
-                        <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=200&q=80" alt="Beast Master">
-                    </div>
-                    <div class="info">
-                        <h4>First Legendary Beast Master</h4>
-                        <p class="chapter">Chapter 1434: Evolution</p>
-                        <span class="time">Updated 1 day ago</span>
-                    </div>
-                </a>
+            <div class="updated-grid" id="recentlyUpdatedGrid">
+                <!-- Dynamically loaded from Supabase -->
+                <div class="loading-placeholder" style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
+                    <div style="width: 30px; height: 30px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px;"></div>
+                    Loading novels...
+                </div>
             </div>
         </section>
 
@@ -1032,7 +832,132 @@
     <script src="../assets/js/supabase.js"></script>
     <script src="../assets/js/common.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Helper function to format time ago
+            function timeAgo(date) {
+                const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+                if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
+                if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+                if (seconds < 604800) return `${Math.floor(seconds / 86400)} days ago`;
+                return `${Math.floor(seconds / 604800)} weeks ago`;
+            }
+
+            // Load novels from Supabase
+            async function loadNovelsFromSupabase() {
+                if (typeof SupabaseDB === 'undefined') {
+                    console.warn('SupabaseDB not available');
+                    return [];
+                }
+                try {
+                    const novels = await SupabaseDB.getNovels(24, 0);
+                    return novels || [];
+                } catch (err) {
+                    console.error('Failed to load novels:', err);
+                    return [];
+                }
+            }
+
+            // Render Popular Novels (first 6)
+            function renderPopularNovels(novels) {
+                const grid = document.getElementById('popularNovelsGrid');
+                if (!grid) return;
+
+                const popular = novels.slice(0, 6);
+                if (popular.length === 0) {
+                    grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">No novels available yet</div>';
+                    return;
+                }
+
+                grid.innerHTML = popular.map(novel => {
+                    const coverUrl = novel.cover_image || novel.cover || '';
+                    const rating = novel.avg_rating || novel.rating || (Math.random() * 0.5 + 4.5).toFixed(1);
+                    return `
+                        <a class="novel-card" href="novel.html?id=${novel.id}" data-novel-id="${novel.id}">
+                            <div class="cover">
+                                ${coverUrl
+                                    ? `<img src="${coverUrl}" alt="${novel.title}">`
+                                    : `<div style="width:100%;height:100%;background:var(--primary-gradient);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.5rem;">${(novel.title || 'N').charAt(0)}</div>`
+                                }
+                            </div>
+                            <h4>${novel.title || 'Untitled'}</h4>
+                            <p class="author">by ${novel.author || 'Unknown'}</p>
+                            <div class="rating">
+                                <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                <span class="rating-value">${Number(rating).toFixed(1)}</span>
+                            </div>
+                        </a>
+                    `;
+                }).join('');
+            }
+
+            // Render Newly Released (next 8, sorted by created_at)
+            function renderNewlyReleased(novels) {
+                const grid = document.getElementById('newlyReleasedGrid');
+                if (!grid) return;
+
+                const sorted = [...novels].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 8);
+                if (sorted.length === 0) {
+                    grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">No new novels yet</div>';
+                    return;
+                }
+
+                grid.innerHTML = sorted.map(novel => {
+                    const coverUrl = novel.cover_image || novel.cover || '';
+                    return `
+                        <a class="newly-card" href="novel.html?id=${novel.id}">
+                            <div class="cover">
+                                ${coverUrl
+                                    ? `<img src="${coverUrl}" alt="${novel.title}">`
+                                    : `<div style="width:100%;height:100%;background:var(--primary-gradient);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;">${(novel.title || 'N').charAt(0)}</div>`
+                                }
+                            </div>
+                            <div class="info">
+                                <h4>${novel.title || 'Untitled'}</h4>
+                                <span class="time">${timeAgo(novel.created_at)}</span>
+                            </div>
+                        </a>
+                    `;
+                }).join('');
+            }
+
+            // Render Recently Updated (sorted by updated_at)
+            function renderRecentlyUpdated(novels) {
+                const grid = document.getElementById('recentlyUpdatedGrid');
+                if (!grid) return;
+
+                const sorted = [...novels].sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at)).slice(0, 6);
+                if (sorted.length === 0) {
+                    grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">No updated novels yet</div>';
+                    return;
+                }
+
+                grid.innerHTML = sorted.map(novel => {
+                    const coverUrl = novel.cover_image || novel.cover || '';
+                    const chapterNum = novel.total_chapters || novel.chapters || 0;
+                    return `
+                        <a class="updated-card" href="novel.html?id=${novel.id}">
+                            <div class="cover">
+                                ${coverUrl
+                                    ? `<img src="${coverUrl}" alt="${novel.title}">`
+                                    : `<div style="width:100%;height:100%;background:var(--primary-gradient);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;">${(novel.title || 'N').charAt(0)}</div>`
+                                }
+                            </div>
+                            <div class="info">
+                                <h4>${novel.title || 'Untitled'}</h4>
+                                <p class="chapter">Chapter ${chapterNum}</p>
+                                <span class="time">Updated ${timeAgo(novel.updated_at || novel.created_at)}</span>
+                            </div>
+                        </a>
+                    `;
+                }).join('');
+            }
+
+            // Load and render all novel sections
+            const novels = await loadNovelsFromSupabase();
+            renderPopularNovels(novels);
+            renderNewlyReleased(novels);
+            renderRecentlyUpdated(novels);
+
             // Render Continue Reading Section
             function renderContinueReading() {
                 const section = document.getElementById('continueReadingSection');
