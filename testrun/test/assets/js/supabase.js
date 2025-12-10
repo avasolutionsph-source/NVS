@@ -717,20 +717,12 @@ const SupabaseSync = {
     const user = await SupabaseAuth.getCurrentUser();
     if (!user) return;
 
+    // CRITICAL: Clear localStorage FIRST to prevent data leakage between users
+    // Without this, User A's library would leak into User B's when they log in
+    localStorage.removeItem('novelshare_library');
+
     try {
       const cloudLibrary = await SupabaseDB.getUserLibrary(user.id);
-      const cloudIds = new Set(cloudLibrary.map(item => item.novel_id));
-      const localLibrary = JSON.parse(localStorage.getItem('novelshare_library') || '[]');
-
-      // Push any local items that are missing in cloud (one-time catch-up)
-      const missing = localLibrary.filter(item => !cloudIds.has(item.novelId || item.id));
-      for (const item of missing) {
-        try {
-          await this.pushLibraryItem(item.novelId || item.id, 'add', item);
-        } catch (e) {
-          console.warn('Failed to push local library item:', e);
-        }
-      }
 
       // Convert to local format (include all fields needed for display)
       const localFormat = cloudLibrary.map(item => ({
@@ -767,6 +759,9 @@ const SupabaseSync = {
     const user = await SupabaseAuth.getCurrentUser();
     if (!user) return;
 
+    // CRITICAL: Clear localStorage FIRST to prevent data leakage between users
+    localStorage.removeItem('novelshare_history');
+
     try {
       const cloudHistory = await SupabaseDB.getReadingHistory(user.id);
 
@@ -793,6 +788,9 @@ const SupabaseSync = {
     if (!isSupabaseAvailable()) return null;
     const user = await SupabaseAuth.getCurrentUser();
     if (!user) return;
+
+    // CRITICAL: Clear localStorage FIRST to prevent data leakage between users
+    localStorage.removeItem('novelshare_bookmarks');
 
     try {
       const cloudBookmarks = await SupabaseDB.getBookmarks(user.id);
