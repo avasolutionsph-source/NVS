@@ -487,15 +487,18 @@
       } catch {
         works = [];
       }
+      // Find existing work to preserve chapter count
+      const existingWork = works.find(w => w.id === currentWorkId);
       const payload = {
         id: currentWorkId || `work-${Date.now()}`,
         title,
         status: statusLabel || statusSelect.value || 'Ongoing',
-        chapters: 0,
-        reads: 0,
+        chapters: existingWork?.chapters || existingWork?.total_chapters || 0,
+        reads: existingWork?.reads || 0,
         cover: coverData,
         genre: genreSelect.value || 'Uncategorized',
-        description: descTextarea.value.trim()
+        description: descTextarea.value.trim(),
+        updatedAt: Date.now()
       };
 
       const idx = works.findIndex(w => w.id === payload.id);
@@ -536,9 +539,10 @@
               cover_image: payload.cover || null,
               genres: payload.genre ? [payload.genre] : [],
               status: supabaseStatus,
-              total_chapters: payload.chapters || 0,
+              total_chapters: payload.chapters,
               author_id: user.id,
-              author: payload.author || authorName
+              author: payload.author || authorName,
+              updated_at: new Date().toISOString()
             };
             if (isUUID(payload.id)) {
               upsertPayload.id = payload.id;

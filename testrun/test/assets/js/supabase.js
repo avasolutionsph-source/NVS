@@ -666,14 +666,22 @@ const SupabaseSync = {
         }
       }
 
-      // Convert to local format
+      // Convert to local format (include all fields needed for display)
       const localFormat = cloudLibrary.map(item => ({
+        id: item.novel_id,
         novelId: item.novel_id,
         title: item.novels?.title || 'Unknown',
         author: item.novels?.author || 'Unknown',
+        cover: item.novels?.cover_image || null,
         coverImage: item.novels?.cover_image || null,
+        genre: Array.isArray(item.novels?.genres) ? item.novels.genres[0] : (item.novels?.genre || ''),
+        status: item.novels?.status || 'ongoing',
+        description: item.novels?.description || '',
+        rating: item.novels?.rating || item.novels?.avg_rating || 0,
         totalChapters: item.novels?.total_chapters || 0,
-        currentChapter: item.current_chapter,
+        chapters: item.novels?.total_chapters || 0,
+        currentChapter: item.current_chapter || 0,
+        progress: item.progress || 0,
         addedAt: new Date(item.added_at).getTime()
       }));
 

@@ -867,37 +867,7 @@
       </div>
 
       <article class="chapter-content" id="chapterContent">
-        <p>Huizhou Prefecture, She County. At night, the streets and alleys are quiet, and you can occasionally hear a few dogs barking. The moon hung low in the sky, casting long shadows across the cobblestone streets as Song Jin clutched her younger sister's hand tightly.</p>
-
-        <p>A group of officials suddenly broke into the Song family's home. The leading official claimed that the medicinal materials sold by the Song family to the Northwest Army were inferior and had resulted in deaths. They were ordered to search the family's home and investigate the crime.</p>
-
-        <p>"Oh no! There's a flood in the backyard!" someone shouted from the servants' quarters. The chaos spread like wildfire through the compound, with servants running in every direction, their lanterns creating dancing shadows on the walls.</p>
-
-        <p>"Go put out the fire! The eldest and second young ladies are still in the house!" The head servant's voice cut through the commotion, but Song Jin knew better than to trust the confusion. This was their chance—their only chance.</p>
-
-        <p>The Song family was in chaos and there were cries everywhere. Song Jin pulled her half-sister Song Xiu through the servant's corridor, a path she had memorized years ago during her childhood games. Now those innocent memories served a darker purpose.</p>
-
-        <p>An ordinary horse-drawn carriage came out of the alley next to the Song residence and hurried towards the city gate. Inside the carriage, Song Jin hugged her half sister Song Xiu. Even though she was extremely frightened in her heart, her face remained calm. She had to be strong—for both of them.</p>
-
-        <p>The old man Qin who was driving the car said, "Miss, when you get to Qinjiagou, tell everyone that you are from the next county and both your parents are dead." His weathered voice carried the weight of decades of loyalty to the Song family.</p>
-
-        <p>Song Jin nodded, committing every word to memory. Their lives depended on the perfection of this lie. Song Xiu trembled beside her, and Jin wrapped her arm around her younger sister's shoulders.</p>
-
-        <p>"Remember," Old Qin continued, his eyes fixed on the road ahead, "you are no longer daughters of the Song family. From this night forward, you are orphans seeking refuge. Trust no one with your true identity."</p>
-
-        <p>The carriage wheels creaked against the worn path as they approached the city gate. Song Jin held her breath, watching through a gap in the curtain as the guards inspected a merchant's wagon ahead of them.</p>
-
-        <p>"Papers," the guard demanded when they reached the checkpoint. Old Qin handed over the forged documents with steady hands, his demeanor that of a simple farmer taking his granddaughters to visit relatives.</p>
-
-        <p>The seconds stretched into eternity. Song Jin could hear her own heartbeat, could feel Song Xiu's fingers digging into her arm. Finally, the guard waved them through with barely a second glance.</p>
-
-        <p>As the city walls disappeared behind them and the open road stretched ahead, Song Jin allowed herself one moment of grief for the life she was leaving behind. But only one moment. Survival demanded focus, demanded strength.</p>
-
-        <p>The dawn was breaking when they finally stopped at a small inn on the outskirts of Qinjiagou. Old Qin helped them down from the carriage, pressing a small pouch of coins into Song Jin's hands.</p>
-
-        <p>"This is all I can give you," he said, his eyes glistening in the early morning light. "Your father was a good man. Remember that, no matter what they say about him."</p>
-
-        <p>Song Jin watched as the carriage disappeared down the road, taking with it the last connection to her former life. She squeezed Song Xiu's hand and turned toward the village. A new chapter was beginning, written in uncertainty and fear, but also in the unbreakable bond between two sisters.</p>
+        <p style="text-align:center;color:var(--text-muted);">Loading chapter content...</p>
       </article>
 
       <!-- Chapter End Section -->
@@ -1199,8 +1169,33 @@
     }
 
     function renderChapter(data, novelMeta) {
+      // Update novel title in header even if no chapter
+      if (novelMeta?.title) {
+        document.getElementById('headerNovelTitle').textContent = novelMeta.title;
+        document.title = `Reading: ${novelMeta.title} | NovelShare`;
+      }
+      // Update back button
+      if (novelId && backToNovelBtn) {
+        backToNovelBtn.href = `novel.html?id=${encodeURIComponent(novelId)}`;
+      }
+
       if (!data) {
-        chapterContentEl.innerHTML = '<p>No chapter found.</p>';
+        document.querySelector('.chapter-number').textContent = '';
+        document.querySelector('.chapter-title').textContent = 'No Chapter Available';
+        chapterContentEl.innerHTML = `
+          <div style="text-align:center;padding:60px 20px;">
+            <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="var(--text-muted)" stroke-width="1.5" style="margin-bottom:16px;">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+            <h3 style="color:var(--text-primary);margin-bottom:8px;">No chapters published yet</h3>
+            <p style="color:var(--text-muted);margin-bottom:24px;">This novel doesn't have any chapters available for reading.</p>
+            <a href="novel.html?id=${encodeURIComponent(novelId || '')}" class="btn-back" style="display:inline-flex;">Back to Novel</a>
+          </div>
+        `;
+        // Hide chapter end section
+        const chapterEnd = document.querySelector('.chapter-end');
+        if (chapterEnd) chapterEnd.style.display = 'none';
         return;
       }
       novelData = {

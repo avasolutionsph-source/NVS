@@ -1554,12 +1554,13 @@
                                     <p class="library-card-author">by ${authorName}</p>
                                     <div class="library-card-progress">
                                         <div class="progress-label">
-                                            <span>Chapter ${currentChapter}/${totalChapters}</span>
-                                            <span class="progress-percent">${progress}%</span>
+                                            <span>${totalChapters > 0 ? `Chapter ${currentChapter}/${totalChapters}` : 'No chapters yet'}</span>
+                                            <span class="progress-percent">${totalChapters > 0 ? `${progress}%` : ''}</span>
                                         </div>
+                                        ${totalChapters > 0 ? `
                                         <div class="progress-bar">
                                             <div class="progress-fill" style="width: ${progress}%"></div>
-                                        </div>
+                                        </div>` : ''}
                                     </div>
                                 </div>
                             </div>
