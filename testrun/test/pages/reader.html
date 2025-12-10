@@ -782,7 +782,7 @@
     <!-- Reader Header -->
     <header class="reader-header">
       <div class="reader-header-left">
-        <a href="novel.html" class="btn-back">
+        <a href="novel.html" class="btn-back" id="backToNovelBtn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
@@ -1047,6 +1047,12 @@
     let novelData = { id: novelId, title: 'Loading...', cover: '', author: '', authorId: '', totalChapters: 0 };
     let chapterData = { id: chapterId, title: 'Loading...', number: 1, content: '', createdAt: null, totalChapters: 0 };
     let chaptersList = [];
+
+    // Fix back button to go to correct novel
+    const backToNovelBtn = document.getElementById('backToNovelBtn');
+    if (backToNovelBtn && novelId) {
+      backToNovelBtn.href = `novel.html?id=${encodeURIComponent(novelId)}`;
+    }
 
     const progressFill = document.getElementById('progressFill');
     const chapterContentEl = document.getElementById('chapterContent');

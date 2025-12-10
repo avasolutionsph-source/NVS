@@ -1159,43 +1159,39 @@
             <span class="badge badge-status ongoing">Ongoing</span>
           </div>
 
-          <h1 class="novel-title">Twin Sisters</h1>
+          <h1 class="novel-title">Loading...</h1>
 
           <div class="novel-author">
-            <div class="author-avatar">J</div>
-            <span class="author-name">by <a href="view-profile.html?name=Jane%20Writer&username=janewriter">JaneWriter</a></span>
+            <div class="author-avatar">?</div>
+            <span class="author-name">by <a href="#">Loading...</a></span>
           </div>
 
           <div class="novel-stats">
             <div class="stat rating">
               <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              <strong>4.8</strong> <span class="rating-count">(256 ratings)</span>
+              <strong class="rating-value">-</strong> <span class="rating-count">(0 ratings)</span>
             </div>
             <div class="stat">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              <strong>45.2K</strong> reads
+              <strong class="reads-value">-</strong> reads
             </div>
             <div class="stat">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-              <strong>12</strong> chapters
+              <strong class="chapters-value">0</strong> chapters
             </div>
             <div class="stat">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-              <strong>1.2K</strong> in library
+              <strong class="library-value">-</strong> in library
             </div>
           </div>
 
           <p class="novel-description collapsed" id="novelDescription">
-            In the turbulent times of ancient China, two sisters from the prestigious Song family are forced to flee when their father is accused of a crime he didn't commit. Separated from everything they knew, Song Jin and Song Xiu must forge new identities and navigate a dangerous world where trust is a luxury they cannot afford.
-
-            As they struggle to survive in a small village, secrets from their past threaten to surface. With officials searching for them and enemies lurking in the shadows, the sisters must rely on each other and the unexpected allies they meet along the way.
-
-            This is a story of sisterhood, survival, and the unbreakable bonds that hold families together even in the darkest times. Will they be able to clear their family's name and return to their former glory, or will they be forced to live in hiding forever?
+            Loading story description...
           </p>
           <button class="read-more-btn" id="readMoreBtn">Read more...</button>
 
           <div class="novel-actions">
-            <button class="btn-read" onclick="window.location.href='reader.html'">
+            <button class="btn-read" id="startReadingBtn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
               Start Reading
             </button>
@@ -1396,7 +1392,13 @@
   <script>
     // Build novel data from URL (prefer catalog + stored works/library)
     const params = new URLSearchParams(window.location.search);
-    const novelId = params.get('id') || 'twin-sisters';
+    const novelId = params.get('id') || '';
+
+    // If no novel ID provided, redirect to browse page
+    if (!novelId) {
+      showToast('No novel selected. Redirecting to browse...');
+      setTimeout(() => { window.location.href = 'browse.html'; }, 1500);
+    }
 
     const twinSistersLongDesc = document.getElementById('novelDescription')?.textContent?.trim();
 
@@ -1832,23 +1834,25 @@
     }
 
     async function loadNovelDetails() {
-      // Fetch freshest details from Supabase when possible
+      // Fetch details from Supabase FIRST (prioritize database over hardcoded/local)
       if (typeof SupabaseDB !== 'undefined' && SupabaseDB.getNovelById) {
         try {
           const supa = await SupabaseDB.getNovelById(novelData.id);
           if (supa) {
+            // Supabase data takes priority over local/catalog data
             novelData = {
-              ...novelData,
-              title: novelData.title || supa.title,
-              cover: novelData.cover || supa.cover_image || supa.cover,
-              author: novelData.author || supa.author,
-              authorId: novelData.authorId || supa.author_id,
-              genre: novelData.genre || (Array.isArray(supa.genres) ? supa.genres[0] : supa.genre) || 'Fiction',
-              status: (novelData.status || supa.status || 'ongoing').toLowerCase(),
-              rating: novelData.rating || Number(supa.rating || 0),
-              reads: novelData.reads || supa.reads || supa.popularity || 'New',
-              chapters: novelData.chapters || supa.total_chapters || supa.chapters,
-              description: novelData.description || supa.description || 'Stay tuned for more details on this story.'
+              id: novelData.id,
+              title: supa.title || novelData.title,
+              cover: supa.cover_image || supa.cover || novelData.cover,
+              author: supa.author || novelData.author,
+              authorId: supa.author_id || novelData.authorId,
+              genre: (Array.isArray(supa.genres) ? supa.genres[0] : supa.genre) || novelData.genre || 'Fiction',
+              status: (supa.status || novelData.status || 'ongoing').toLowerCase(),
+              rating: Number(supa.rating || supa.avg_rating || 0) || novelData.rating,
+              reads: supa.reads || supa.popularity || novelData.reads || 'New',
+              chapters: supa.total_chapters || supa.chapters || novelData.chapters,
+              library: novelData.library || '—',
+              description: supa.description || novelData.description || 'Stay tuned for more details on this story.'
             };
           }
         } catch (err) {
@@ -1862,6 +1866,25 @@
     }
 
     loadNovelDetails();
+
+    // Start Reading button - navigate to first chapter
+    const startReadingBtn = document.getElementById('startReadingBtn');
+    if (startReadingBtn) {
+      startReadingBtn.addEventListener('click', () => {
+        // Get first chapter (sorted by number)
+        const sortedChapters = [...chaptersData].sort((a, b) => (a.number || 0) - (b.number || 0));
+        const firstChapter = sortedChapters.find(ch => ch.status === 'published') || sortedChapters[0];
+
+        if (firstChapter && firstChapter.id) {
+          window.location.href = `reader.html?novelId=${encodeURIComponent(novelId)}&chapterId=${encodeURIComponent(firstChapter.id)}`;
+        } else if (novelData.chapters > 0) {
+          // Has chapters but not loaded yet, go to reader and let it find the first chapter
+          window.location.href = `reader.html?novelId=${encodeURIComponent(novelId)}`;
+        } else {
+          showToast('No chapters available yet');
+        }
+      });
+    }
 
     // Tab switching
     const tabs = document.querySelectorAll('.novel-tab');

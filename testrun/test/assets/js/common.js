@@ -866,6 +866,10 @@ const LibrarySystem = {
     if (existingIndex >= 0) {
       library[existingIndex] = { ...library[existingIndex], ...item };
       localStorage.setItem('novelshare_library', JSON.stringify(library));
+      // Also push updates to Supabase
+      if (!GuestMode.isGuest() && typeof SupabaseSync !== 'undefined' && SupabaseSync.pushLibraryItem) {
+        SupabaseSync.pushLibraryItem(novelId, 'add', library[existingIndex]);
+      }
       return false; // already existed, just updated
     } else {
       library.push(item);
