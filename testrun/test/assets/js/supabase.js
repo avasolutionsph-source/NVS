@@ -822,6 +822,14 @@ const SupabaseSync = {
   // Push library item to cloud
   async pushLibraryItem(novelId, action = 'add') {
     if (!isSupabaseAvailable()) return { error: 'Supabase not available' };
+
+    // Skip non-UUID novel IDs (e.g., slug-based IDs like "lord-of-mysteries")
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(novelId);
+    if (!isUUID) {
+      console.log('Skipping cloud sync for non-UUID novel ID:', novelId);
+      return { skipped: true, reason: 'Non-UUID novel ID' };
+    }
+
     const user = await SupabaseAuth.getCurrentUser();
     if (!user) return { error: 'Not logged in' };
 
@@ -867,6 +875,14 @@ const SupabaseSync = {
   // Push rating to cloud
   async pushRating(novelId, rating) {
     if (!isSupabaseAvailable()) return { error: 'Supabase not available' };
+
+    // Skip non-UUID novel IDs (e.g., slug-based IDs like "lord-of-mysteries")
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(novelId);
+    if (!isUUID) {
+      console.log('Skipping cloud sync for non-UUID novel ID:', novelId);
+      return { skipped: true, reason: 'Non-UUID novel ID' };
+    }
+
     const user = await SupabaseAuth.getCurrentUser();
     if (!user) return { error: 'Not logged in' };
 
