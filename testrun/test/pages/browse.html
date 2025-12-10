@@ -1152,6 +1152,7 @@
                 const title = (card.title || 'Untitled').trim();
                 const id = card.id || `work-${Date.now()}`;
                 const author = card.author || 'Unknown';
+                const authorId = card.authorId || '';
                 const genreLabel = card.genre || 'Original';
                 const genreSlug = normalizeGenre(genreLabel);
                 const statusLower = (card.status || 'ongoing').toLowerCase();
@@ -1172,7 +1173,7 @@
                 const coverFallback = cover ? '' : escapeHtml(title.charAt(0).toUpperCase() || 'N');
 
                 return `
-                    <article class="card user-card" data-genre="${genreSlug}" data-status="${statusLower}" data-rating="${ratingValue || 0}" data-title="${escapeHtml(title)}" data-novel-id="${escapeHtml(id)}" data-chapters="${chapters}" data-author="${escapeHtml(author)}" data-popularity="${popularity}" data-updated="${timestamp}" data-published="${timestamp}">
+                    <article class="card user-card" data-genre="${genreSlug}" data-status="${statusLower}" data-rating="${ratingValue || 0}" data-title="${escapeHtml(title)}" data-novel-id="${escapeHtml(id)}" data-chapters="${chapters}" data-author="${escapeHtml(author)}" data-author-id="${escapeHtml(authorId)}" data-popularity="${popularity}" data-updated="${timestamp}" data-published="${timestamp}">
                         <a class="card-link" href="novel.html?id=${encodeURIComponent(id)}">
                             <div class="card-cover" ${coverStyle}>
                                 <span class="status-badge ${statusClass}">${statusLabel}</span>
@@ -1289,6 +1290,7 @@
                         id: novelId,
                         title: novel.title,
                         author: novel.author || novel.author_name || 'Unknown',
+                        authorId: novel.author_id || '',
                         genre: genres[0] || novel.genre || 'Original',
                         status: novel.status || 'ongoing',
                         description: novel.description || '',
@@ -1657,6 +1659,7 @@
                             id: card.dataset.novelId,
                             title: card.dataset.title,
                             author: card.dataset.author,
+                            authorId: card.dataset.authorId || '',
                             genre: card.dataset.genre,
                             status: card.dataset.status,
                             rating: Number(card.dataset.rating || 0),

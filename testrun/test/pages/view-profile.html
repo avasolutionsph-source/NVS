@@ -1507,12 +1507,17 @@
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
-  <script src="../assets/js/common.js"></script>
   <!-- Supabase SDK + app scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../assets/js/supabase.js"></script>
   <script src="../assets/js/common.js"></script>
   <script>
+    // Get profile ID from URL (if viewing someone else's profile)
+    const urlParams = new URLSearchParams(window.location.search);
+    const viewProfileId = urlParams.get('id');
+    let isOwnProfile = false;
+    let viewedProfile = null;
+
     // Tab switching
     const tabs = document.querySelectorAll('.profile-tab');
     const tabContents = document.querySelectorAll('.profile-tab-content');
@@ -1623,18 +1628,63 @@
       showToast('Profile updated successfully!');
     });
 
-    // Load profile from localStorage
-    function loadProfile() {
+    // Load profile - either from Supabase (other user) or localStorage (own)
+    async function loadProfile() {
+      // Check if we're viewing someone else's profile
+      if (viewProfileId) {
+        // Try to get the viewed profile from Supabase
+        try {
+          if (typeof SupabaseDB !== 'undefined' && SupabaseDB.getProfile) {
+            const dbProfile = await SupabaseDB.getProfile(viewProfileId);
+            if (dbProfile) {
+              viewedProfile = {
+                name: dbProfile.display_name || dbProfile.username || 'Unknown',
+                username: dbProfile.username || viewProfileId.substring(0, 8),
+                email: '', // Don't show other user's email
+                location: dbProfile.location || '',
+                bio: dbProfile.bio || 'No bio yet.'
+              };
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to load profile from Supabase:', err);
+        }
+
+        // Check if this is our own profile
+        const currentUser = typeof SupabaseAuth !== 'undefined' ? await SupabaseAuth.getCurrentUser() : null;
+        isOwnProfile = currentUser && currentUser.id === viewProfileId;
+
+        if (!isOwnProfile) {
+          // Hide edit buttons when viewing someone else's profile
+          const editBtn = document.getElementById('editProfileBtn');
+          if (editBtn) editBtn.style.display = 'none';
+          const coverEditBtn = document.querySelector('.profile-cover-edit');
+          if (coverEditBtn) coverEditBtn.style.display = 'none';
+          const avatarEditBtn = document.querySelector('.profile-avatar-edit');
+          if (avatarEditBtn) avatarEditBtn.style.display = 'none';
+          // Hide settings tab
+          const settingsTab = document.querySelector('[data-tab="settings"]');
+          if (settingsTab) settingsTab.style.display = 'none';
+          // Hide email in about section
+          const emailRow = document.getElementById('aboutEmail')?.closest('.about-item');
+          if (emailRow) emailRow.style.display = 'none';
+        }
+
+        // Display the viewed profile
+        if (viewedProfile) {
+          applyProfileToUI(viewedProfile);
+          document.title = `${viewedProfile.name} | NovelShare`;
+          return;
+        }
+      }
+
+      // Load own profile from localStorage (no viewProfileId means viewing own profile)
+      isOwnProfile = true;
       const saved = localStorage.getItem('novelshare_profile');
       if (saved) {
         const profile = JSON.parse(saved);
-        document.getElementById('displayName').textContent = profile.name;
-        document.getElementById('displayUsername').textContent = '@' + profile.username;
-        document.getElementById('displayBio').textContent = profile.bio;
-        document.getElementById('aboutName').textContent = profile.name;
-        document.getElementById('aboutEmail').textContent = profile.email;
-        document.getElementById('aboutLocation').textContent = profile.location;
-        document.getElementById('profileAvatarLarge').textContent = profile.name.charAt(0).toUpperCase();
+        isOwnProfile = true;
+        applyProfileToUI(profile);
 
         // Edit form
         editName.value = profile.name;
@@ -1647,14 +1697,23 @@
         document.getElementById('nameCount').textContent = profile.name.length;
         document.getElementById('usernameCount').textContent = profile.username.length;
         document.getElementById('bioCount').textContent = profile.bio.length;
-
-        // Header
-        document.querySelector('.profile .avatar').textContent = profile.name.charAt(0).toUpperCase();
-        document.querySelector('.profile .username').textContent = profile.username;
-        document.querySelector('.profile-dropdown-header .avatar-lg').textContent = profile.name.charAt(0).toUpperCase();
-        document.querySelector('.profile-dropdown-header .name').textContent = profile.name;
-        document.querySelector('.profile-dropdown-header .email').textContent = profile.email;
       }
+    }
+
+    function applyProfileToUI(profile) {
+      document.getElementById('displayName').textContent = profile.name || 'Unknown';
+      document.getElementById('displayUsername').textContent = '@' + (profile.username || 'user');
+      document.getElementById('displayBio').textContent = profile.bio || 'No bio yet.';
+      document.getElementById('aboutName').textContent = profile.name || 'Unknown';
+      document.getElementById('aboutEmail').textContent = profile.email || '';
+      document.getElementById('aboutLocation').textContent = profile.location || 'Not specified';
+      document.getElementById('profileAvatarLarge').textContent = (profile.name || 'U').charAt(0).toUpperCase();
+
+      // Header
+      const headerAvatar = document.querySelector('.profile .avatar');
+      const headerUsername = document.querySelector('.profile .username');
+      if (headerAvatar) headerAvatar.textContent = (profile.name || 'U').charAt(0).toUpperCase();
+      if (headerUsername) headerUsername.textContent = profile.username || 'user';
     }
 
     // Notification dropdown
@@ -1778,17 +1837,34 @@
       }
     }
 
-    function renderMyWorks() {
+    async function renderMyWorks() {
       const grid = document.querySelector('#tab-works .works-grid');
       if (!grid) return;
 
-      const works = getMyWorks();
+      let works = [];
+
+      // If viewing another user's profile, fetch their public works from Supabase
+      if (viewProfileId && !isOwnProfile) {
+        try {
+          if (typeof SupabaseDB !== 'undefined' && SupabaseDB.getNovelsByAuthor) {
+            const authorWorks = await SupabaseDB.getNovelsByAuthor(viewProfileId);
+            works = (authorWorks || []).filter(w => w.status !== 'draft'); // Only show published/ongoing
+          }
+        } catch (err) {
+          console.warn('Failed to fetch author works:', err);
+        }
+      } else {
+        // Own profile - get from localStorage
+        works = getMyWorks();
+      }
 
       if (!works.length) {
+        const emptyMessage = isOwnProfile
+          ? `<p>No works published yet.</p><a href="add-novel.html" style="color: var(--primary); font-weight: 600;">Add your first novel</a>`
+          : `<p>This author hasn't published any works yet.</p>`;
         grid.innerHTML = `
           <div style="grid-column: 1 / -1; text-align: center; padding: 32px; color: var(--text-muted);">
-            <p>No works published yet.</p>
-            <a href="add-novel.html" style="color: var(--primary); font-weight: 600;">Add your first novel</a>
+            ${emptyMessage}
           </div>
         `;
         return;
