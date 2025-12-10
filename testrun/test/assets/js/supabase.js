@@ -180,6 +180,20 @@ const SupabaseAuth = {
 
   // Sign out
   async signOut() {
+    // CRITICAL: Clear all user-specific localStorage to prevent data leakage
+    // This must happen BEFORE signOut to ensure clean state
+    const userDataKeys = [
+      'novelshare_library',
+      'novelshare_history',
+      'novelshare_bookmarks',
+      'novelshare_ratings',
+      'novelshare_following',
+      'novelshare_profile',
+      'novelshare_downloads',
+      'novelshare_sync_queue'
+    ];
+    userDataKeys.forEach(key => localStorage.removeItem(key));
+
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   },
@@ -1225,5 +1239,29 @@ window.SupabaseSync = SupabaseSync;
 window.SyncQueue = SyncQueue;
 window.NetworkStatus = NetworkStatus;
 window.supabaseClient = supabase;
+
+// ============================================
+// Auth State Listener - Clear data on logout
+// ============================================
+// This catches logout events from ANY source (browser close, token expiry, etc.)
+if (isSupabaseAvailable()) {
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT') {
+      // Clear all user-specific localStorage
+      const userDataKeys = [
+        'novelshare_library',
+        'novelshare_history',
+        'novelshare_bookmarks',
+        'novelshare_ratings',
+        'novelshare_following',
+        'novelshare_profile',
+        'novelshare_downloads',
+        'novelshare_sync_queue'
+      ];
+      userDataKeys.forEach(key => localStorage.removeItem(key));
+      console.log('User signed out - localStorage cleared');
+    }
+  });
+}
 
 console.log('Supabase initialized successfully');
