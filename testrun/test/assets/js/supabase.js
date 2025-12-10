@@ -4,8 +4,19 @@
 const SUPABASE_URL = 'https://dakeojhwurvhstxiuzsl.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRha2Vvamh3dXJ2aHN0eGl1enNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2MTc1OTgsImV4cCI6MjA4MDE5MzU5OH0.087Hz8XWS-PxRxdNQ1oW_tb9UQKom6YNNYJyKfQIMI4';
 
-// Initialize Supabase client
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Initialize Supabase client (with guard for when SDK hasn't loaded)
+let supabase = null;
+if (typeof window !== 'undefined' && window.supabase && typeof window.supabase.createClient === 'function') {
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  console.log('Supabase initialized successfully');
+} else {
+  console.warn('Supabase SDK not available - running in offline mode');
+}
+
+// Helper to check if Supabase is available
+function isSupabaseAvailable() {
+  return supabase !== null;
+}
 
 // ============================================
 // Offline Sync Queue System
@@ -111,14 +122,26 @@ NetworkStatus.init();
 const SupabaseAuth = {
   // Get current user
   async getCurrentUser() {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user;
+    if (!isSupabaseAvailable()) return null;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    } catch (e) {
+      console.warn('getCurrentUser failed:', e);
+      return null;
+    }
   },
 
   // Get current session
   async getSession() {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session;
+    if (!isSupabaseAvailable()) return null;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      return session;
+    } catch (e) {
+      console.warn('getSession failed:', e);
+      return null;
+    }
   },
 
   // Sign up with email and password
@@ -196,6 +219,10 @@ const SupabaseAuth = {
 
   // Listen for auth state changes
   onAuthStateChange(callback) {
+    if (!isSupabaseAvailable()) {
+      console.warn('Supabase not available for auth state changes');
+      return { data: { subscription: { unsubscribe: () => {} } } };
+    }
     return supabase.auth.onAuthStateChange((event, session) => {
       callback(event, session);
     });
@@ -284,6 +311,8 @@ const SupabaseDB = {
   },
 
   async getNovelById(novelId) {
+    if (!isSupabaseAvailable()) return null;
+
     // Check if novelId is a valid UUID format
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(novelId);
 
@@ -355,6 +384,8 @@ const SupabaseDB = {
 
   // --- Chapters ---
   async getChapters(novelId) {
+    if (!isSupabaseAvailable()) return [];
+
     // Check if novelId is a valid UUID format
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(novelId);
 
@@ -675,6 +706,7 @@ const SupabaseDB = {
 const SupabaseSync = {
   // Sync local library with Supabase
   async syncLibrary() {
+    if (!isSupabaseAvailable()) return null;
     const user = await SupabaseAuth.getCurrentUser();
     if (!user) return;
 
@@ -724,6 +756,7 @@ const SupabaseSync = {
 
   // Sync reading history
   async syncHistory() {
+    if (!isSupabaseAvailable()) return null;
     const user = await SupabaseAuth.getCurrentUser();
     if (!user) return;
 
@@ -750,6 +783,7 @@ const SupabaseSync = {
 
   // Sync bookmarks
   async syncBookmarks() {
+    if (!isSupabaseAvailable()) return null;
     const user = await SupabaseAuth.getCurrentUser();
     if (!user) return;
 
@@ -787,6 +821,7 @@ const SupabaseSync = {
 
   // Push library item to cloud
   async pushLibraryItem(novelId, action = 'add') {
+    if (!isSupabaseAvailable()) return { error: 'Supabase not available' };
     const user = await SupabaseAuth.getCurrentUser();
     if (!user) return { error: 'Not logged in' };
 
@@ -831,6 +866,7 @@ const SupabaseSync = {
 
   // Push rating to cloud
   async pushRating(novelId, rating) {
+    if (!isSupabaseAvailable()) return { error: 'Supabase not available' };
     const user = await SupabaseAuth.getCurrentUser();
     if (!user) return { error: 'Not logged in' };
 
@@ -851,6 +887,7 @@ const SupabaseSync = {
 
   // Push bookmark to cloud
   async pushBookmark(novelId, chapterId, note, action = 'add') {
+    if (!isSupabaseAvailable()) return { error: 'Supabase not available' };
     const user = await SupabaseAuth.getCurrentUser();
     if (!user) return { error: 'Not logged in' };
 
@@ -890,6 +927,7 @@ const SupabaseSync = {
 
   // Push reading progress to cloud
   async pushReadingProgress(novelId, currentChapter) {
+    if (!isSupabaseAvailable()) return { error: 'Supabase not available' };
     const user = await SupabaseAuth.getCurrentUser();
     if (!user) return { error: 'Not logged in' };
 
@@ -910,6 +948,7 @@ const SupabaseSync = {
 
   // Push follow/unfollow to cloud
   async pushFollow(authorId, action = 'follow') {
+    if (!isSupabaseAvailable()) return { error: 'Supabase not available' };
     const user = await SupabaseAuth.getCurrentUser();
     if (!user) return { error: 'Not logged in' };
 
@@ -934,6 +973,7 @@ const SupabaseSync = {
 
   // Push history entry to cloud
   async pushHistoryEntry(novelId, chapterId, chapterTitle) {
+    if (!isSupabaseAvailable()) return { error: 'Supabase not available' };
     const user = await SupabaseAuth.getCurrentUser();
     if (!user) return { error: 'Not logged in' };
 
