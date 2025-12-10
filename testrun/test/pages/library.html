@@ -1468,7 +1468,8 @@
                         e.preventDefault();
                         const chapterId = await resolveChapterId(novelId, hinted);
                         if (!chapterId) {
-                            showToast('No chapters available for this novel yet.');
+                            // No chapters available - redirect to novel page instead
+                            window.location.href = `novel.html?id=${encodeURIComponent(novelId)}`;
                             return;
                         }
                         window.location.href = `reader.html?novelId=${encodeURIComponent(novelId)}&chapterId=${encodeURIComponent(chapterId)}`;
@@ -1516,7 +1517,9 @@
                 const grid = document.getElementById('libraryGrid');
                 const emptyState = document.getElementById('libraryEmpty');
                 const deleted = getDeletedIds();
-                const library = LibrarySystem.getLibrary().filter(n => !deleted.has(n.id || n.novelId));
+                const rawLibrary = LibrarySystem.getLibrary();
+                const library = rawLibrary.filter(n => !deleted.has(n.id || n.novelId));
+
                 const fallbackCover = "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='450'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop stop-color='%233b82f6' offset='0%25'/%3E%3Cstop stop-color='%231b4aa9' offset='100%25'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='300' height='450' rx='24' ry='24' fill='url(%23g)'/%3E%3C/svg%3E";
 
                 updateLibraryStats();

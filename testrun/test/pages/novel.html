@@ -1834,8 +1834,13 @@
     }
 
     async function loadNovelDetails() {
-      // Fetch details from Supabase FIRST (prioritize database over hardcoded/local)
-      if (typeof SupabaseDB !== 'undefined' && SupabaseDB.getNovelById) {
+      // First check if we have valid local data (from novelshare_my_works or library)
+      const hasLocalData = resolved && resolved.title && resolved.title !== 'Untitled Story';
+
+      // Fetch details from Supabase (only if not a local-only ID like work-12345)
+      const isLocalOnlyId = novelData.id && novelData.id.startsWith('work-');
+
+      if (!isLocalOnlyId && typeof SupabaseDB !== 'undefined' && SupabaseDB.getNovelById) {
         try {
           const supa = await SupabaseDB.getNovelById(novelData.id);
           if (supa) {
@@ -1858,6 +1863,18 @@
         } catch (err) {
           console.warn('Supabase novel fetch failed:', err);
         }
+      }
+
+      // If we still have defaults but had local data, use the local data
+      if (novelData.title === 'Untitled Story' && hasLocalData) {
+        novelData.title = resolved.title;
+        novelData.cover = resolved.cover || novelData.cover;
+        novelData.author = resolved.author || novelData.author;
+        novelData.authorId = resolved.authorId || novelData.authorId;
+        novelData.genre = resolved.genre || novelData.genre;
+        novelData.status = resolved.status || novelData.status;
+        novelData.description = resolved.description || novelData.description;
+        novelData.chapters = resolved.chapters || novelData.chapters;
       }
 
       // Apply data after enrichment

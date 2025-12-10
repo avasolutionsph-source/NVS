@@ -1502,7 +1502,7 @@
                             }
                         } else {
                             // Add to library
-                            LibrarySystem.addToLibrary({
+                            const libraryData = {
                                 novelId,
                                 title,
                                 author,
@@ -1513,7 +1513,8 @@
                                 coverImage: coverUrl,
                                 totalChapters: chapters,
                                 currentChapter: 0
-                            });
+                            };
+                            LibrarySystem.addToLibrary(libraryData);
                             updateLibraryButtons();
 
                             // Show feedback

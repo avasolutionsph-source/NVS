@@ -313,6 +313,11 @@ const SupabaseDB = {
   async getNovelById(novelId) {
     if (!isSupabaseAvailable()) return null;
 
+    // Skip Supabase lookup for local-only IDs (work-* prefix)
+    if (novelId && novelId.startsWith('work-')) {
+      return null;
+    }
+
     // Check if novelId is a valid UUID format
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(novelId);
 
@@ -326,14 +331,16 @@ const SupabaseDB = {
       if (!error && data) return data;
     }
 
-    // Try by slug if not UUID or UUID lookup failed
-    const { data: slugData, error: slugError } = await supabase
-      .from('novels')
-      .select('*')
-      .eq('slug', novelId)
-      .maybeSingle();
+    // Try by slug if not UUID or UUID lookup failed (only for slug-like IDs)
+    if (novelId && !novelId.startsWith('work-')) {
+      const { data: slugData, error: slugError } = await supabase
+        .from('novels')
+        .select('*')
+        .eq('slug', novelId)
+        .maybeSingle();
 
-    if (!slugError && slugData) return slugData;
+      if (!slugError && slugData) return slugData;
+    }
 
     // If both failed, return null (don't throw for graceful degradation)
     return null;

@@ -1892,7 +1892,7 @@
         const reads = Number.isFinite(work.reads) ? `${work.reads.toLocaleString()} reads` : 'Just published';
 
         return `
-          <div class="work-card">
+          <a href="novel.html?id=${work.id}" class="work-card" style="text-decoration: none; color: inherit; cursor: pointer;">
             <div class="work-cover" style="${coverStyle}">${coverFallback}</div>
             <div class="work-info">
               <h4 class="work-title">${work.title || 'Untitled'}</h4>
@@ -1902,7 +1902,7 @@
                 <span>${reads}</span>
               </div>
             </div>
-          </div>
+          </a>
         `;
       }).join('');
     }
