@@ -1537,12 +1537,15 @@
                 buttons.forEach(btn => {
                     btn.addEventListener('click', async (e) => {
                         const href = e.currentTarget.getAttribute('href') || '';
+                        console.log('[attachContinueHandlers] Button clicked, href:', href);
                         const url = new URL(href, window.location.origin);
                         const novelId = url.searchParams.get('novelId') || url.searchParams.get('novel') || e.currentTarget.closest('[data-novel-id]')?.dataset.novelId;
                         const hinted = url.searchParams.get('chapterId') || '';
+                        console.log('[attachContinueHandlers] Parsed:', { novelId, hinted });
                         if (!novelId) return;
                         e.preventDefault();
                         const chapterId = await resolveChapterId(novelId, hinted);
+                        console.log('[attachContinueHandlers] Resolved chapterId:', chapterId);
                         if (!chapterId) {
                             // No chapters available - redirect to novel page instead
                             window.location.href = `novel.html?id=${encodeURIComponent(novelId)}`;
