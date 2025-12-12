@@ -1916,11 +1916,26 @@
 
     loadNovelDetails();
 
-    // Start Reading button - navigate to first chapter
+    // Start Reading / Continue Reading button
     const startReadingBtn = document.getElementById('startReadingBtn');
     if (startReadingBtn) {
       startReadingBtn.addEventListener('click', () => {
-        // Get first chapter (sorted by number)
+        // Check if there's a last read chapter to continue from
+        const lastRead = ReadingHistory.getLastRead(novelData.id);
+        if (lastRead && lastRead.chapterId) {
+          // Continue from last read chapter
+          window.location.href = `reader.html?novelId=${encodeURIComponent(novelId)}&chapterId=${encodeURIComponent(lastRead.chapterId)}`;
+          return;
+        }
+
+        // Also check library for currentChapterId
+        const libraryProgress = LibrarySystem.getProgress(novelData.id);
+        if (libraryProgress && libraryProgress.currentChapterId) {
+          window.location.href = `reader.html?novelId=${encodeURIComponent(novelId)}&chapterId=${encodeURIComponent(libraryProgress.currentChapterId)}`;
+          return;
+        }
+
+        // No reading history - start from first chapter
         const sortedChapters = [...chaptersData].sort((a, b) => (a.number || 0) - (b.number || 0));
         const firstChapter = sortedChapters.find(ch => ch.status === 'published') || sortedChapters[0];
 

@@ -964,7 +964,7 @@ const LibrarySystem = {
   getProgress(novelId) {
     const library = this.getLibrary();
     const item = library.find(item => item.id === novelId || item.novelId === novelId);
-    return item ? { progress: item.progress, currentChapter: item.currentChapter } : null;
+    return item ? { progress: item.progress, currentChapter: item.currentChapter, currentChapterId: item.currentChapterId } : null;
   },
 
   // Update chapter count for a novel in library
