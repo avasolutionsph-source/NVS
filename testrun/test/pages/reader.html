@@ -1289,6 +1289,12 @@
         });
       }
 
+      // Update library progress immediately when chapter loads (not just on scroll)
+      // This ensures currentChapterId is saved even if user clicks Back quickly
+      if (novelData.id && chapterData.id && typeof LibrarySystem !== 'undefined' && LibrarySystem.isInLibrary(novelData.id)) {
+        LibrarySystem.updateProgress(novelData.id, 0, chapterData.number || 0, chapterData.id);
+      }
+
       updateLibraryBtnUI();
       updateBookmarkUI();
       populateChapterList();
