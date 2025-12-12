@@ -1437,12 +1437,22 @@
 
                 try {
                     // Delete from novels table (this will cascade to related tables)
-                    const { error } = await window.supabaseClient
+                    // Use .select() to get back deleted rows and verify deletion worked
+                    const { data, error } = await window.supabaseClient
                         .from('novels')
                         .delete()
-                        .eq('id', novelId);
+                        .eq('id', novelId)
+                        .select();
 
                     if (error) throw error;
+
+                    // Check if any rows were actually deleted
+                    // RLS may silently block deletion (no error but no rows affected)
+                    if (!data || data.length === 0) {
+                        console.error('Delete was blocked - no rows affected. Check RLS policies.');
+                        return { error: 'Delete permission denied. You can only delete your own novels.' };
+                    }
+
                     return { success: true };
                 } catch (err) {
                     console.error('Failed to delete novel:', err);

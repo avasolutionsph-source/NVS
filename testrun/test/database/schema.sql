@@ -74,6 +74,10 @@ DROP POLICY IF EXISTS "Authors can update own novels" ON novels;
 CREATE POLICY "Authors can update own novels" ON novels
   FOR UPDATE USING (auth.uid() = author_id);
 
+DROP POLICY IF EXISTS "Authors can delete own novels" ON novels;
+CREATE POLICY "Authors can delete own novels" ON novels
+  FOR DELETE USING (auth.uid() = author_id);
+
 -- ============================================
 -- CHAPTERS TABLE
 -- ============================================
