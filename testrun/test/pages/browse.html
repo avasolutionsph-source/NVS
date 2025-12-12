@@ -1284,6 +1284,13 @@
             applyFilters();
             await injectDynamicNovels();
 
+            // Refresh chapter counts when page becomes visible (after navigating back)
+            document.addEventListener('visibilitychange', async () => {
+              if (document.visibilityState === 'visible') {
+                await injectDynamicNovels();
+              }
+            });
+
             // Pagination functionality
             const ITEMS_PER_PAGE = 18;
             let currentPage = 1;

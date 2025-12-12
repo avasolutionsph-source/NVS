@@ -693,6 +693,16 @@
       renderBookmarks();
     }
 
+    // Refresh chapter counts when page becomes visible (after navigating back from editing)
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState === 'visible') {
+        const works = JSON.parse(localStorage.getItem('novelshare_my_works') || '[]');
+        const refreshed = await refreshAllChapterCounts(works);
+        localStorage.setItem('novelshare_my_works', JSON.stringify(refreshed));
+        renderWorks(refreshed);
+      }
+    });
+
     document.getElementById('editModeBtn').addEventListener('click', toggleSelectionMode);
     document.getElementById('deleteSelectedBtn').addEventListener('click', () => {
       if (selectedIds.size === 0) return;
