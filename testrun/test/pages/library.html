@@ -1852,6 +1852,8 @@
                 const deleted = getDeletedIds();
                 const favorites = FavoritesSystem.getFavorites().filter(n => n && !deleted.has(n.id) && !deleted.has(n.novelId));
 
+                console.log('[renderFavorites] favorites:', favorites);
+
                 if (countBadge) countBadge.textContent = favorites.length;
 
                 if (favorites.length === 0) {
@@ -1861,7 +1863,7 @@
                     return;
                 }
 
-                grid.style.display = '';
+                grid.style.display = 'grid';
                 emptyState.style.display = 'none';
 
                 grid.innerHTML = favorites.map(novel => {
