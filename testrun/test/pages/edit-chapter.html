@@ -1218,13 +1218,44 @@
       const store = getStoredChapters();
       const list = Array.isArray(store[workId]) ? store[workId] : [];
       const idx = list.findIndex(ch => ch.id === originalContent.id);
+      const currentStatus = (originalContent.status || 'draft').toLowerCase();
+      // Gather published numbers from local list (excluding this chapter)
+      let publishedNumbers = list
+        .filter((ch, i) => i !== idx && ch.status === 'published')
+        .map(ch => Number(ch.number || ch.order || 0))
+        .filter(n => Number.isFinite(n));
+
+      // Merge in Supabase numbers to avoid collision with latest cloud data
+      if (currentStatus === 'published' && typeof SupabaseAuth !== 'undefined' && typeof SupabaseDB !== 'undefined' && SupabaseDB.getChapters) {
+        try {
+          const user = await SupabaseAuth.getCurrentUser();
+          if (user) {
+            const supa = await SupabaseDB.getChapters(workId);
+            if (Array.isArray(supa)) {
+              const supaNums = supa
+                .filter(ch => ch.status ? ch.status.toLowerCase() === 'published' : true)
+                .map(ch => Number(ch.chapter_number || ch.number || ch.order || 0))
+                .filter(n => Number.isFinite(n));
+              publishedNumbers = publishedNumbers.concat(supaNums);
+            }
+          }
+        } catch (err) {
+          console.warn('Supabase fetch for numbering failed:', err);
+        }
+      }
+
+      const nextNumber = (publishedNumbers.length ? Math.max(...publishedNumbers) : 0) + 1;
+
       const updated = {
         ...list[idx] || {},
         id: originalContent.id,
         workId,
         title: originalContent.title,
         content: originalContent.content,
-        status: originalContent.status,
+        status: currentStatus,
+        number: currentStatus === 'published'
+          ? (list[idx]?.status === 'published' && list[idx]?.number ? list[idx].number : nextNumber)
+          : null,
         updatedAt: Date.now()
       };
       if (idx >= 0) list[idx] = updated; else list.push(updated);
@@ -1240,7 +1271,7 @@
               novel_id: workId,
               title: updated.title,
               content: updated.content,
-              chapter_number: updated.number || updated.order || idx + 1,
+              chapter_number: updated.number || updated.order || nextNumber,
               status: updated.status || 'draft',
               updated_at: new Date().toISOString(),
             });

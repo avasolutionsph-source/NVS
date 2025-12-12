@@ -453,8 +453,13 @@
 
       const publishedChapters = normalizedChapters.filter(ch => ch.status === 'published');
 
-      // Renumber published chapters sequentially starting from 1
-      publishedChapters.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      // Renumber published chapters sequentially starting from 1, but preserve intended order
+      publishedChapters.sort((a, b) => {
+        const aNum = a.number || 999;
+        const bNum = b.number || 999;
+        if (aNum !== bNum) return aNum - bNum;
+        return (a.createdAt || 0) - (b.createdAt || 0);
+      });
       publishedChapters.forEach((ch, idx) => {
         ch.number = idx + 1;
         // Update in the main chapters array
