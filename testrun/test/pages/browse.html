@@ -1397,6 +1397,7 @@
             // Override applyFilters to include pagination
             const originalApplyFilters = applyFilters;
             applyFilters = function() {
+                originalApplyFilters(); // Run original sorting/filtering logic first
                 currentPage = 1; // Reset to page 1 when filters change
                 applyPagination();
             };
