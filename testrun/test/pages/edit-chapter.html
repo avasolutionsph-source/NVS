@@ -202,14 +202,10 @@
     .form-buttons {
       display: flex;
       gap: 12px;
-      justify-content: space-between;
+      justify-content: flex-end;
       flex-wrap: wrap;
       margin-top: 16px;
       margin-bottom: 12px;
-    }
-    .form-buttons .left-actions {
-      display: flex;
-      gap: 12px;
     }
     .form-buttons .right-actions {
       display: flex;
@@ -230,14 +226,6 @@
     }
     .cancel-btn:hover {
       background: #eee;
-    }
-    .delete-btn {
-      background: #fef2f2;
-      color: #dc2626;
-      border: 1px solid #fecaca;
-    }
-    .delete-btn:hover {
-      background: #fee2e2;
     }
     .preview-btn {
       background: #fff;
@@ -550,7 +538,6 @@
       .form-container form { padding: 20px; }
       .form-container textarea { min-height: 300px; }
       .form-buttons { flex-direction: column; }
-      .form-buttons .left-actions,
       .form-buttons .right-actions { width: 100%; justify-content: stretch; }
       .form-buttons button { flex: 1; }
       .page-header { flex-direction: column; }
@@ -766,14 +753,6 @@
         </div>
 
         <div class="form-buttons">
-          <div class="left-actions">
-            <button type="button" class="delete-btn" id="deleteBtn">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;">
-                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-              </svg>
-              Delete
-            </button>
-          </div>
           <div class="right-actions">
             <button type="button" class="cancel-btn" id="cancelBtn">Cancel</button>
             <button type="submit" class="save-btn">Save Changes</button>
@@ -791,23 +770,6 @@
         <a href="javascript:void(0)" onclick="showToast('Terms of Service coming soon')">Terms of Service</a>
       </div>
     </footer>
-  </div>
-
-  <!-- Delete Confirmation Modal -->
-  <div class="modal-overlay" id="deleteModal">
-    <div class="modal">
-      <div class="modal-icon danger">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/>
-        </svg>
-      </div>
-      <h3>Delete Chapter?</h3>
-      <p>This action cannot be undone. The chapter will be permanently deleted.</p>
-      <div class="modal-actions">
-        <button class="modal-cancel" id="cancelDelete">Cancel</button>
-        <button class="modal-confirm" id="confirmDelete">Delete</button>
-      </div>
-    </div>
   </div>
 
   <!-- Unsaved Changes Modal -->
@@ -1179,25 +1141,6 @@
         }
       });
     }
-
-    // ============================================
-    // Delete Chapter
-    // ============================================
-    document.getElementById('deleteBtn').addEventListener('click', () => {
-      document.getElementById('deleteModal').classList.add('open');
-    });
-
-    document.getElementById('cancelDelete').addEventListener('click', () => {
-      document.getElementById('deleteModal').classList.remove('open');
-    });
-
-    document.getElementById('confirmDelete').addEventListener('click', () => {
-      document.getElementById('deleteModal').classList.remove('open');
-      showToast('Chapter deleted');
-      setTimeout(() => {
-        window.location.href = 'library.html';
-      }, 1000);
-    });
 
     // ============================================
     // Unsaved Changes Warning
