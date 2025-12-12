@@ -525,6 +525,45 @@
             height: 16px;
         }
 
+        .favorite-btn {
+            position: absolute;
+            top: 52px;
+            right: 12px;
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.95);
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            z-index: 10;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transition: all 0.2s ease;
+        }
+
+        .favorite-btn:hover {
+            transform: scale(1.1);
+            color: #ef4444;
+        }
+
+        .favorite-btn.active {
+            color: #ef4444;
+            background: rgba(254, 226, 226, 0.95);
+        }
+
+        .favorite-btn.active svg {
+            fill: #ef4444;
+        }
+
+        .favorite-btn svg {
+            width: 18px;
+            height: 18px;
+            transition: all 0.2s ease;
+        }
+
         /* Empty State */
         .empty-state {
             text-align: center;
@@ -893,6 +932,11 @@
                                 <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                                 <line x1="10" y1="11" x2="10" y2="17"/>
                                 <line x1="14" y1="11" x2="14" y2="17"/>
+                            </svg>
+                        </button>
+                        <button class="favorite-btn" data-novel-id="${escapeHtml(id)}" title="Add to favorites">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                             </svg>
                         </button>
                         <a class="card-link" href="novel.html?id=${encodeURIComponent(id)}">
@@ -1283,6 +1327,77 @@
             updateLibraryButtons();
             updateGenreCounts();
             applyFilters();
+
+            // Update favorite button states
+            function updateFavoriteButtons() {
+                document.querySelectorAll('.favorite-btn[data-novel-id]').forEach(btn => {
+                    const novelId = btn.dataset.novelId;
+                    if (FavoritesSystem.isFavorite(novelId)) {
+                        btn.classList.add('active');
+                        btn.title = 'Remove from favorites';
+                    } else {
+                        btn.classList.remove('active');
+                        btn.title = 'Add to favorites';
+                    }
+                });
+            }
+
+            function bindFavoriteButtons() {
+                document.querySelectorAll('.favorite-btn[data-novel-id]').forEach(btn => {
+                    if (btn.dataset.favBound === 'true') return;
+                    btn.dataset.favBound = 'true';
+
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        // Check if user is in guest mode
+                        if (GuestMode.isGuest()) {
+                            showToast('Please sign up to add favorites');
+                            setTimeout(() => {
+                                window.location.href = 'signup.html';
+                            }, 1500);
+                            return;
+                        }
+
+                        const novelId = btn.dataset.novelId;
+                        const card = btn.closest('.card');
+                        const title = card.dataset.title;
+                        const author = card.dataset.author;
+                        const chapters = parseInt(card.dataset.chapters) || 0;
+                        const genre = card.dataset.genre || '';
+                        const status = card.dataset.status || '';
+                        const rating = Number(card.dataset.rating) || 0;
+                        const description = card.querySelector('.card-body p')?.textContent || '';
+                        const coverStyle = card.querySelector('.card-cover').style.backgroundImage;
+                        const coverUrl = coverStyle ? coverStyle.replace(/url\(['"]?|['"]?\)/g, '') : '';
+
+                        const isFavorite = FavoritesSystem.isFavorite(novelId);
+
+                        if (isFavorite) {
+                            FavoritesSystem.removeFavorite(novelId);
+                            showToast(`Removed "${title}" from favorites`);
+                        } else {
+                            FavoritesSystem.addFavorite(novelId, {
+                                title,
+                                author,
+                                genre,
+                                status,
+                                rating,
+                                description,
+                                cover: coverUrl,
+                                totalChapters: chapters
+                            });
+                            showToast(`Added "${title}" to favorites`);
+                        }
+                        updateFavoriteButtons();
+                    });
+                });
+            }
+
+            bindFavoriteButtons();
+            updateFavoriteButtons();
+
             await injectDynamicNovels();
 
             // Refresh chapter counts when page becomes visible (after navigating back)
@@ -1536,11 +1651,13 @@
 
             bindDeleteButtons();
 
-            // Re-bind delete buttons when new cards are added
+            // Re-bind buttons when new cards are added
             const originalInjectDynamicNovels = injectDynamicNovels;
             injectDynamicNovels = async function() {
                 await originalInjectDynamicNovels();
                 bindDeleteButtons();
+                bindFavoriteButtons();
+                updateFavoriteButtons();
             };
         });
     </script>

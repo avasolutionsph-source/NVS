@@ -982,6 +982,99 @@ const LibrarySystem = {
 };
 
 // ============================================
+// Favorites System
+// ============================================
+const FavoritesSystem = {
+  // Get all favorites
+  getFavorites() {
+    const raw = localStorage.getItem('novelshare_favorites');
+    let favorites = raw ? JSON.parse(raw) : [];
+    // Filter out novels marked as deleted
+    try {
+      const deleted = new Set(JSON.parse(localStorage.getItem('novelshare_deleted_ids') || '[]'));
+      const cleaned = Array.isArray(favorites)
+        ? favorites.filter(item => item && !deleted.has(item.id) && !deleted.has(item.novelId))
+        : [];
+      if (cleaned.length !== favorites.length) {
+        localStorage.setItem('novelshare_favorites', JSON.stringify(cleaned));
+      }
+      favorites = cleaned;
+    } catch {
+      // fallback to whatever we had
+    }
+    return favorites;
+  },
+
+  // Check if novel is in favorites
+  isFavorite(novelId) {
+    const favorites = this.getFavorites();
+    return favorites.some(item => item.id === novelId || item.novelId === novelId);
+  },
+
+  // Add to favorites
+  addFavorite(novelId, novelData = {}) {
+    if (typeof novelId === 'object' && novelId !== null) {
+      novelData = novelId;
+      novelId = novelData.novelId || novelData.id;
+    }
+
+    if (!novelId) return false;
+
+    const favorites = this.getFavorites();
+    const existingIndex = favorites.findIndex(item => item.id === novelId || item.novelId === novelId);
+
+    const item = {
+      id: novelId,
+      novelId: novelId,
+      title: novelData.title || '',
+      author: novelData.author || '',
+      genre: novelData.genre || '',
+      status: novelData.status || '',
+      description: novelData.description || '',
+      rating: novelData.rating || 0,
+      coverImage: novelData.coverImage || novelData.cover || '',
+      cover: novelData.coverImage || novelData.cover || '',
+      totalChapters: novelData.totalChapters || novelData.chapters || 0,
+      addedAt: Date.now()
+    };
+
+    if (existingIndex >= 0) {
+      favorites[existingIndex] = { ...favorites[existingIndex], ...item };
+      localStorage.setItem('novelshare_favorites', JSON.stringify(favorites));
+      return false; // already existed
+    } else {
+      favorites.push(item);
+      localStorage.setItem('novelshare_favorites', JSON.stringify(favorites));
+      // Push to Supabase when logged in
+      if (!GuestMode.isGuest() && typeof SupabaseSync !== 'undefined' && SupabaseSync.pushFavorite) {
+        SupabaseSync.pushFavorite(novelId, 'add', item);
+      }
+      return true;
+    }
+  },
+
+  // Remove from favorites
+  removeFavorite(novelId) {
+    let favorites = this.getFavorites();
+    favorites = favorites.filter(item => item.id !== novelId && item.novelId !== novelId);
+    localStorage.setItem('novelshare_favorites', JSON.stringify(favorites));
+    if (!GuestMode.isGuest() && typeof SupabaseSync !== 'undefined' && SupabaseSync.pushFavorite) {
+      SupabaseSync.pushFavorite(novelId, 'remove');
+    }
+  },
+
+  // Toggle favorite status
+  toggleFavorite(novelId, novelData = {}) {
+    if (this.isFavorite(novelId)) {
+      this.removeFavorite(novelId);
+      return false;
+    } else {
+      return this.addFavorite(novelId, novelData);
+    }
+  }
+};
+
+// ============================================
 // Following System
 // ============================================
 const FollowingSystem = {
@@ -1530,6 +1623,7 @@ if (typeof module !== 'undefined' && module.exports) {
     throttle,
     RatingSystem,
     LibrarySystem,
+    FavoritesSystem,
     FollowingSystem,
     ReadingHistory,
     MockDataInitializer,
