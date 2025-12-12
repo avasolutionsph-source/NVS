@@ -321,6 +321,7 @@ const SupabaseAuth = {
   async signOut() {
     // CRITICAL: Clear all user-specific localStorage to prevent data leakage
     // This must happen BEFORE signOut to ensure clean state
+    // NOTE: novelshare_offline is NOT cleared - downloads should persist across sessions
     const userDataKeys = [
       'novelshare_library',
       'novelshare_history',
@@ -330,8 +331,8 @@ const SupabaseAuth = {
       'novelshare_profile',
       'novelshare_downloads',
       'novelshare_sync_queue',
-      'novelshare_my_works',
-      'novelshare_offline'
+      'novelshare_my_works'
+      // 'novelshare_offline' - Keep downloads across sessions
     ];
     userDataKeys.forEach(key => localStorage.removeItem(key));
 
