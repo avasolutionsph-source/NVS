@@ -1047,10 +1047,22 @@
     const prevBtn = document.getElementById('prevChapterBtn');
     const nextBtn = document.getElementById('nextChapterBtn');
 
+    function normalizeChapters(list = []) {
+      return (list || []).map(ch => {
+        const status = (ch.status || 'draft').toLowerCase();
+        const num = Number(ch.number || ch.chapter_number || ch.order);
+        return {
+          ...ch,
+          status,
+          number: status === 'published' && Number.isFinite(num) ? num : null,
+        };
+      });
+    }
+
     function getLocalChapters(id) {
       try {
         const store = JSON.parse(localStorage.getItem(chapterStoreKey) || '{}');
-        return Array.isArray(store[id]) ? store[id] : [];
+        return Array.isArray(store[id]) ? normalizeChapters(store[id]) : [];
       } catch {
         return [];
       }
@@ -1070,18 +1082,19 @@
         try {
           const supa = await SupabaseDB.getChapterById(novelId, chapterId);
           if (supa) {
+            const status = (supa.status || 'published').toLowerCase();
             chapter = {
               id: supa.id,
               title: supa.title,
               content: supa.content,
-              number: supa.chapter_number || 1,
+              status,
+              number: status === 'published' ? (supa.chapter_number || 1) : null,
               createdAt: supa.created_at,
-              status: supa.status || 'published'
             };
             // persist fetched chapter into local store for TOC
             const store = (() => { try { return JSON.parse(localStorage.getItem(chapterStoreKey) || '{}'); } catch { return {}; } })();
             const existing = Array.isArray(store[novelId]) ? store[novelId] : [];
-            const next = [...existing.filter(ch => ch.id !== chapter.id), chapter];
+            const next = normalizeChapters([...existing.filter(ch => ch.id !== chapter.id), chapter]);
             store[novelId] = next;
             localStorage.setItem(chapterStoreKey, JSON.stringify(store));
             chaptersList = next;
@@ -1097,16 +1110,20 @@
           const supaList = await SupabaseDB.getChapters(novelId);
           if (Array.isArray(supaList) && supaList.length) {
             const store = (() => { try { return JSON.parse(localStorage.getItem(chapterStoreKey) || '{}'); } catch { return {}; } })();
-            store[novelId] = supaList.map(ch => ({
-              id: ch.id,
-              title: ch.title,
-              content: ch.content,
-              status: ch.status || 'published',
-              number: ch.chapter_number || ch.number || ch.order,
-              createdAt: ch.created_at || ch.updated_at
-            }));
+            store[novelId] = supaList.map(ch => {
+              const status = (ch.status || 'published').toLowerCase();
+              const num = Number(ch.chapter_number || ch.number || ch.order);
+              return {
+                id: ch.id,
+                title: ch.title,
+                content: ch.content,
+                status,
+                number: status === 'published' && Number.isFinite(num) ? num : null,
+                createdAt: ch.created_at || ch.updated_at
+              };
+            });
             localStorage.setItem(chapterStoreKey, JSON.stringify(store));
-            chaptersList = store[novelId];
+            chaptersList = normalizeChapters(store[novelId]);
             if (chapterId) chapter = chaptersList.find(c => c.id === chapterId);
             if (!chapter && chapterNumberParam > 0) chapter = chaptersList.find(c => c.number === chapterNumberParam);
             if (!chapter) chapter = chaptersList[0];
@@ -1118,7 +1135,7 @@
 
       if (!chapter && local.length) chapter = local[0];
       if (!chaptersList.length) {
-        chaptersList = local.length ? local : (chapter ? [chapter] : []);
+        chaptersList = normalizeChapters(local.length ? local : (chapter ? [chapter] : []));
       }
       return chapter;
     }
@@ -1150,16 +1167,20 @@
           const supaList = await SupabaseDB.getChapters(novelId);
           if (Array.isArray(supaList) && supaList.length) {
             const store = (() => { try { return JSON.parse(localStorage.getItem(chapterStoreKey) || '{}'); } catch { return {}; } })();
-            store[novelId] = supaList.map(ch => ({
-              id: ch.id,
-              title: ch.title,
-              content: ch.content,
-              status: ch.status || 'published',
-              number: ch.chapter_number || ch.number || ch.order,
-              createdAt: ch.created_at || ch.updated_at
-            }));
+            store[novelId] = supaList.map(ch => {
+              const status = (ch.status || 'published').toLowerCase();
+              const num = Number(ch.chapter_number || ch.number || ch.order);
+              return {
+                id: ch.id,
+                title: ch.title,
+                content: ch.content,
+                status,
+                number: status === 'published' && Number.isFinite(num) ? num : null,
+                createdAt: ch.created_at || ch.updated_at
+              };
+            });
             localStorage.setItem(chapterStoreKey, JSON.stringify(store));
-            chaptersList = store[novelId];
+            chaptersList = normalizeChapters(store[novelId]);
           }
         } catch (err) {
           console.warn('Supabase chapter list fetch (ensure) failed:', err);
@@ -1200,20 +1221,22 @@
         if (chapterEnd) chapterEnd.style.display = 'none';
         return;
       }
+      const publishedCount = chaptersList.filter(ch => ch.status === 'published').length;
+
       novelData = {
         ...novelData,
         ...novelMeta,
         id: novelId || novelMeta?.id || '',
         title: novelMeta?.title || novelData.title || 'Untitled Story',
         cover: novelMeta?.cover || novelMeta?.coverImage || novelMeta?.cover_image || '',
-        totalChapters: novelMeta?.chapters || novelMeta?.total_chapters || chaptersList.length || 1
+        totalChapters: novelMeta?.chapters || novelMeta?.total_chapters || publishedCount || 1
       };
       chapterData = {
         ...chapterData,
         ...data,
         id: data.id || chapterId || '',
-        number: data.number || data.chapter_number || 1,
-        totalChapters: data.totalChapters || novelData.totalChapters || chaptersList.length || 1
+        number: Number.isFinite(data.number) ? data.number : (Number.isFinite(data.chapter_number) ? data.chapter_number : null),
+        totalChapters: data.totalChapters || novelData.totalChapters || publishedCount || 1
       };
 
       document.title = `Reading: ${novelData.title}${chapterData.number ? ` - Chapter ${chapterData.number}` : ''} | NovelShare`;
@@ -1465,11 +1488,12 @@
         try { return JSON.parse(localStorage.getItem(`read_chapters_${novelId}`) || '[]'); }
         catch { return []; }
       })();
-      if (!chaptersList.length) {
+      const published = chaptersList.filter(ch => ch.status === 'published');
+      if (!published.length) {
         chapterListGrid.innerHTML = `<div class="chapter-list-item" style="opacity:0.7;">No chapters yet.</div>`;
         return;
       }
-      const ordered = [...chaptersList].sort((a, b) => (a.number || 0) - (b.number || 0));
+      const ordered = [...published].sort((a, b) => (a.number || 0) - (b.number || 0));
       chapterListGrid.innerHTML = ordered.map(ch => `
         <a href="reader.html?novelId=${encodeURIComponent(novelId)}&chapterId=${encodeURIComponent(ch.id || '')}" class="chapter-list-item${ch.id === chapterData.id ? ' current' : ''}">
           <span class="chapter-list-number">${ch.number || ''}</span>
@@ -1485,7 +1509,9 @@
 
     function updateNavButtonStates() {
       const ordered = chaptersList.length
-        ? [...chaptersList].sort((a, b) => (a.number || 0) - (b.number || 0))
+        ? chaptersList
+            .filter(ch => ch.status === 'published')
+            .sort((a, b) => (a.number || 0) - (b.number || 0))
         : (chapterData.id ? [chapterData] : []);
       const idx = ordered.findIndex(ch => ch.id === chapterData.id);
       const prev = ordered.length ? (idx > 0 ? ordered[idx - 1] : null) : null;

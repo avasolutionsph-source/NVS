@@ -945,17 +945,16 @@
       // Save to the actual chapters storage with status 'draft'
       const store = getStoredChapters();
       const chapters = Array.isArray(store[workId]) ? store[workId] : [];
-      const sortOrder = chapters.filter(ch => ch.status !== 'trash').length + 1;
 
       const newChapter = {
         id: `draft-${Date.now()}`,
         workId,
         title: titleInput.value.trim() || 'Untitled Draft',
         content: contentTextarea.value.trim(),
-        status: 'draft',  // Mark as draft
+        status: 'draft', // Mark as draft
         createdAt: Date.now(),
-        order: sortOrder,
-        number: sortOrder,
+        order: null,
+        number: null,
       };
 
       chapters.push(newChapter);
@@ -972,7 +971,7 @@
               novel_id: workId,
               title: newChapter.title,
               content: newChapter.content,
-              chapter_number: sortOrder,
+              chapter_number: null,
               status: 'draft',
               updated_at: new Date().toISOString(),
             });
@@ -1070,12 +1069,28 @@
       // Persist chapter locally (published by default)
       const store = getStoredChapters();
       const chapters = Array.isArray(store[workId]) ? store[workId] : [];
-      const maxNumber = chapters.reduce((max, ch) => {
-        const n = Number(ch.chapter_number || ch.number || ch.order);
-        return Number.isFinite(n) && n > max ? n : max;
-      }, 0);
-      const nextNumber = maxNumber + 1;
-      const publishedCount = chapters.filter(ch => ch.status && ch.status.toLowerCase() === 'published').length;
+      const publishedNumbers = chapters
+        .filter(ch => (ch.status || 'draft').toLowerCase() === 'published')
+        .map(ch => Number(ch.chapter_number || ch.number || ch.order))
+        .filter(n => Number.isFinite(n));
+      if (typeof SupabaseAuth !== 'undefined' && typeof SupabaseDB !== 'undefined' && SupabaseDB.getChapters) {
+        try {
+          const user = await SupabaseAuth.getCurrentUser();
+          if (user) {
+            const supaChapters = await SupabaseDB.getChapters(workId);
+            const supaNumbers = (supaChapters || [])
+              .filter(ch => (ch.status || 'draft').toLowerCase() === 'published')
+              .map(ch => Number(ch.chapter_number || ch.number || ch.order))
+              .filter(n => Number.isFinite(n));
+            publishedNumbers.push(...supaNumbers);
+          }
+        } catch (err) {
+          console.warn('Supabase fetch for numbering failed:', err);
+        }
+      }
+      const maxPublishedNumber = publishedNumbers.length ? Math.max(...publishedNumbers) : 0;
+      const nextNumber = maxPublishedNumber + 1;
+      const publishedCount = publishedNumbers.length;
       const newChapter = {
         id: `chap-${Date.now()}`,
         workId,
@@ -1125,7 +1140,7 @@
                   title: ch.title,
                   content: ch.content,
                   status: ch.status ? ch.status.toLowerCase() : 'published', // Preserve status from Supabase
-                  number: ch.chapter_number || ch.number || ch.order,
+                  number: (ch.status || '').toLowerCase() === 'published' ? (ch.chapter_number || ch.number || ch.order) : null,
                   createdAt: ch.created_at || ch.updated_at
                 }));
                 // Merge with local chapters to preserve drafts not in Supabase

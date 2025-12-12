@@ -1641,7 +1641,7 @@
       genre: resolved?.genre,
       status: resolved?.status ? resolved.status.toLowerCase() : undefined,
       rating: Number(resolved?.rating || 0),
-      reads: resolved?.reads || 'New',
+      reads: resolved?.reads || '—',
       chapters: resolved?.chapters,
       library: resolved?.library || '—',
       description: resolved?.description
@@ -1720,7 +1720,7 @@
         if (ratingCountEl) ratingCountEl.textContent = novelData.rating ? 'Ratings' : 'No ratings yet';
 
         const readsEl = stats[1].querySelector('strong');
-        if (readsEl) readsEl.textContent = novelData.reads || 'New';
+        if (readsEl) readsEl.textContent = novelData.reads || '—';
         const chaptersEl = stats[2].querySelector('strong');
         if (chaptersEl) chaptersEl.textContent = novelData.chapters || 0;
         const libEl = stats[3].querySelector('strong');
@@ -1864,7 +1864,7 @@
               genre: (Array.isArray(supa.genres) ? supa.genres[0] : supa.genre) || novelData.genre || 'Fiction',
               status: (supa.status || novelData.status || 'ongoing').toLowerCase(),
               rating: Number(supa.rating || supa.avg_rating || 0) || novelData.rating,
-              reads: supa.reads || supa.popularity || novelData.reads || 'New',
+              reads: supa.reads || supa.popularity || novelData.reads || '—',
               chapters: supa.total_chapters || supa.chapters || novelData.chapters,
               library: novelData.library || '—',
               description: supa.description || novelData.description || 'Stay tuned for more details on this story.'

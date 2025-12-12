@@ -362,7 +362,7 @@
               title: ch.title || 'Untitled',
               content: ch.content || '',
               status: ch.status ? ch.status.toLowerCase() : 'published', // Use status from Supabase if available
-              number: ch.chapter_number || ch.number || ch.order || null,
+              number: (ch.status || '').toLowerCase() === 'published' ? (ch.chapter_number || ch.number || ch.order || null) : null,
               createdAt: ch.created_at || ch.updated_at || Date.now()
             }));
           }
@@ -392,7 +392,8 @@
 
       return (chapters || []).map(ch => ({
         ...ch,
-        status: (ch.status || 'published').toLowerCase()
+        status: (ch.status || 'published').toLowerCase(),
+        number: ((ch.status || 'draft').toLowerCase() === 'published') ? ch.number : null
       }));
     }
 
@@ -605,7 +606,7 @@
               content: ch.content || '',
               // Keep server status so drafts/trash stay in the right tab
               status: (ch.status || 'published').toLowerCase(),
-              number: ch.chapter_number || ch.number || ch.order || null,
+              number: (ch.status || '').toLowerCase() === 'published' ? (ch.chapter_number || ch.number || ch.order || null) : null,
               createdAt: ch.created_at || ch.updated_at || Date.now()
             }));
             const store = (() => { try { return JSON.parse(localStorage.getItem(chapterStoreKey) || '{}'); } catch { return {}; } })();

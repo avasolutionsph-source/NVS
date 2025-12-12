@@ -853,7 +853,7 @@
                 title: supa.title,
                 content: supa.content,
                 status: supa.status,
-                number: supa.chapter_number,
+                number: (supa.status || '').toLowerCase() === 'published' ? supa.chapter_number : null,
                 createdAt: supa.created_at,
               };
               list.push(chapter);
@@ -874,7 +874,7 @@
           content: '',
           status: 'draft',
           createdAt: Date.now(),
-          number: list.length + 1,
+          number: null,
         };
         list.push(chapter);
         store[workId] = list;
@@ -1219,13 +1219,14 @@
       const list = Array.isArray(store[workId]) ? store[workId] : [];
       const idx = list.findIndex(ch => ch.id === originalContent.id);
       const currentStatus = (originalContent.status || 'draft').toLowerCase();
-      // Gather all chapter numbers from local list (excluding this chapter)
-      let allNumbers = list
-        .filter((ch, i) => i !== idx)
+      const isPublishing = currentStatus === 'published';
+      // Gather published chapter numbers from local list (excluding this chapter)
+      const publishedNumbers = list
+        .filter((ch, i) => i !== idx && (ch.status || 'draft').toLowerCase() === 'published')
         .map(ch => Number(ch.number || ch.order || 0))
         .filter(n => Number.isFinite(n));
 
-      // Merge in Supabase numbers to avoid collision with latest cloud data
+      // Merge in Supabase numbers for other published chapters to avoid collisions
       if (typeof SupabaseAuth !== 'undefined' && typeof SupabaseDB !== 'undefined' && SupabaseDB.getChapters) {
         try {
           const user = await SupabaseAuth.getCurrentUser();
@@ -1233,9 +1234,10 @@
             const supa = await SupabaseDB.getChapters(workId);
             if (Array.isArray(supa)) {
               const supaNums = supa
+                .filter(ch => ch.id !== originalContent.id && (ch.status || 'draft').toLowerCase() === 'published')
                 .map(ch => Number(ch.chapter_number || ch.number || ch.order || 0))
                 .filter(n => Number.isFinite(n));
-              allNumbers = allNumbers.concat(supaNums);
+              publishedNumbers.push(...supaNums);
             }
           }
         } catch (err) {
@@ -1243,7 +1245,13 @@
         }
       }
 
-      const nextNumber = (allNumbers.length ? Math.max(...allNumbers) : 0) + 1;
+      const maxPublished = publishedNumbers.length ? Math.max(...publishedNumbers) : 0;
+      const existingEntry = list[idx];
+      const existingWasPublished = (existingEntry?.status || '').toLowerCase() === 'published';
+      const existingNumber = Number(existingEntry?.number || existingEntry?.order);
+      const chapterNumber = isPublishing
+        ? (existingWasPublished && Number.isFinite(existingNumber) && existingNumber > 0 ? existingNumber : maxPublished + 1)
+        : null;
 
       const updated = {
         ...list[idx] || {},
@@ -1252,13 +1260,15 @@
         title: originalContent.title,
         content: originalContent.content,
         status: currentStatus,
-        number: list[idx]?.number || nextNumber,
+        number: chapterNumber,
+        order: isPublishing ? (existingEntry?.order || chapterNumber) : null,
         updatedAt: Date.now()
       };
       if (idx >= 0) list[idx] = updated; else list.push(updated);
       store[workId] = list;
       persistChapters(store);
 
+      const supabaseNumber = isPublishing ? (chapterNumber || maxPublished + 1 || 1) : Date.now();
       if (typeof SupabaseAuth !== 'undefined' && typeof SupabaseDB !== 'undefined' && SupabaseDB.upsertChapter) {
         try {
           const user = await SupabaseAuth.getCurrentUser();
@@ -1268,7 +1278,7 @@
               novel_id: workId,
               title: updated.title,
               content: updated.content,
-              chapter_number: updated.number || updated.order || nextNumber,
+              chapter_number: supabaseNumber,
               status: updated.status || 'draft',
               updated_at: new Date().toISOString(),
             });

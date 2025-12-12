@@ -539,12 +539,18 @@ const SupabaseDB = {
 
   async upsertChapter(chapter) {
     if (!chapter || !chapter.novel_id) throw new Error('Chapter requires novel_id');
+    const status = (chapter.status || 'draft').toLowerCase();
+    const rawNumber = Number(chapter.chapter_number ?? chapter.number ?? chapter.order);
+    const hasValidNumber = Number.isFinite(rawNumber) && rawNumber > 0;
+    const chapterNumber = status === 'published'
+      ? (hasValidNumber ? rawNumber : 1)
+      : (hasValidNumber ? rawNumber : Math.max(1, Date.now()));
     const payload = {
       novel_id: chapter.novel_id,
       title: chapter.title || '',
       content: chapter.content || '',
-      status: chapter.status || 'draft',
-      chapter_number: chapter.chapter_number || chapter.number || chapter.order || 1,
+      status,
+      chapter_number: chapterNumber,
       updated_at: chapter.updated_at || new Date().toISOString(),
     };
     if (chapter.id) payload.id = chapter.id;
