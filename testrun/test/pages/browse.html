@@ -879,14 +879,15 @@
                 const ratingValue = Number(card.rating) || 0;
                 const ratingDisplay = ratingValue ? ratingValue.toFixed(2) : 'New';
                 const popularity = Number(card.popularity) || (reads ? reads : 1);
-                const timestamp = Number(card.updatedAt || card.publishedAt || Date.now());
+                const updatedTs = card.updatedAt ? new Date(card.updatedAt).getTime() : Date.now();
+                const publishedTs = card.publishedAt ? new Date(card.publishedAt).getTime() : updatedTs;
                 const coverStyle = cover
                     ? `style="background-image: url('${cover.replace(/'/g, "\\'")}');"`
                     : `style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 1.8rem;"`;
                 const coverFallback = cover ? '' : escapeHtml(title.charAt(0).toUpperCase() || 'N');
 
                 return `
-                    <article class="card user-card" data-genre="${genreSlug}" data-status="${statusLower}" data-rating="${ratingValue || 0}" data-title="${escapeHtml(title)}" data-novel-id="${escapeHtml(id)}" data-chapters="${chapters}" data-author="${escapeHtml(author)}" data-author-id="${escapeHtml(authorId)}" data-popularity="${popularity}" data-updated="${timestamp}" data-published="${timestamp}">
+                    <article class="card user-card" data-genre="${genreSlug}" data-status="${statusLower}" data-rating="${ratingValue || 0}" data-title="${escapeHtml(title)}" data-novel-id="${escapeHtml(id)}" data-chapters="${chapters}" data-author="${escapeHtml(author)}" data-author-id="${escapeHtml(authorId)}" data-popularity="${popularity}" data-updated="${updatedTs}" data-published="${publishedTs}">
                         <button class="delete-btn" data-novel-id="${escapeHtml(id)}" data-title="${escapeHtml(title)}" title="Delete novel">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -1046,11 +1047,11 @@
                         description: novel.description || '',
                         cover: novel.cover_image || '',
                         chapters: novel.total_chapters || novel.chapters || 0,
-                        reads: novel.reads || novel.popularity || 0,
-                        rating: novel.avg_rating || novel.rating || 0,
-                        popularity: novel.popularity || novel.reads || 1,
-                        updatedAt: novel.updated_at || novel.created_at,
-                        publishedAt: novel.created_at || Date.now()
+                        reads: novel.view_count || 0,
+                        rating: novel.rating_avg || novel.avg_rating || novel.rating || 0,
+                        popularity: novel.view_count || 1,
+                        updatedAt: novel.updated_at,
+                        publishedAt: novel.created_at
                     };
                     const markup = buildCardMarkup(payload);
                     if (markup) {
