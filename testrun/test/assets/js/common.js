@@ -1184,13 +1184,14 @@ const MockDataInitializer = {
   },
 
   // Clear all user data (useful for testing/logout)
+  // NOTE: novelshare_offline is NOT cleared - downloads should persist across sessions
   reset() {
     localStorage.removeItem('novelshare_library');
     localStorage.removeItem('novelshare_history');
     localStorage.removeItem('novelshare_bookmarks');
     localStorage.removeItem('novelshare_ratings');
     localStorage.removeItem('novelshare_following');
-    localStorage.removeItem('novelshare_offline');
+    // localStorage.removeItem('novelshare_offline'); // Keep downloads across sessions
     localStorage.removeItem('novelshare_profile');
     localStorage.removeItem('novelshare_guest_mock_initialized');
     localStorage.removeItem('novelshare_user_mock_initialized');
