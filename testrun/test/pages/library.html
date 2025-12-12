@@ -1869,7 +1869,7 @@
                 grid.innerHTML = favorites.map(novel => {
                     const novelId = novel.novelId || novel.id;
                     const title = novel.title || 'Untitled';
-                    const author = sanitizeAuthor(novel.author);
+                    const author = novel.author || 'Unknown';
                     const cover = novel.coverImage || novel.cover || '';
                     const chapters = novel.totalChapters || novel.chapters || 0;
                     const rating = novel.rating || 0;

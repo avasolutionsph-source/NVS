@@ -1399,10 +1399,9 @@
                 });
             }
 
+            await injectDynamicNovels();
             bindFavoriteButtons();
             updateFavoriteButtons();
-
-            await injectDynamicNovels();
 
             // Refresh chapter counts when page becomes visible (after navigating back)
             document.addEventListener('visibilitychange', async () => {
