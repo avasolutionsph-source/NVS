@@ -1389,6 +1389,17 @@
                 }
             }
 
+            // Re-render when returning to page via browser back button (bfcache)
+            window.addEventListener('pageshow', (event) => {
+                if (event.persisted) {
+                    console.log('[library.html] Page restored from bfcache, re-rendering...');
+                    renderLibrary();
+                    renderHistory();
+                    renderBookmarks();
+                    renderDownloads();
+                }
+            });
+
             // Initialize tabs
             const tabs = document.querySelectorAll('.tabs .tab');
             const tabContents = document.querySelectorAll('.tab-content');
@@ -1457,18 +1468,37 @@
             }
 
             async function resolveChapterId(novelId, hintedId) {
-                if (hintedId) return hintedId;
+                console.log('[resolveChapterId] Called with:', { novelId, hintedId });
+
+                // Log all available data sources for debugging
+                const history = typeof ReadingHistory !== 'undefined' ? ReadingHistory.getHistory() : [];
+                console.log('[resolveChapterId] Full ReadingHistory:', history);
+                const libraryData = typeof LibrarySystem !== 'undefined' ? LibrarySystem.getLibrary() : [];
+                console.log('[resolveChapterId] Full Library:', libraryData);
+
+                if (hintedId) {
+                    console.log('[resolveChapterId] Using hintedId:', hintedId);
+                    return hintedId;
+                }
 
                 // Check ReadingHistory for last read chapter
                 if (typeof ReadingHistory !== 'undefined') {
                     const lastRead = ReadingHistory.getLastRead(novelId);
-                    if (lastRead && lastRead.chapterId) return lastRead.chapterId;
+                    console.log('[resolveChapterId] ReadingHistory.getLastRead:', lastRead);
+                    if (lastRead && lastRead.chapterId) {
+                        console.log('[resolveChapterId] Returning from ReadingHistory:', lastRead.chapterId);
+                        return lastRead.chapterId;
+                    }
                 }
 
                 // Check LibrarySystem for stored currentChapterId
                 if (typeof LibrarySystem !== 'undefined') {
                     const progress = LibrarySystem.getProgress(novelId);
-                    if (progress && progress.currentChapterId) return progress.currentChapterId;
+                    console.log('[resolveChapterId] LibrarySystem.getProgress:', progress);
+                    if (progress && progress.currentChapterId) {
+                        console.log('[resolveChapterId] Returning from LibrarySystem:', progress.currentChapterId);
+                        return progress.currentChapterId;
+                    }
                 }
 
                 // Local cache - fallback to first chapter
@@ -1635,6 +1665,7 @@
                     const coverImg = escapeAttr(coverImgRaw) || fallbackCover;
                     const totalChapters = novel.totalChapters || novel.chapters || 0;
                     const currentChapter = Number.isFinite(novel.currentChapter) ? novel.currentChapter : 0;
+                    console.log('[renderLibrary] Novel:', { id, title, currentChapter, currentChapterId: novel.currentChapterId, totalChapters });
                     const progress = totalChapters > 0
                         ? Math.round((currentChapter / totalChapters) * 100)
                         : 0;
