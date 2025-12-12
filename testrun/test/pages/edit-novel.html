@@ -434,13 +434,65 @@
       }
     }
 
-    function loadWork() {
-      const works = JSON.parse(localStorage.getItem('novelshare_my_works') || '[]');
+    const matchWorkById = (list, id) => list.find(w => (w.id || w.novelId || w.slug) === id);
+
+    async function loadWork() {
+      let works = [];
+      try { works = JSON.parse(localStorage.getItem('novelshare_my_works') || '[]'); } catch { works = []; }
       const paramId = getQueryParam('id');
-      let work = null;
-      if (paramId) {
-        work = works.find(w => w.id === paramId);
+      let work = paramId ? matchWorkById(works, paramId) : null;
+
+      // Fallback: try library cache
+      if (!work && paramId) {
+        try {
+          const library = JSON.parse(localStorage.getItem('novelshare_library') || '[]');
+          const libItem = matchWorkById(library, paramId);
+          if (libItem) {
+            work = {
+              id: libItem.id || libItem.novelId || paramId,
+              title: libItem.title || 'Untitled',
+              genre: libItem.genre || (Array.isArray(libItem.genres) ? libItem.genres[0] : '') || 'Original',
+              status: libItem.status || 'ongoing',
+              description: libItem.description || '',
+              cover: libItem.cover || libItem.coverImage || libItem.cover_image || '',
+              chapters: libItem.chapters || libItem.totalChapters || libItem.total_chapters || 0,
+              reads: libItem.reads || 0,
+              updatedAt: libItem.updatedAt || libItem.updated_at || Date.now()
+            };
+            works.unshift(work);
+            localStorage.setItem('novelshare_my_works', JSON.stringify(works));
+          }
+        } catch { /* ignore */ }
       }
+
+      // Fallback: fetch from Supabase if logged in
+      if (!work && paramId && typeof SupabaseDB !== 'undefined' && SupabaseDB.getNovelById && typeof GuestMode !== 'undefined' && !GuestMode.isGuest()) {
+        try {
+          const user = typeof SupabaseAuth !== 'undefined' ? await SupabaseAuth.getCurrentUser() : null;
+          if (user) {
+            const supa = await SupabaseDB.getNovelById(paramId);
+            if (supa) {
+              work = {
+                id: supa.id || paramId,
+                title: supa.title || 'Untitled',
+                genre: Array.isArray(supa.genres) ? supa.genres[0] : (supa.genre || 'Original'),
+                status: (supa.status || 'ongoing').toString().toLowerCase(),
+                description: supa.description || '',
+                cover: supa.cover_image || supa.cover || '',
+                chapters: supa.total_chapters || 0,
+                reads: supa.view_count || 0,
+                updatedAt: supa.updated_at || supa.created_at || Date.now(),
+                author: supa.author
+              };
+              works.unshift(work);
+              localStorage.setItem('novelshare_my_works', JSON.stringify(works));
+            }
+          }
+        } catch (err) {
+          console.warn('Supabase novel fetch failed:', err);
+        }
+      }
+
       if (!work && works.length) {
         work = works[0];
       }
@@ -638,9 +690,9 @@
       window.location.href = 'author-dashboard.html';
     });
 
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       ensureProfileLoaded();
-      loadWork();
+      await loadWork();
     });
   </script>
 </body>
