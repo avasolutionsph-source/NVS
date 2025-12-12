@@ -1341,6 +1341,12 @@
     <!-- Page-specific JavaScript -->
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
+            // Redirect guests to login - library requires authentication
+            if (typeof GuestMode !== 'undefined' && GuestMode.isGuest()) {
+                window.location.href = 'login.html';
+                return;
+            }
+
             // Initialization will be called after all functions are defined
             let initComplete = false;
 
