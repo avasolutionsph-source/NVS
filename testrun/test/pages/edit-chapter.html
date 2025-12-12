@@ -1276,8 +1276,25 @@
         try {
           const user = await SupabaseAuth.getCurrentUser();
           if (user) {
+            // Check if chapter ID is a valid UUID - draft IDs like "draft-123" are not valid
+            const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(updated.id);
+
+            // Generate a new UUID for draft chapters that don't have one yet
+            let supabaseId = updated.id;
+            if (!isValidUUID) {
+              supabaseId = crypto.randomUUID();
+              // Update local storage with the new UUID so future saves use the same ID
+              updated.id = supabaseId;
+              const idx2 = list.findIndex(c => c.id === originalContent.id);
+              if (idx2 >= 0) list[idx2].id = supabaseId;
+              store[workId] = list;
+              persistChapters(store);
+              // Update originalContent so subsequent saves use the new ID
+              originalContent.id = supabaseId;
+            }
+
             await SupabaseDB.upsertChapter({
-              id: updated.id,
+              id: supabaseId,
               novel_id: workId,
               title: updated.title,
               content: updated.content,
