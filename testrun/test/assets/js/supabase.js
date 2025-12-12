@@ -404,6 +404,22 @@ const SupabaseDB = {
     if (authorId) query = query.eq('author_id', authorId);
     const { data, error } = await query.select('id');
     if (error) throw error;
+
+    // Clean up any dangling references so deleted novels don't reappear in UI
+    const cleanupTables = [
+      { table: 'user_library', column: 'novel_id' },
+      { table: 'reading_history', column: 'novel_id' },
+      { table: 'bookmarks', column: 'novel_id' }
+    ];
+
+    await Promise.all(cleanupTables.map(async ({ table, column }) => {
+      try {
+        await supabase.from(table).delete().in(column, ids);
+      } catch (cleanupErr) {
+        console.warn(`Cleanup failed for ${table}:`, cleanupErr);
+      }
+    }));
+
     return data;
   },
 
@@ -776,8 +792,26 @@ const SupabaseSync = {
     try {
       const cloudLibrary = await SupabaseDB.getUserLibrary(user.id);
 
+      // Drop any cloud rows pointing at novels that no longer exist
+      const staleEntries = cloudLibrary.filter(item => !item?.novels);
+      if (staleEntries.length) {
+        const staleNovelIds = staleEntries.map(item => item?.novel_id).filter(Boolean);
+        if (staleNovelIds.length) {
+          try {
+            await supabase.from('user_library')
+              .delete()
+              .eq('user_id', user.id)
+              .in('novel_id', staleNovelIds);
+          } catch (cleanupErr) {
+            console.warn('Failed to purge stale library rows:', cleanupErr);
+          }
+        }
+      }
+
+      const validCloudLibrary = cloudLibrary.filter(item => item?.novels);
+
       // Convert to local format and fetch actual chapter counts
-      const localFormat = await Promise.all(cloudLibrary.map(async (item) => {
+      const localFormat = await Promise.all(validCloudLibrary.map(async (item) => {
         // Fetch actual chapter count from chapters table
         let actualChapterCount = item.novels?.total_chapters || 0;
         try {
