@@ -1,4 +1,4 @@
--- Enable UUID extension 
+-- Enable UUID extension okay
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- PROFILES
