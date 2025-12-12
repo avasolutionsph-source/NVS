@@ -245,6 +245,22 @@
       height: 18px;
     }
 
+    .btn-action.favorite-active {
+      border-color: #ef4444;
+      color: #ef4444;
+      background: #fef2f2;
+    }
+
+    .btn-action.favorite-active svg {
+      fill: #ef4444;
+    }
+
+    .btn-action.favorite-active:hover {
+      background: #fee2e2;
+      border-color: #dc2626;
+      color: #dc2626;
+    }
+
     /* Floating Action Button */
     .fab-add {
       position: fixed;
@@ -1203,6 +1219,10 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
               Share
             </button>
+            <button class="btn-action" id="favoriteBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              Favorite
+            </button>
           </div>
         </div>
       </div>
@@ -2015,6 +2035,50 @@
         navigator.clipboard.writeText(window.location.href);
         showToast('Link copied to clipboard!');
       }
+    });
+
+    // Favorite Button
+    const favoriteBtn = document.getElementById('favoriteBtn');
+    function updateFavoriteUI() {
+      if (!favoriteBtn) return;
+      const isFav = FavoritesSystem.isFavorite(novelData.id);
+      if (isFav) {
+        favoriteBtn.classList.add('favorite-active');
+        favoriteBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Favorited`;
+      } else {
+        favoriteBtn.classList.remove('favorite-active');
+        favoriteBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Favorite`;
+      }
+    }
+    updateFavoriteUI();
+
+    favoriteBtn?.addEventListener('click', () => {
+      // Check if user is in guest mode
+      if (GuestMode.isGuest()) {
+        showToast('Please sign up to add favorites');
+        setTimeout(() => {
+          window.location.href = 'signup.html';
+        }, 1500);
+        return;
+      }
+
+      const isFav = FavoritesSystem.isFavorite(novelData.id);
+      if (isFav) {
+        FavoritesSystem.removeFavorite(novelData.id);
+        showToast('Removed from favorites');
+      } else {
+        FavoritesSystem.addFavorite(novelData.id, {
+          title: novelData.title,
+          author: novelData.author,
+          cover: novelData.cover,
+          genre: novelData.genre,
+          status: novelData.status,
+          rating: novelData.rating,
+          totalChapters: novelData.chapters
+        });
+        showToast('Added to favorites');
+      }
+      updateFavoriteUI();
     });
 
     // Review Modal using RatingSystem
