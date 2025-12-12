@@ -752,18 +752,14 @@ const SupabaseDB = {
 
   // --- Reading History ---
   async addToHistory(userId, novelId, chapterId, chapterTitle) {
-    // chapter_id in database is INTEGER - ensure we pass a number
-    let chapterNum = parseInt(chapterId, 10);
-    if (isNaN(chapterNum) || chapterNum < 1) {
-      chapterNum = 1; // Default to 1 if invalid/UUID passed
-    }
-
+    // chapter_id should be stored as the full UUID string
+    // Note: Database schema needs chapter_id as TEXT/UUID, not INTEGER
     const { data, error } = await supabase
       .from('reading_history')
       .upsert({
         user_id: userId,
         novel_id: novelId,
-        chapter_id: chapterNum,
+        chapter_id: chapterId, // Store full UUID, not parsed integer
         chapter_title: chapterTitle,
         read_at: new Date().toISOString()
       }, {

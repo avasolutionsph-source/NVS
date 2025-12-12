@@ -946,22 +946,17 @@ const LibrarySystem = {
 
   // Update reading progress
   updateProgress(novelId, progress, currentChapter, currentChapterId = null) {
-    console.log('[LibrarySystem.updateProgress] Called:', { novelId, progress, currentChapter, currentChapterId });
     const library = this.getLibrary();
     const item = library.find(item => item.id === novelId || item.novelId === novelId);
-    console.log('[LibrarySystem.updateProgress] Found item:', item ? { id: item.id, novelId: item.novelId, currentChapter: item.currentChapter, currentChapterId: item.currentChapterId } : null);
     if (item) {
       item.progress = progress;
       item.currentChapter = currentChapter;
       if (currentChapterId) item.currentChapterId = currentChapterId;
       item.lastRead = Date.now();
-      console.log('[LibrarySystem.updateProgress] After update:', { currentChapter: item.currentChapter, currentChapterId: item.currentChapterId });
       localStorage.setItem('novelshare_library', JSON.stringify(library));
       if (!GuestMode.isGuest() && typeof SupabaseSync !== 'undefined' && SupabaseSync.pushReadingProgress) {
         SupabaseSync.pushReadingProgress(novelId, currentChapter);
       }
-    } else {
-      console.log('[LibrarySystem.updateProgress] Novel NOT FOUND in library!');
     }
   },
 

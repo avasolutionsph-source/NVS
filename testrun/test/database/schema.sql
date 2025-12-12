@@ -143,7 +143,7 @@ CREATE TABLE IF NOT EXISTS reading_history (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   novel_id UUID REFERENCES novels(id) ON DELETE CASCADE NOT NULL,
-  chapter_id INTEGER NOT NULL,
+  chapter_id TEXT NOT NULL,  -- Changed from INTEGER to TEXT to store full UUID
   chapter_title VARCHAR(255),
   read_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(user_id, novel_id)
@@ -168,7 +168,7 @@ CREATE TABLE IF NOT EXISTS bookmarks (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   novel_id UUID REFERENCES novels(id) ON DELETE CASCADE NOT NULL,
-  chapter_id INTEGER NOT NULL,
+  chapter_id TEXT NOT NULL,  -- Changed from INTEGER to TEXT to store full UUID
   note TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

@@ -1468,37 +1468,18 @@
             }
 
             async function resolveChapterId(novelId, hintedId) {
-                console.log('[resolveChapterId] Called with:', { novelId, hintedId });
-
-                // Log all available data sources for debugging
-                const history = typeof ReadingHistory !== 'undefined' ? ReadingHistory.getHistory() : [];
-                console.log('[resolveChapterId] Full ReadingHistory:', history);
-                const libraryData = typeof LibrarySystem !== 'undefined' ? LibrarySystem.getLibrary() : [];
-                console.log('[resolveChapterId] Full Library:', libraryData);
-
-                if (hintedId) {
-                    console.log('[resolveChapterId] Using hintedId:', hintedId);
-                    return hintedId;
-                }
+                if (hintedId) return hintedId;
 
                 // Check ReadingHistory for last read chapter
                 if (typeof ReadingHistory !== 'undefined') {
                     const lastRead = ReadingHistory.getLastRead(novelId);
-                    console.log('[resolveChapterId] ReadingHistory.getLastRead:', lastRead);
-                    if (lastRead && lastRead.chapterId) {
-                        console.log('[resolveChapterId] Returning from ReadingHistory:', lastRead.chapterId);
-                        return lastRead.chapterId;
-                    }
+                    if (lastRead && lastRead.chapterId) return lastRead.chapterId;
                 }
 
                 // Check LibrarySystem for stored currentChapterId
                 if (typeof LibrarySystem !== 'undefined') {
                     const progress = LibrarySystem.getProgress(novelId);
-                    console.log('[resolveChapterId] LibrarySystem.getProgress:', progress);
-                    if (progress && progress.currentChapterId) {
-                        console.log('[resolveChapterId] Returning from LibrarySystem:', progress.currentChapterId);
-                        return progress.currentChapterId;
-                    }
+                    if (progress && progress.currentChapterId) return progress.currentChapterId;
                 }
 
                 // Local cache - fallback to first chapter
@@ -1537,15 +1518,12 @@
                 buttons.forEach(btn => {
                     btn.addEventListener('click', async (e) => {
                         const href = e.currentTarget.getAttribute('href') || '';
-                        console.log('[attachContinueHandlers] Button clicked, href:', href);
                         const url = new URL(href, window.location.origin);
                         const novelId = url.searchParams.get('novelId') || url.searchParams.get('novel') || e.currentTarget.closest('[data-novel-id]')?.dataset.novelId;
                         const hinted = url.searchParams.get('chapterId') || '';
-                        console.log('[attachContinueHandlers] Parsed:', { novelId, hinted });
                         if (!novelId) return;
                         e.preventDefault();
                         const chapterId = await resolveChapterId(novelId, hinted);
-                        console.log('[attachContinueHandlers] Resolved chapterId:', chapterId);
                         if (!chapterId) {
                             // No chapters available - redirect to novel page instead
                             window.location.href = `novel.html?id=${encodeURIComponent(novelId)}`;
@@ -1668,7 +1646,6 @@
                     const coverImg = escapeAttr(coverImgRaw) || fallbackCover;
                     const totalChapters = novel.totalChapters || novel.chapters || 0;
                     const currentChapter = Number.isFinite(novel.currentChapter) ? novel.currentChapter : 0;
-                    console.log('[renderLibrary] Novel:', { id, title, currentChapter, currentChapterId: novel.currentChapterId, totalChapters });
                     const progress = totalChapters > 0
                         ? Math.round((currentChapter / totalChapters) * 100)
                         : 0;

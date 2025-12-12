@@ -1015,7 +1015,6 @@
     const chapterId = params.get('chapterId') || '';
     const chapterNumberParam = Number(params.get('chapter') || params.get('chapterNumber') || 0);
     const chapterStoreKey = 'novelshare_chapters';
-    console.log('[reader.html] URL params:', { novelId, chapterId, chapterNumberParam });
 
     let novelData = { id: novelId, title: 'Loading...', cover: '', author: '', authorId: '', totalChapters: 0 };
     let chapterData = { id: chapterId, title: 'Loading...', number: 1, content: '', createdAt: null, totalChapters: 0 };
@@ -1293,7 +1292,6 @@
       // Update library progress immediately when chapter loads (not just on scroll)
       // This ensures currentChapterId is saved even if user clicks Back quickly
       if (novelData.id && chapterData.id && typeof LibrarySystem !== 'undefined' && LibrarySystem.isInLibrary(novelData.id)) {
-        console.log('[reader.html] Saving progress on load:', { novelId: novelData.id, chapterNumber: chapterData.number, chapterId: chapterData.id });
         LibrarySystem.updateProgress(novelData.id, 0, chapterData.number || 0, chapterData.id);
       }
 
