@@ -1183,6 +1183,15 @@
         LibrarySystem.updateChapterCount(workId, newTotal);
       }
 
+      // Refresh chapter count from Supabase to ensure consistency across pages
+      if (typeof refreshWorkChapterCount === 'function') {
+        try {
+          await refreshWorkChapterCount(workId);
+        } catch (e) {
+          console.warn('Chapter count refresh failed:', e);
+        }
+      }
+
       // Clear draft and show success
       clearDraft();
 

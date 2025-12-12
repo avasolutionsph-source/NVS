@@ -1238,13 +1238,13 @@ const UserCredentials = {
 const DataIsolation = {
   // Storage keys that need to be isolated between guest and user
   // NOTE: novelshare_profile is NOT included here - it should persist and be overwritten on login
+  // NOTE: novelshare_offline is NOT included - downloads should persist across login/logout
   ISOLATED_KEYS: [
     'novelshare_library',
     'novelshare_history',
     'novelshare_bookmarks',
     'novelshare_ratings',
-    'novelshare_following',
-    'novelshare_offline'
+    'novelshare_following'
   ],
 
   // Get prefix for current mode

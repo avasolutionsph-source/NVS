@@ -495,6 +495,36 @@
             background: linear-gradient(135deg, #dc2626, #b91c1c);
         }
 
+        /* TEMPORARY: Delete button for removing duplicates */
+        .delete-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 32px;
+            height: 32px;
+            background: rgba(220, 38, 38, 0.95);
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 10;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .delete-btn:hover {
+            background: rgba(185, 28, 28, 1);
+            transform: scale(1.1);
+        }
+
+        .delete-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
         /* Empty State */
         .empty-state {
             text-align: center;
@@ -857,6 +887,13 @@
 
                 return `
                     <article class="card user-card" data-genre="${genreSlug}" data-status="${statusLower}" data-rating="${ratingValue || 0}" data-title="${escapeHtml(title)}" data-novel-id="${escapeHtml(id)}" data-chapters="${chapters}" data-author="${escapeHtml(author)}" data-author-id="${escapeHtml(authorId)}" data-popularity="${popularity}" data-updated="${timestamp}" data-published="${timestamp}">
+                        <button class="delete-btn" data-novel-id="${escapeHtml(id)}" data-title="${escapeHtml(title)}" title="Delete novel">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                <line x1="10" y1="11" x2="10" y2="17"/>
+                                <line x1="14" y1="11" x2="14" y2="17"/>
+                            </svg>
+                        </button>
                         <a class="card-link" href="novel.html?id=${encodeURIComponent(id)}">
                             <div class="card-cover" ${coverStyle}>
                                 <span class="status-badge ${statusClass}">${statusLabel}</span>
@@ -940,6 +977,19 @@
                 catch { return new Set(); }
             }
 
+            // Get live chapter count from Supabase
+            async function getLiveChapterCount(novelId) {
+                if (typeof countChapters === 'function') {
+                    try {
+                        return await countChapters(novelId);
+                    } catch (err) {
+                        console.warn('getLiveChapterCount failed:', err);
+                    }
+                }
+                // Fallback to local count
+                return getPublishedCountLocal(novelId);
+            }
+
             async function injectDynamicNovels() {
                 if (!cardGrid) return;
                 const deleted = getDeletedIds();
@@ -947,11 +997,17 @@
                 const additions = [];
                 const authorName = getProfileAuthor();
 
-                getLocalWorks().forEach(work => {
+                // Process local works with live chapter counts
+                const localWorks = getLocalWorks();
+                for (const work of localWorks) {
                     const statusLower = (work.status || '').toLowerCase();
-                    if (statusLower === 'draft') return;
-                    if (deleted.has(work.id)) return;
-                    const publishedCount = getPublishedCountLocal(work.id);
+                    if (statusLower === 'draft') continue;
+                    if (deleted.has(work.id)) continue;
+                    if (work.id && existingIds.has(work.id)) continue;
+
+                    // Get live chapter count from Supabase
+                    const liveCount = await getLiveChapterCount(work.id);
+
                     const payload = {
                         id: work.id,
                         title: work.title,
@@ -960,20 +1016,19 @@
                         status: work.status || 'Ongoing',
                         description: work.description || '',
                         cover: work.cover || '',
-                        chapters: publishedCount || work.publishedChapters || work.chapters || 0,
+                        chapters: liveCount,
                         reads: work.reads || 0,
                         rating: work.rating || 0,
                         popularity: work.reads || 1,
                         updatedAt: work.updatedAt || work.createdAt || Date.now(),
                         publishedAt: work.publishedAt || work.createdAt || Date.now()
                     };
-                    if (payload.id && existingIds.has(payload.id)) return;
                     const markup = buildCardMarkup(payload);
                     if (markup) {
                         additions.push(markup);
                         if (payload.id) existingIds.add(payload.id);
                     }
-                });
+                }
 
                 const supabaseNovels = await fetchSupabaseNovelsSafe();
                 supabaseNovels.forEach(novel => {
@@ -1372,6 +1427,90 @@
             }
 
             bindCardLinks();
+
+            // TEMPORARY: Delete functionality for removing duplicate novels
+            async function deleteNovelFromSupabase(novelId) {
+                if (typeof SupabaseDB === 'undefined' || !SupabaseDB.supabase) {
+                    console.error('Supabase not available');
+                    return { error: 'Supabase not available' };
+                }
+
+                try {
+                    // Delete from novels table (this will cascade to related tables)
+                    const { error } = await SupabaseDB.supabase
+                        .from('novels')
+                        .delete()
+                        .eq('id', novelId);
+
+                    if (error) throw error;
+                    return { success: true };
+                } catch (err) {
+                    console.error('Failed to delete novel:', err);
+                    return { error: err.message || 'Delete failed' };
+                }
+            }
+
+            function bindDeleteButtons() {
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    if (btn.dataset.deleteBound === 'true') return;
+                    btn.dataset.deleteBound = 'true';
+
+                    btn.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        const novelId = btn.dataset.novelId;
+                        const title = btn.dataset.title || 'this novel';
+
+                        if (!confirm(`DELETE "${title}"?\n\nThis will permanently remove it from the database. This action cannot be undone!`)) {
+                            return;
+                        }
+
+                        // Double confirmation for safety
+                        if (!confirm(`Are you SURE you want to delete "${title}"?\n\nClick OK to permanently delete.`)) {
+                            return;
+                        }
+
+                        btn.disabled = true;
+                        btn.innerHTML = '<span style="font-size: 10px;">...</span>';
+
+                        const result = await deleteNovelFromSupabase(novelId);
+
+                        if (result.success) {
+                            // Remove the card from the DOM
+                            const card = btn.closest('.card');
+                            if (card) {
+                                card.style.transition = 'opacity 0.3s, transform 0.3s';
+                                card.style.opacity = '0';
+                                card.style.transform = 'scale(0.8)';
+                                setTimeout(() => {
+                                    card.remove();
+                                    updateGenreCounts();
+                                    applyPagination();
+                                }, 300);
+                            }
+                            showToast(`"${title}" deleted successfully`);
+                        } else {
+                            btn.disabled = false;
+                            btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                <line x1="10" y1="11" x2="10" y2="17"/>
+                                <line x1="14" y1="11" x2="14" y2="17"/>
+                            </svg>`;
+                            showToast(`Failed to delete: ${result.error}`, 'error');
+                        }
+                    });
+                });
+            }
+
+            bindDeleteButtons();
+
+            // Re-bind delete buttons when new cards are added
+            const originalInjectDynamicNovels = injectDynamicNovels;
+            injectDynamicNovels = async function() {
+                await originalInjectDynamicNovels();
+                bindDeleteButtons();
+            };
         });
     </script>
 </body>

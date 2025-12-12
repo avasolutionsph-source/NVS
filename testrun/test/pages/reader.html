@@ -1239,21 +1239,25 @@
         totalChapters: data.totalChapters || novelData.totalChapters || publishedCount || 1
       };
 
-      document.title = `Reading: ${novelData.title}${chapterData.number ? ` - Chapter ${chapterData.number}` : ''} | NovelShare`;
+      // Calculate display number as position in sorted published chapters list
+      const published = chaptersList.filter(ch => ch.status === 'published');
+      const sortedPublished = [...published].sort((a, b) => (a.number || 0) - (b.number || 0));
+      const chapterIdx = sortedPublished.findIndex(ch => ch.id === chapterData.id);
+      const displayNum = chapterIdx >= 0 ? chapterIdx + 1 : (chapterData.number || 1);
+      const totalChapters = sortedPublished.length || 1;
+
+      document.title = `Reading: ${novelData.title}${displayNum ? ` - Chapter ${displayNum}` : ''} | NovelShare`;
       document.getElementById('headerNovelTitle').textContent = novelData.title || 'Untitled Story';
-      document.getElementById('headerChapterTitle').textContent = chapterData.title ? `Chapter ${chapterData.number}: ${chapterData.title}` : '';
-      document.querySelector('.chapter-number').textContent = chapterData.number ? `Chapter ${chapterData.number}` : 'Chapter';
+      document.getElementById('headerChapterTitle').textContent = chapterData.title ? `Chapter ${displayNum}: ${chapterData.title}` : '';
+      document.querySelector('.chapter-number').textContent = displayNum ? `Chapter ${displayNum}` : 'Chapter';
       document.querySelector('.chapter-title').textContent = chapterData.title || 'Untitled Chapter';
       const endHeading = document.getElementById('chapterEndHeading');
       if (endHeading) {
-        const labelNum = chapterData.number || chapterData.id || '';
-        endHeading.textContent = labelNum ? `End of Chapter ${labelNum}` : 'End of Chapter';
+        endHeading.textContent = displayNum ? `End of Chapter ${displayNum}` : 'End of Chapter';
       }
       const centerLabel = document.getElementById('chapterNavLabel');
       if (centerLabel) {
-        const total = chapterData.totalChapters || chaptersList.length || '';
-        const num = chapterData.number || '';
-        centerLabel.textContent = num && total ? `Chapter ${num} of ${total}` : (num ? `Chapter ${num}` : 'Chapter');
+        centerLabel.textContent = displayNum && totalChapters ? `Chapter ${displayNum} of ${totalChapters}` : (displayNum ? `Chapter ${displayNum}` : 'Chapter');
       }
 
       const readTime = chapterData.content ? `${Math.max(1, Math.ceil(chapterData.content.split(/\s+/).length / 200))} min read` : '—';
@@ -1493,10 +1497,14 @@
         chapterListGrid.innerHTML = `<div class="chapter-list-item" style="opacity:0.7;">No chapters yet.</div>`;
         return;
       }
+      // Sort by database chapter_number first, then assign sequential display numbers (1, 2, 3...)
       const ordered = [...published].sort((a, b) => (a.number || 0) - (b.number || 0));
-      chapterListGrid.innerHTML = ordered.map(ch => `
+      chapterListGrid.innerHTML = ordered.map((ch, idx) => {
+        // Use sequential display number (1, 2, 3...) instead of raw database chapter_number
+        const displayNumber = idx + 1;
+        return `
         <a href="reader.html?novelId=${encodeURIComponent(novelId)}&chapterId=${encodeURIComponent(ch.id || '')}" class="chapter-list-item${ch.id === chapterData.id ? ' current' : ''}">
-          <span class="chapter-list-number">${ch.number || ''}</span>
+          <span class="chapter-list-number">${displayNumber}</span>
           <span class="chapter-list-title">${ch.title || 'Untitled'}</span>
           ${readChapters.includes(ch.id) ? `<span class="chapter-list-check">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1504,7 +1512,7 @@
             </svg>
           </span>` : ''}
         </a>
-      `).join('');
+      `}).join('');
     }
 
     function updateNavButtonStates() {
@@ -1516,7 +1524,10 @@
       const idx = ordered.findIndex(ch => ch.id === chapterData.id);
       const prev = ordered.length ? (idx > 0 ? ordered[idx - 1] : null) : null;
       const next = ordered.length ? (idx >= 0 && idx < ordered.length - 1 ? ordered[idx + 1] : null) : null;
-      const total = chapterData.totalChapters || ordered.length || 1;
+      // Use actual chapter list length as the total (not stale metadata)
+      const total = ordered.length || 1;
+      // Display number is the position in the sorted list (1-indexed)
+      const displayNumber = idx >= 0 ? idx + 1 : (chapterData.number || 1);
 
       prevBtn.style.opacity = prev ? '1' : '0.5';
       prevBtn.style.cursor = prev ? 'pointer' : 'not-allowed';
@@ -1532,7 +1543,8 @@
 
       const centerLabel = document.getElementById('chapterNavLabel');
       if (centerLabel) {
-        centerLabel.textContent = chapterData.number && total ? `Chapter ${chapterData.number} of ${total}` : `Chapter ${chapterData.number || ''}`;
+        // Use displayNumber (position in list) and actual total from ordered list
+        centerLabel.textContent = displayNumber && total ? `Chapter ${displayNumber} of ${total}` : `Chapter ${displayNumber || ''}`;
       }
     }
 

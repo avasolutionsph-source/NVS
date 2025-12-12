@@ -1222,8 +1222,8 @@
             <div class="chapters-sort">
               <label>Sort by:</label>
               <select id="chapterSort">
-                <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
+                <option value="newest">Newest First</option>
               </select>
             </div>
           </div>
@@ -1748,25 +1748,35 @@
     // Chapter rendering (keep numbering consistent and sortable)
     let chaptersData = [];
 
-    function renderChapters(sort = 'newest') {
+    function renderChapters(sort = 'oldest') {
       const list = document.getElementById('chapterList');
       if (!list) return;
       if (!chaptersData.length) {
         list.innerHTML = `<div class="chapter-empty">No chapters published yet.</div>`;
         return;
       }
-      const sorted = [...chaptersData].sort((a, b) =>
-        sort === 'oldest' ? a.number - b.number : b.number - a.number
-      );
 
-      list.innerHTML = sorted.map(ch => {
+      // Always sort by chapter number first to establish correct order
+      // Chapter 1 should always be first when sorted by oldest
+      const sortedByNumber = [...chaptersData].sort((a, b) => {
+        const numA = a.number || 0;
+        const numB = b.number || 0;
+        return numA - numB;
+      });
+
+      // Apply display order based on sort preference
+      const displayOrder = sort === 'newest' ? [...sortedByNumber].reverse() : sortedByNumber;
+
+      list.innerHTML = displayOrder.map((ch, idx) => {
+        // Use the actual chapter number, not the display index
+        const chapterNum = ch.number || (idx + 1);
         const dateLabel = ch.date ? ch.date : '';
         const wordLabel = ch.words ? `${Number(ch.words).toLocaleString()} words` : '';
         const meta = [dateLabel, wordLabel].filter(Boolean).join(' • ');
         const link = ch.id ? `reader.html?chapterId=${encodeURIComponent(ch.id)}&novelId=${encodeURIComponent(novelData.id)}` : 'reader.html';
         return `
           <a href="${link}" class="chapter-item">
-            <span class="chapter-number">Ch. ${ch.number || ''}</span>
+            <span class="chapter-number">Ch. ${chapterNum}</span>
             <div class="chapter-info">
               <h4 class="chapter-title">${ch.title || 'Untitled'}</h4>
               <span class="chapter-meta">${meta || ''}</span>
@@ -1828,10 +1838,22 @@
         .map(ch => ({ ...ch, status: (ch.status || 'draft').toLowerCase() }))
         .filter(ch => ch.status === 'published');
 
-      chaptersData = publishedChapters.map((ch, idx) => ({
+      // Sort by chapter number first, then by creation date as fallback
+      const sortedPublished = publishedChapters.sort((a, b) => {
+        const numA = a.number || 0;
+        const numB = b.number || 0;
+        if (numA !== numB) return numA - numB;
+        // Fallback to creation date
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateA - dateB;
+      });
+
+      // Assign sequential chapter numbers (1, 2, 3, ...) based on sorted order
+      chaptersData = sortedPublished.map((ch, idx) => ({
         id: ch.id,
-        title: ch.title || `Chapter ${ch.number || idx + 1}`,
-        number: ch.number || idx + 1,
+        title: ch.title || `Chapter ${idx + 1}`,
+        number: idx + 1, // Always use sequential numbering
         date: ch.createdAt ? new Date(ch.createdAt).toLocaleDateString() : '',
         words: ch.content ? ch.content.length : undefined,
         status: 'published'
@@ -1840,7 +1862,7 @@
       // Update chapter count and stats based on published chapters only
       novelData.chapters = Math.max(novelData.chapters || 0, chaptersData.length);
       applyNovelData();
-      renderChapters(chapterSort?.value === 'oldest' ? 'oldest' : 'newest');
+      renderChapters(chapterSort?.value || 'oldest');
     }
 
     async function loadNovelDetails() {
@@ -2036,15 +2058,9 @@
       showToast('Review submitted successfully!');
     });
 
-    // Chapter sort
+    // Chapter sort - use renderChapters for proper sorting
     document.getElementById('chapterSort').addEventListener('change', (e) => {
-      const list = document.getElementById('chapterList');
-      const items = Array.from(list.children);
-      if (e.target.value === 'oldest') {
-        items.reverse().forEach(item => list.appendChild(item));
-      } else {
-        items.reverse().forEach(item => list.appendChild(item));
-      }
+      renderChapters(e.target.value);
     });
 
     // Mark read chapters based on localStorage

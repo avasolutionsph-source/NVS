@@ -48,6 +48,64 @@ async function countChapters(novelId) {
   }
 }
 
+// Count published chapters only (for public-facing displays)
+async function countPublishedChapters(novelId) {
+  try {
+    const { count, error } = await supabase
+      .from('chapters')
+      .select('*', { count: 'exact', head: true })
+      .eq('novel_id', novelId)
+      .eq('status', 'published');
+    if (error) throw error;
+    return count || 0;
+  } catch (err) {
+    console.warn('countPublishedChapters failed:', err);
+    return 0;
+  }
+}
+
+// Update work chapter count in localStorage (keeps dashboard in sync)
+function updateWorkChapterCount(workId, count) {
+  try {
+    // Update novelshare_my_works (author dashboard)
+    const works = JSON.parse(localStorage.getItem('novelshare_my_works') || '[]');
+    const idx = works.findIndex(w => w.id === workId);
+    if (idx >= 0) {
+      works[idx].chapters = count;
+      works[idx].publishedChapters = count;
+      works[idx].total_chapters = count;
+      localStorage.setItem('novelshare_my_works', JSON.stringify(works));
+    }
+  } catch (err) {
+    console.warn('updateWorkChapterCount (my_works) failed:', err);
+  }
+
+  try {
+    // Update novelshare_library (library page)
+    const library = JSON.parse(localStorage.getItem('novelshare_library') || '[]');
+    const libIdx = library.findIndex(n => n.id === workId || n.novelId === workId);
+    if (libIdx >= 0) {
+      library[libIdx].totalChapters = count;
+      library[libIdx].chapters = count;
+      localStorage.setItem('novelshare_library', JSON.stringify(library));
+    }
+  } catch (err) {
+    console.warn('updateWorkChapterCount (library) failed:', err);
+  }
+}
+
+// Refresh and sync chapter count for a work (fetches from Supabase and updates localStorage)
+async function refreshWorkChapterCount(workId) {
+  try {
+    const count = await countChapters(workId);
+    updateWorkChapterCount(workId, count);
+    return count;
+  } catch (err) {
+    console.warn('refreshWorkChapterCount failed:', err);
+    return null;
+  }
+}
+
 // ============================================
 // Offline Sync Queue System
 // ============================================

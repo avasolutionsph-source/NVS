@@ -1341,37 +1341,54 @@
     <!-- Page-specific JavaScript -->
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            // Try to sync with Supabase if user is logged in
-            const isGuest = GuestMode.isGuest();
-            let syncCompleted = false;
-            if (!isGuest) {
-                try {
-                    const user = await SupabaseAuth.getCurrentUser();
-                    if (user) {
-                        console.log('Syncing library with Supabase...');
-                        await SupabaseSync.syncLibrary();
-                        await SupabaseSync.syncHistory();
-                        await SupabaseSync.syncBookmarks();
-                        await SupabaseSync.syncChapters();
-                        syncCompleted = true;
-                        // Render after sync completes
-                        renderLibrary();
-                        renderHistory();
-                        renderBookmarks();
-                        renderDownloads();
+            // Initialization will be called after all functions are defined
+            let initComplete = false;
+
+            async function initializeLibrary() {
+                if (initComplete) return;
+                initComplete = true;
+
+                // Try to sync with Supabase if user is logged in
+                const isGuest = GuestMode.isGuest();
+                let syncCompleted = false;
+                if (!isGuest) {
+                    try {
+                        const user = await SupabaseAuth.getCurrentUser();
+                        if (user) {
+                            console.log('Syncing library with Supabase...');
+                            await SupabaseSync.syncLibrary();
+                            await SupabaseSync.syncHistory();
+                            await SupabaseSync.syncBookmarks();
+                            await SupabaseSync.syncChapters();
+
+                            // Refresh chapter counts from Supabase to ensure consistency
+                            await refreshLibraryChapterCounts();
+
+                            syncCompleted = true;
+                            // Render after sync completes
+                            renderLibrary();
+                            renderHistory();
+                            renderBookmarks();
+                            renderDownloads();
+                        }
+                    } catch (error) {
+                        console.log('Supabase sync not available, using local data');
                     }
-                } catch (error) {
-                    console.log('Supabase sync not available, using local data');
+                }
+
+                // If sync didn't complete (guest or no user), render with local data
+                if (!syncCompleted) {
+                    // Still try to refresh chapter counts if Supabase is available
+                    if (typeof countChapters === 'function') {
+                        await refreshLibraryChapterCounts();
+                    }
+                    renderLibrary();
+                    renderHistory();
+                    renderBookmarks();
+                    renderDownloads();
                 }
             }
 
-            // If sync didn't complete (guest or no user), render with local data
-            if (!syncCompleted) {
-                renderLibrary();
-                renderHistory();
-                renderBookmarks();
-                renderDownloads();
-            }
             // Initialize tabs
             const tabs = document.querySelectorAll('.tabs .tab');
             const tabContents = document.querySelectorAll('.tab-content');
@@ -1538,6 +1555,38 @@
                 if (progress >= 100) return { class: 'completed', text: 'Completed' };
                 if (novel.currentChapter === 0) return { class: 'new', text: 'New' };
                 return { class: 'reading', text: 'Reading' };
+            }
+
+            // Refresh chapter counts from Supabase for library items
+            async function refreshLibraryChapterCounts() {
+                if (typeof countChapters !== 'function') return;
+
+                try {
+                    const library = JSON.parse(localStorage.getItem('novelshare_library') || '[]');
+                    let updated = false;
+
+                    for (const novel of library) {
+                        const novelId = novel.novelId || novel.id;
+                        if (!novelId) continue;
+
+                        try {
+                            const liveCount = await countChapters(novelId);
+                            if (liveCount !== novel.totalChapters && liveCount !== novel.chapters) {
+                                novel.totalChapters = liveCount;
+                                novel.chapters = liveCount;
+                                updated = true;
+                            }
+                        } catch (err) {
+                            console.warn('Failed to refresh chapter count for', novelId, err);
+                        }
+                    }
+
+                    if (updated) {
+                        localStorage.setItem('novelshare_library', JSON.stringify(library));
+                    }
+                } catch (err) {
+                    console.warn('refreshLibraryChapterCounts failed:', err);
+                }
             }
 
             // Render Library
@@ -2115,6 +2164,9 @@
                     document.querySelector('[data-tab="downloads"]').click();
                 }, 1500);
             });
+
+            // Initialize library after all functions are defined
+            await initializeLibrary();
 
         });
     </script>

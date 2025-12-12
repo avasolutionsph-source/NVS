@@ -627,6 +627,27 @@
       `).join('');
     }
 
+    // Refresh chapter counts from Supabase for all works
+    async function refreshAllChapterCounts(works) {
+      if (typeof countChapters !== 'function') return works;
+
+      const refreshed = await Promise.all(works.map(async (work) => {
+        if (!work.id) return work;
+        try {
+          const count = await countChapters(work.id);
+          // Update localStorage too
+          if (typeof updateWorkChapterCount === 'function') {
+            updateWorkChapterCount(work.id, count);
+          }
+          return { ...work, chapters: count, publishedChapters: count, total_chapters: count };
+        } catch (err) {
+          console.warn('Failed to refresh chapter count for', work.id, err);
+          return work;
+        }
+      }));
+      return refreshed;
+    }
+
     async function loadDashboard() {
       let profileData = null;
       try {
@@ -659,7 +680,11 @@
 
       const localWorks = getLocalWorks();
       const cloudWorks = await getCloudWorks(user?.id);
-      const works = mergeWorks(localWorks, cloudWorks);
+      let works = mergeWorks(localWorks, cloudWorks);
+
+      // Refresh chapter counts from Supabase to ensure consistency
+      works = await refreshAllChapterCounts(works);
+
       renderStats(works);
       renderWorks(works);
       updateSelectionControls();

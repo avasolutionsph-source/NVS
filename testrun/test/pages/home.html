@@ -1044,6 +1044,38 @@
             renderNewlyReleased(novels);
             renderRecentlyUpdated(novels);
 
+            // Refresh chapter counts from Supabase for library items
+            async function refreshLibraryChapterCounts() {
+                if (typeof countChapters !== 'function') return;
+
+                try {
+                    const library = JSON.parse(localStorage.getItem('novelshare_library') || '[]');
+                    let updated = false;
+
+                    for (const novel of library) {
+                        const novelId = novel.novelId || novel.id;
+                        if (!novelId) continue;
+
+                        try {
+                            const liveCount = await countChapters(novelId);
+                            if (liveCount !== novel.totalChapters && liveCount !== novel.chapters) {
+                                novel.totalChapters = liveCount;
+                                novel.chapters = liveCount;
+                                updated = true;
+                            }
+                        } catch (err) {
+                            // Silently ignore individual failures
+                        }
+                    }
+
+                    if (updated) {
+                        localStorage.setItem('novelshare_library', JSON.stringify(library));
+                    }
+                } catch (err) {
+                    console.warn('refreshLibraryChapterCounts failed:', err);
+                }
+            }
+
             // Render Continue Reading Section
             async function renderContinueReading() {
                 const section = document.getElementById('continueReadingSection');
@@ -1052,6 +1084,9 @@
                     try { return new Set(JSON.parse(localStorage.getItem('novelshare_deleted_ids') || '[]')); }
                     catch { return new Set(); }
                 })();
+
+                // Refresh chapter counts before rendering
+                await refreshLibraryChapterCounts();
 
                 // Prefer Supabase data, fall back to local cache
                 let library = LibrarySystem.getLibrary();

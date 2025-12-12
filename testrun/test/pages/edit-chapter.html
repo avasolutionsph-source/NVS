@@ -807,6 +807,9 @@
     </div>
   </div>
 
+  <!-- Supabase SDK + app scripts (must load before main script) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../assets/js/supabase.js"></script>
   <script src="../assets/js/common.js"></script>
   <script>
     // State
@@ -1282,6 +1285,11 @@
               status: updated.status || 'draft',
               updated_at: new Date().toISOString(),
             });
+
+            // Refresh chapter count in localStorage to keep dashboard in sync
+            if (typeof refreshWorkChapterCount === 'function') {
+              await refreshWorkChapterCount(workId);
+            }
           }
         } catch (err) {
           console.warn('Supabase chapter save failed:', err);
@@ -1380,8 +1388,5 @@
       }
     });
   </script>
-  <!-- Supabase SDK + app scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="../assets/js/supabase.js"></script>
 </body>
 </html>
