@@ -628,13 +628,14 @@
     }
 
     // Refresh chapter counts from Supabase for all works
+    // Uses countPublishedChapters for consistency - only counts published chapters
     async function refreshAllChapterCounts(works) {
-      if (typeof countChapters !== 'function') return works;
+      if (typeof countPublishedChapters !== 'function') return works;
 
       const refreshed = await Promise.all(works.map(async (work) => {
         if (!work.id) return work;
         try {
-          const count = await countChapters(work.id);
+          const count = await countPublishedChapters(work.id);
           // Update localStorage too
           if (typeof updateWorkChapterCount === 'function') {
             updateWorkChapterCount(work.id, count);

@@ -978,10 +978,11 @@
             }
 
             // Get live chapter count from Supabase
+            // Uses countPublishedChapters for consistency - only counts published chapters
             async function getLiveChapterCount(novelId) {
-                if (typeof countChapters === 'function') {
+                if (typeof countPublishedChapters === 'function') {
                     try {
-                        return await countChapters(novelId);
+                        return await countPublishedChapters(novelId);
                     } catch (err) {
                         console.warn('getLiveChapterCount failed:', err);
                     }

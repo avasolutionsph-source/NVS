@@ -95,9 +95,10 @@ function updateWorkChapterCount(workId, count) {
 }
 
 // Refresh and sync chapter count for a work (fetches from Supabase and updates localStorage)
+// Uses countPublishedChapters to match what readers see on browse/library/novel pages
 async function refreshWorkChapterCount(workId) {
   try {
-    const count = await countChapters(workId);
+    const count = await countPublishedChapters(workId);
     updateWorkChapterCount(workId, count);
     return count;
   } catch (err) {

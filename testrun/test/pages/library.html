@@ -1558,8 +1558,9 @@
             }
 
             // Refresh chapter counts from Supabase for library items
+            // Uses countPublishedChapters for consistency - only counts published chapters
             async function refreshLibraryChapterCounts() {
-                if (typeof countChapters !== 'function') return;
+                if (typeof countPublishedChapters !== 'function') return;
 
                 try {
                     const library = JSON.parse(localStorage.getItem('novelshare_library') || '[]');
@@ -1570,7 +1571,7 @@
                         if (!novelId) continue;
 
                         try {
-                            const liveCount = await countChapters(novelId);
+                            const liveCount = await countPublishedChapters(novelId);
                             if (liveCount !== novel.totalChapters && liveCount !== novel.chapters) {
                                 novel.totalChapters = liveCount;
                                 novel.chapters = liveCount;
