@@ -1458,7 +1458,20 @@
 
             async function resolveChapterId(novelId, hintedId) {
                 if (hintedId) return hintedId;
-                // Local cache
+
+                // Check ReadingHistory for last read chapter
+                if (typeof ReadingHistory !== 'undefined') {
+                    const lastRead = ReadingHistory.getLastRead(novelId);
+                    if (lastRead && lastRead.chapterId) return lastRead.chapterId;
+                }
+
+                // Check LibrarySystem for stored currentChapterId
+                if (typeof LibrarySystem !== 'undefined') {
+                    const progress = LibrarySystem.getProgress(novelId);
+                    if (progress && progress.currentChapterId) return progress.currentChapterId;
+                }
+
+                // Local cache - fallback to first chapter
                 try {
                     const store = JSON.parse(localStorage.getItem('novelshare_chapters') || '{}');
                     const list = Array.isArray(store[novelId]) ? store[novelId] : [];
