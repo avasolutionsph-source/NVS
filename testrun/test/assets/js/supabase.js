@@ -326,7 +326,6 @@ const SupabaseAuth = {
     const userDataKeys = [
       'novelshare_library',
       'novelshare_history',
-      'novelshare_bookmarks',
       'novelshare_ratings',
       'novelshare_following',
       'novelshare_profile',
@@ -556,8 +555,7 @@ const SupabaseDB = {
     // Clean up any dangling references so deleted novels don't reappear in UI
     const cleanupTables = [
       { table: 'user_library', column: 'novel_id' },
-      { table: 'reading_history', column: 'novel_id' },
-      { table: 'bookmarks', column: 'novel_id' }
+      { table: 'reading_history', column: 'novel_id' }
     ];
 
     await Promise.all(cleanupTables.map(async ({ table, column }) => {
@@ -795,52 +793,6 @@ const SupabaseDB = {
     return data;
   },
 
-  // --- Bookmarks ---
-  async addBookmark(userId, novelId, chapterId, note = '') {
-    // chapter_id in database is INTEGER - ensure we pass a number
-    let chapterNum = parseInt(chapterId, 10);
-    if (isNaN(chapterNum) || chapterNum < 1) {
-      chapterNum = 1; // Default to 1 if invalid/UUID passed
-    }
-
-    const { data, error } = await supabase
-      .from('bookmarks')
-      .insert({
-        user_id: userId,
-        novel_id: novelId,
-        chapter_id: chapterNum,
-        note: note,
-        created_at: new Date().toISOString()
-      });
-
-    if (error) throw error;
-    return data;
-  },
-
-  async getBookmarks(userId) {
-    const { data, error } = await supabase
-      .from('bookmarks')
-      .select(`
-        *,
-        novels (*)
-      `)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return filterOutDeleted(data);
-  },
-
-  async removeBookmark(bookmarkId) {
-    const { data, error } = await supabase
-      .from('bookmarks')
-      .delete()
-      .eq('id', bookmarkId);
-
-    if (error) throw error;
-    return data;
-  },
-
   // --- Ratings ---
   async rateNovel(userId, novelId, rating) {
     const { data, error } = await supabase
@@ -966,13 +918,6 @@ const SupabaseSync = {
       const history = JSON.parse(localStorage.getItem('novelshare_history') || '[]');
       const cleanedHistory = Array.isArray(history) ? history.filter(item => item && !ids.includes(item.novelId)) : [];
       localStorage.setItem('novelshare_history', JSON.stringify(cleanedHistory));
-    } catch {}
-
-    try {
-      // bookmarks
-      const bookmarks = JSON.parse(localStorage.getItem('novelshare_bookmarks') || '[]');
-      const cleaned = Array.isArray(bookmarks) ? bookmarks.filter(item => item && !ids.includes(item.novelId)) : [];
-      localStorage.setItem('novelshare_bookmarks', JSON.stringify(cleaned));
     } catch {}
 
     try {
@@ -1121,42 +1066,6 @@ const SupabaseSync = {
     }
   },
 
-  // Sync bookmarks
-  async syncBookmarks() {
-    if (!isSupabaseAvailable()) return null;
-    const user = await SupabaseAuth.getCurrentUser();
-    if (!user) return;
-
-    // Backup current bookmarks before clearing (prevents data loss on network failure)
-    const backupBookmarks = localStorage.getItem('novelshare_bookmarks');
-
-    // CRITICAL: Clear localStorage FIRST to prevent data leakage between users
-    localStorage.removeItem('novelshare_bookmarks');
-
-    try {
-      const cloudBookmarks = await SupabaseDB.getBookmarks(user.id);
-      const deleted = getDeletedIdSet();
-      const localFormat = (cloudBookmarks || []).filter(b => b && !deleted.has(b.novel_id)).map(b => ({
-        id: b.id,
-        novelId: b.novel_id,
-        chapterId: b.chapter_id,
-        note: b.note || '',
-        novelTitle: b.novels?.title || '',
-        chapterTitle: b.chapter_title || '',
-        createdAt: new Date(b.created_at).getTime()
-      }));
-      localStorage.setItem('novelshare_bookmarks', JSON.stringify(localFormat));
-      return localFormat;
-    } catch (error) {
-      console.error('Failed to sync bookmarks:', error);
-      // Restore backup on failure to prevent data loss
-      if (backupBookmarks) {
-        localStorage.setItem('novelshare_bookmarks', backupBookmarks);
-      }
-      return null;
-    }
-  },
-
   // Sync chapters for novels in library
   async syncChapters() {
     if (!isSupabaseAvailable()) return null;
@@ -1243,7 +1152,6 @@ const SupabaseSync = {
     const results = await Promise.allSettled([
       withTimeout(this.syncLibrary(), SYNC_TIMEOUT, 'Library sync'),
       withTimeout(this.syncHistory(), SYNC_TIMEOUT, 'History sync'),
-      withTimeout(this.syncBookmarks(), SYNC_TIMEOUT, 'Bookmarks sync'),
       withTimeout(this.syncChapters(), SYNC_TIMEOUT, 'Chapters sync')
     ]);
 
@@ -1256,8 +1164,7 @@ const SupabaseSync = {
     return {
       library: results[0].status === 'fulfilled' ? results[0].value : null,
       history: results[1].status === 'fulfilled' ? results[1].value : null,
-      bookmarks: results[2].status === 'fulfilled' ? results[2].value : null,
-      chapters: results[3].status === 'fulfilled' ? results[3].value : null,
+      chapters: results[2].status === 'fulfilled' ? results[2].value : null,
       failures: failures.length
     };
   },
@@ -1329,44 +1236,6 @@ const SupabaseSync = {
     } catch (error) {
       console.error('Push rating failed:', error);
       SyncQueue.add({ type: 'rating', novelId, rating, userId: user.id });
-      return { queued: true, error };
-    }
-  },
-
-  // Push bookmark to cloud
-  async pushBookmark(novelId, chapterId, note, action = 'add', novelData = undefined) {
-    if (!isSupabaseAvailable()) return { error: 'Supabase not available' };
-    const user = await SupabaseAuth.getCurrentUser();
-    if (!user) return { error: 'Not logged in' };
-
-    if (!NetworkStatus.isOnline()) {
-      SyncQueue.add({ type: 'bookmark', novelId, chapterId, note, action, userId: user.id, novelData });
-      return { queued: true };
-    }
-
-    try {
-      if (action === 'add' && novelData) {
-        try {
-          await SupabaseDB.upsertNovel({
-            id: novelId,
-            title: novelData.title,
-            author: novelData.author,
-            cover_image: novelData.coverImage || novelData.cover,
-            total_chapters: novelData.totalChapters,
-            status: novelData.status,
-            genres: novelData.genre ? [novelData.genre] : []
-          });
-        } catch (e) {
-          console.warn('Bookmark upsert failed (continuing):', e);
-        }
-      }
-      if (action === 'add') {
-        await SupabaseDB.addBookmark(user.id, novelId, chapterId, note);
-      }
-      return { success: true };
-    } catch (error) {
-      console.error('Push bookmark failed:', error);
-      SyncQueue.add({ type: 'bookmark', novelId, chapterId, note, action, userId: user.id, novelData });
       return { queued: true, error };
     }
   },
@@ -1489,20 +1358,6 @@ const SupabaseSync = {
 
           case 'rating':
             await SupabaseDB.rateNovel(operation.userId, operation.novelId, operation.rating);
-            success = true;
-            break;
-
-          case 'bookmark':
-            if (operation.action === 'add') {
-              if (operation.novelData) {
-                try {
-                  await SupabaseDB.upsertNovel(operation.novelData);
-                } catch (e) {
-                  console.warn('Upsert during bookmark queue failed:', e);
-                }
-              }
-              await SupabaseDB.addBookmark(operation.userId, operation.novelId, operation.chapterId, operation.note || '');
-            }
             success = true;
             break;
 
@@ -1673,7 +1528,6 @@ if (isSupabaseAvailable()) {
       const userDataKeys = [
         'novelshare_library',
         'novelshare_history',
-        'novelshare_bookmarks',
         'novelshare_ratings',
         'novelshare_following',
         'novelshare_profile',

@@ -1103,72 +1103,6 @@ const ReadingHistory = {
 };
 
 // ============================================
-// Bookmarks System (for specific chapters/positions)
-// ============================================
-const BookmarkSystem = {
-  // Get all bookmarks
-  getBookmarks() {
-    const bookmarks = localStorage.getItem('novelshare_bookmarks');
-    return bookmarks ? JSON.parse(bookmarks) : [];
-  },
-
-  // Add bookmark
-  addBookmark(novelId, chapterId, position = 0, note = '', novelTitle = '', chapterTitle = '') {
-    const bookmarks = this.getBookmarks();
-    const bookmark = {
-      id: `${novelId}_${chapterId}_${Date.now()}`,
-      novelId: novelId,
-      chapterId: chapterId,
-      position: position,
-      note: note,
-      novelTitle: novelTitle,
-      chapterTitle: chapterTitle,
-      createdAt: Date.now()
-    };
-    bookmarks.push(bookmark);
-    localStorage.setItem('novelshare_bookmarks', JSON.stringify(bookmarks));
-
-    // Push to Supabase when logged in
-    if (!GuestMode.isGuest() && typeof SupabaseSync !== 'undefined' && SupabaseSync.pushBookmark) {
-      SupabaseSync.pushBookmark(novelId, chapterId, note, 'add', {
-        title: novelTitle,
-        author: '',
-        cover: '',
-        chapterTitle,
-        totalChapters: 0,
-        status: 'ongoing'
-      });
-    }
-    return bookmark;
-  },
-
-  // Get bookmarks for a novel
-  getNovelBookmarks(novelId) {
-    const bookmarks = this.getBookmarks();
-    return bookmarks.filter(b => b.novelId === novelId);
-  },
-
-  // Get bookmarks for a chapter
-  getChapterBookmarks(novelId, chapterId) {
-    const bookmarks = this.getBookmarks();
-    return bookmarks.filter(b => b.novelId === novelId && b.chapterId === chapterId);
-  },
-
-  // Remove bookmark
-  removeBookmark(bookmarkId) {
-    let bookmarks = this.getBookmarks();
-    bookmarks = bookmarks.filter(b => b.id !== bookmarkId);
-    localStorage.setItem('novelshare_bookmarks', JSON.stringify(bookmarks));
-  },
-
-  // Check if position is bookmarked
-  isBookmarked(novelId, chapterId) {
-    const bookmarks = this.getChapterBookmarks(novelId, chapterId);
-    return bookmarks.length > 0;
-  }
-};
-
-// ============================================
 // Mock Data Initializer (DISABLED - All data comes from Supabase)
 // ============================================
 const MockDataInitializer = {
@@ -1189,7 +1123,6 @@ const MockDataInitializer = {
   reset() {
     localStorage.removeItem('novelshare_library');
     localStorage.removeItem('novelshare_history');
-    localStorage.removeItem('novelshare_bookmarks');
     localStorage.removeItem('novelshare_ratings');
     localStorage.removeItem('novelshare_following');
     // localStorage.removeItem('novelshare_offline'); // Keep downloads across sessions
@@ -1244,7 +1177,6 @@ const DataIsolation = {
   ISOLATED_KEYS: [
     'novelshare_library',
     'novelshare_history',
-    'novelshare_bookmarks',
     'novelshare_ratings',
     'novelshare_following'
   ],
@@ -1600,7 +1532,6 @@ if (typeof module !== 'undefined' && module.exports) {
     LibrarySystem,
     FollowingSystem,
     ReadingHistory,
-    BookmarkSystem,
     MockDataInitializer,
     GuestMode,
     UserCredentials,

@@ -354,15 +354,6 @@
           <p class="feed-title">No recent reads</p>
           <p class="feed-sub">Read a chapter to see it here.</p>
         </div>
-        <div class="panel-header" style="margin-top:14px;">
-          <span class="panel-title">Bookmarks</span>
-          <a class="panel-action" href="library.html#bookmarks">Manage</a>
-        </div>
-        <div id="bookmarkList" class="feed"></div>
-        <div id="bookmarkEmpty" class="feed-item" style="display:none;">
-          <p class="feed-title">No bookmarks yet</p>
-          <p class="feed-sub">Bookmark a chapter to keep quick access.</p>
-        </div>
       </div>
     </div>
   </div>
@@ -395,8 +386,6 @@
     const worksEmpty = document.getElementById('worksEmpty');
     const activityList = document.getElementById('activityList');
     const activityEmpty = document.getElementById('activityEmpty');
-    const bookmarkList = document.getElementById('bookmarkList');
-    const bookmarkEmpty = document.getElementById('bookmarkEmpty');
     let currentUserId = null;
     const DELETED_KEY = 'novelshare_deleted_ids';
     const EDIT_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;vertical-align:-2px;"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
@@ -610,23 +599,6 @@
       `).join('');
     }
 
-    function renderBookmarks() {
-      const bookmarks = (typeof BookmarkSystem !== 'undefined') ? BookmarkSystem.getBookmarks().slice(0, 5) : [];
-      if (!bookmarks.length) {
-        bookmarkList.innerHTML = '';
-        bookmarkEmpty.style.display = '';
-        return;
-      }
-      bookmarkEmpty.style.display = 'none';
-      bookmarkList.innerHTML = bookmarks.map(item => `
-        <div class="feed-item">
-          <p class="feed-title">${item.novelTitle || 'Novel'}</p>
-          <p class="feed-sub">${item.chapterTitle || ''}</p>
-          <p class="feed-sub">${formatDate(item.createdAt)}</p>
-        </div>
-      `).join('');
-    }
-
     // Refresh chapter counts from Supabase for all works
     // Uses countPublishedChapters for consistency - only counts published chapters
     async function refreshAllChapterCounts(works) {
@@ -690,7 +662,6 @@
       renderWorks(works);
       updateSelectionControls();
       renderActivity();
-      renderBookmarks();
     }
 
     // Refresh chapter counts when page becomes visible (after navigating back from editing)
