@@ -1018,11 +1018,25 @@ const FollowingSystem = {
 // ============================================
 // Reading History System
 // ============================================
+function getDeletedIdSetLocal() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem('novelshare_deleted_ids') || '[]'));
+  } catch {
+    return new Set();
+  }
+}
+
 const ReadingHistory = {
   // Get history
   getHistory() {
     const history = localStorage.getItem('novelshare_history');
-    return history ? JSON.parse(history) : [];
+    let parsed = history ? JSON.parse(history) : [];
+    const deleted = getDeletedIdSetLocal();
+    if (deleted.size && Array.isArray(parsed)) {
+      parsed = parsed.filter(item => item && !deleted.has(item.novelId));
+      localStorage.setItem('novelshare_history', JSON.stringify(parsed));
+    }
+    return parsed;
   },
 
   // Add to history

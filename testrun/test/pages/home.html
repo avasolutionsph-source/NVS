@@ -966,6 +966,10 @@
             async function loadSupabaseReadingData() {
                 if (typeof GuestMode !== 'undefined' && GuestMode.isGuest && GuestMode.isGuest()) return null;
                 if (typeof SupabaseAuth === 'undefined' || typeof SupabaseDB === 'undefined') return null;
+                const deleted = (() => {
+                    try { return new Set(JSON.parse(localStorage.getItem('novelshare_deleted_ids') || '[]')); }
+                    catch { return new Set(); }
+                })();
 
                 try {
                     const user = await SupabaseAuth.getCurrentUser();
@@ -976,21 +980,24 @@
                         SupabaseDB.getReadingHistory(user.id, 20)
                     ]);
 
-                    const history = (cloudHistory || []).map(entry => {
+                    const history = (cloudHistory || [])
+                      .filter(entry => entry && !deleted.has(entry.novel_id))
+                      .map(entry => {
                         const timestamp = entry.read_at ? new Date(entry.read_at).getTime() : Date.now();
                         return {
-                            novelId: entry.novel_id,
-                            chapterId: entry.chapter_id,
-                            novelTitle: entry.novels?.title || 'Unknown',
-                            chapterTitle: entry.chapter_title,
-                            coverImage: entry.novels?.cover_image || null,
-                            timestamp
+                          novelId: entry.novel_id,
+                          chapterId: entry.chapter_id,
+                          novelTitle: entry.novels?.title || 'Unknown',
+                          chapterTitle: entry.chapter_title,
+                          coverImage: entry.novels?.cover_image || null,
+                          timestamp
                         };
                     });
 
                     const historyLookup = new Map(history.map(item => [item.novelId, item.timestamp]));
 
                     const library = (cloudLibrary || [])
+                        .filter(item => item && !deleted.has(item.novel_id))
                         .filter(item => item?.novels)
                         .map(item => {
                             const totalChapters = item.novels?.total_chapters || 0;
@@ -1041,6 +1048,10 @@
             async function renderContinueReading() {
                 const section = document.getElementById('continueReadingSection');
                 const grid = document.getElementById('continueReadingGrid');
+                const deleted = (() => {
+                    try { return new Set(JSON.parse(localStorage.getItem('novelshare_deleted_ids') || '[]')); }
+                    catch { return new Set(); }
+                })();
 
                 // Prefer Supabase data, fall back to local cache
                 let library = LibrarySystem.getLibrary();
@@ -1060,6 +1071,7 @@
                 history.forEach(item => lastReadLookup.set(item.novelId, item.timestamp));
 
                 const itemsWithProgress = library
+                    .filter(item => item && !deleted.has(item.novelId || item.id))
                     .filter(item => item && item.currentChapter > 0)
                     .map(item => {
                         const totalChapters = item.totalChapters || item.chapters || 0;

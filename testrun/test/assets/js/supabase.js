@@ -564,7 +564,7 @@ const SupabaseDB = {
       .order('added_at', { ascending: false });
 
     if (error) throw error;
-    return data;
+    return filterOutDeleted(data);
   },
 
   async addToLibrary(userId, novelId) {
@@ -654,7 +654,7 @@ const SupabaseDB = {
       .limit(limit);
 
     if (error) throw error;
-    return data;
+    return filterOutDeleted(data);
   },
 
   async clearHistory(userId) {
@@ -700,7 +700,7 @@ const SupabaseDB = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data;
+    return filterOutDeleted(data);
   },
 
   async removeBookmark(bookmarkId) {
@@ -965,8 +965,9 @@ const SupabaseSync = {
 
     try {
       const cloudHistory = await SupabaseDB.getReadingHistory(user.id);
+      const deleted = getDeletedIdSet();
 
-      const localFormat = cloudHistory.map(item => ({
+      const localFormat = (cloudHistory || []).filter(item => item && !deleted.has(item.novel_id)).map(item => ({
         novelId: item.novel_id,
         chapterId: item.chapter_id,
         novelTitle: item.novels?.title || 'Unknown',
@@ -995,7 +996,8 @@ const SupabaseSync = {
 
     try {
       const cloudBookmarks = await SupabaseDB.getBookmarks(user.id);
-      const localFormat = cloudBookmarks.map(b => ({
+      const deleted = getDeletedIdSet();
+      const localFormat = (cloudBookmarks || []).filter(b => b && !deleted.has(b.novel_id)).map(b => ({
         id: b.id,
         novelId: b.novel_id,
         chapterId: b.chapter_id,
