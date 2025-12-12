@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS chapters (
   chapter_number INTEGER NOT NULL,
   title VARCHAR(255) NOT NULL,
   content TEXT NOT NULL,
+  status VARCHAR(20) DEFAULT 'draft' CHECK (status IN ('draft','published','trash')),
   word_count INTEGER DEFAULT 0,
   is_premium BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

@@ -33,6 +33,21 @@ function filterOutDeleted(list) {
   return list.filter(item => item && !deleted.has(item.id) && !deleted.has(item.novel_id));
 }
 
+// Count chapters for a novel (schema has no status column)
+async function countChapters(novelId) {
+  try {
+    const { count, error } = await supabase
+      .from('chapters')
+      .select('*', { count: 'exact', head: true })
+      .eq('novel_id', novelId);
+    if (error) throw error;
+    return count || 0;
+  } catch (err) {
+    console.warn('countChapters failed:', err);
+    return 0;
+  }
+}
+
 // ============================================
 // Offline Sync Queue System
 // ============================================
@@ -205,7 +220,9 @@ const SupabaseAuth = {
       'novelshare_following',
       'novelshare_profile',
       'novelshare_downloads',
-      'novelshare_sync_queue'
+      'novelshare_sync_queue',
+      'novelshare_my_works',
+      'novelshare_offline'
     ];
     userDataKeys.forEach(key => localStorage.removeItem(key));
 
@@ -318,7 +335,12 @@ const SupabaseDB = {
       .range(offset, offset + limit - 1);
 
     if (error) throw error;
-    return filterOutDeleted(data);
+    const base = filterOutDeleted(data);
+    const withCounts = await Promise.all(base.map(async novel => ({
+      ...novel,
+      total_chapters: await countChapters(novel.id)
+    })));
+    return withCounts;
   },
 
   async upsertNovel(novel) {
@@ -361,7 +383,10 @@ const SupabaseDB = {
         .eq('id', novelId)
         .single();
 
-      if (!error && data) return data;
+      if (!error && data) {
+        const chapterCount = await countChapters(data.id);
+        return { ...data, total_chapters: chapterCount };
+      }
     }
 
     // Try by slug if not UUID or UUID lookup failed (only for slug-like IDs)
@@ -372,7 +397,10 @@ const SupabaseDB = {
         .eq('slug', novelId)
         .maybeSingle();
 
-      if (!slugError && slugData) return slugData;
+      if (!slugError && slugData) {
+        const chapterCount = await countChapters(slugData.id);
+        return { ...slugData, total_chapters: chapterCount };
+      }
     }
 
     // If both failed, return null (don't throw for graceful degradation)
@@ -391,29 +419,16 @@ const SupabaseDB = {
     if (error) throw error;
     if (!novels || novels.length === 0) return [];
 
-    // For each novel, get the published chapter count from chapters table
+    // For each novel, get the chapter count from chapters table
     const novelsWithCounts = await Promise.all(
       novels.map(async (novel) => {
-        try {
-          const { count, error: countError } = await supabase
-            .from('chapters')
-            .select('*', { count: 'exact', head: true })
-            .eq('novel_id', novel.id)
-            .eq('status', 'published');
-
-          return {
-            ...novel,
-            published_chapters: countError ? (novel.total_chapters || 0) : (count || 0),
-            chapters: countError ? (novel.total_chapters || 0) : (count || 0),
-            total_chapters: countError ? (novel.total_chapters || 0) : (count || 0)
-          };
-        } catch (e) {
-          return {
-            ...novel,
-            published_chapters: novel.total_chapters || 0,
-            chapters: novel.total_chapters || 0
-          };
-        }
+        const count = await countChapters(novel.id);
+        return {
+          ...novel,
+          published_chapters: count,
+          chapters: count,
+          total_chapters: count
+        };
       })
     );
 
@@ -453,7 +468,12 @@ const SupabaseDB = {
       .limit(20);
 
     if (error) throw error;
-    return filterOutDeleted(data);
+    const base = filterOutDeleted(data);
+    const withCounts = await Promise.all(base.map(async novel => ({
+      ...novel,
+      total_chapters: await countChapters(novel.id)
+    })));
+    return withCounts;
   },
 
   async getNovelsByGenre(genre) {
@@ -464,14 +484,17 @@ const SupabaseDB = {
       .limit(20);
 
     if (error) throw error;
-    return filterOutDeleted(data);
+    const base = filterOutDeleted(data);
+    const withCounts = await Promise.all(base.map(async novel => ({
+      ...novel,
+      total_chapters: await countChapters(novel.id)
+    })));
+    return withCounts;
   },
 
   // --- Chapters ---
-  async getChapters(novelId, options = {}) {
+  async getChapters(novelId) {
     if (!isSupabaseAvailable()) return [];
-    const includeUnpublished = !!options.includeUnpublished;
-    const statusFilter = options.status;
 
     // Check if novelId is a valid UUID format
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(novelId);
@@ -482,20 +505,11 @@ const SupabaseDB = {
       return [];
     }
 
-    let query = supabase
+    const { data, error } = await supabase
       .from('chapters')
       .select('*')
-      .eq('novel_id', novelId);
-
-    if (Array.isArray(statusFilter) && statusFilter.length) {
-      query = query.in('status', statusFilter);
-    } else if (!includeUnpublished) {
-      query = query.eq('status', 'published');
-    }
-
-    query = query.order('chapter_number', { ascending: true });
-
-    const { data, error } = await query;
+      .eq('novel_id', novelId)
+      .order('chapter_number', { ascending: true });
 
     if (error) {
       console.warn('getChapters error:', error);
@@ -531,13 +545,14 @@ const SupabaseDB = {
       content: chapter.content || '',
       status: chapter.status || 'draft',
       chapter_number: chapter.chapter_number || chapter.number || chapter.order || 1,
-      author_id: chapter.author_id || null,
       updated_at: chapter.updated_at || new Date().toISOString(),
     };
     if (chapter.id) payload.id = chapter.id;
-    const { data, error } = await supabase.from('chapters').upsert(payload).select().limit(1);
+    // Defensive: strip any accidental fields not in schema
+    delete payload.author_id;
+    const { data, error } = await supabase.from('chapters').upsert(payload).select('id');
     if (error) throw error;
-    return data?.[0] || null;
+    return { ...payload, id: data?.[0]?.id || chapter.id };
   },
 
   async deleteChapter(novelId, chapterId) {
@@ -908,13 +923,7 @@ const SupabaseSync = {
         // Fetch actual chapter count from chapters table
         let actualChapterCount = item.novels?.total_chapters || 0;
         try {
-          const { count } = await supabase
-            .from('chapters')
-            .select('*', { count: 'exact', head: true })
-            .eq('novel_id', item.novel_id);
-          if (count !== null) {
-            actualChapterCount = count;
-          }
+          actualChapterCount = await countPublishedChapters(item.novel_id);
         } catch (e) {
           // Use total_chapters as fallback
         }
@@ -1014,12 +1023,72 @@ const SupabaseSync = {
     }
   },
 
+  // Sync chapters for novels in library
+  async syncChapters() {
+    if (!isSupabaseAvailable()) return null;
+    const user = await SupabaseAuth.getCurrentUser();
+    if (!user) return;
+
+    try {
+      // Get user's library to know which novels to sync chapters for
+      const library = await SupabaseDB.getUserLibrary(user.id);
+      if (!Array.isArray(library)) return null;
+
+      const chapterStore = JSON.parse(localStorage.getItem('novelshare_chapters') || '{}');
+
+      for (const item of library) {
+        const novelId = item.novel_id || item.novels?.id;
+        if (!novelId) continue;
+
+        try {
+          const supaChapters = await SupabaseDB.getChapters(novelId);
+          if (Array.isArray(supaChapters)) {
+            const refreshed = supaChapters.map(ch => ({
+              id: ch.id,
+              title: ch.title || 'Untitled',
+              content: ch.content || '',
+              // Preserve server status so drafts don't get mis-labeled
+              status: (ch.status || 'published').toLowerCase(),
+              number: ch.chapter_number || ch.number || ch.order,
+              createdAt: ch.created_at || ch.updated_at
+            }));
+
+            // Merge with local chapters, keeping local status (draft/trash) when IDs match
+            const localChapters = Array.isArray(chapterStore[novelId]) ? chapterStore[novelId] : [];
+            const merged = [...refreshed];
+            localChapters.forEach(localCh => {
+              const idx = merged.findIndex(existing => existing.id === localCh.id);
+              if (idx >= 0) {
+                merged[idx] = {
+                  ...merged[idx],
+                  status: (localCh.status || merged[idx].status || 'published').toLowerCase()
+                };
+              } else {
+                merged.push(localCh);
+              }
+            });
+            chapterStore[novelId] = merged;
+          }
+        } catch (err) {
+          console.warn('Failed to sync chapters for novel:', novelId, err);
+        }
+      }
+
+      localStorage.setItem('novelshare_chapters', JSON.stringify(chapterStore));
+      return chapterStore;
+    } catch (error) {
+      console.error('Failed to sync chapters:', error);
+      return null;
+    }
+  },
+
   // Full sync on login
   async fullSync() {
     await Promise.all([
       this.syncLibrary(),
       this.syncHistory(),
-      this.syncBookmarks()
+      this.syncBookmarks(),
+      this.syncChapters()
     ]);
   },
 

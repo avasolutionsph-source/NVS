@@ -870,8 +870,10 @@
         const works = JSON.parse(localStorage.getItem('novelshare_my_works') || '[]');
         const idx = works.findIndex(w => (w.id || w.novelId || w.slug) === workId);
         if (idx >= 0) {
-          const current = Number(works[idx].chapters || works[idx].total_chapters || 0);
-          works[idx].chapters = newCount ?? current + 1;
+          const next = Number.isFinite(newCount) ? newCount : Number(works[idx].chapters || works[idx].total_chapters || 0) + 1;
+          works[idx].chapters = next;
+          works[idx].total_chapters = next;
+          works[idx].publishedChapters = next;
           works[idx].updatedAt = Date.now();
           localStorage.setItem('novelshare_my_works', JSON.stringify(works));
         }
@@ -883,8 +885,9 @@
         const library = LibrarySystem.getLibrary();
         const idxLib = library.findIndex(item => (item.id || item.novelId) === workId);
         if (idxLib >= 0) {
-          const current = Number(library[idxLib].totalChapters || 0);
-          library[idxLib].totalChapters = newCount ?? current + 1;
+          const next = Number.isFinite(newCount) ? newCount : Number(library[idxLib].totalChapters || 0) + 1;
+          library[idxLib].totalChapters = next;
+          library[idxLib].chapters = next;
           library[idxLib].updatedAt = Date.now();
           localStorage.setItem('novelshare_library', JSON.stringify(library));
         }
@@ -920,87 +923,9 @@
     contentTextarea.addEventListener('input', triggerAutoSave);
 
     // ============================================
-    // Formatting Toolbar
+    // Formatting Toolbar (removed - no HTML elements)
     // ============================================
-    document.querySelectorAll('.toolbar-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const format = btn.dataset.format;
-        const textarea = contentTextarea;
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const selectedText = textarea.value.substring(start, end);
-
-        let formattedText = '';
-        let cursorOffset = 0;
-
-        switch (format) {
-          case 'bold':
-            formattedText = `**${selectedText}**`;
-            cursorOffset = selectedText ? 0 : 2;
-            break;
-          case 'italic':
-            formattedText = `*${selectedText}*`;
-            cursorOffset = selectedText ? 0 : 1;
-            break;
-          case 'underline':
-            formattedText = `_${selectedText}_`;
-            cursorOffset = selectedText ? 0 : 1;
-            break;
-          case 'h1':
-            formattedText = `# ${selectedText}`;
-            cursorOffset = selectedText ? 0 : 2;
-            break;
-          case 'h2':
-            formattedText = `## ${selectedText}`;
-            cursorOffset = selectedText ? 0 : 3;
-            break;
-          case 'h3':
-            formattedText = `### ${selectedText}`;
-            cursorOffset = selectedText ? 0 : 4;
-            break;
-          case 'quote':
-            formattedText = `> ${selectedText}`;
-            cursorOffset = selectedText ? 0 : 2;
-            break;
-          case 'list':
-            formattedText = `- ${selectedText}`;
-            cursorOffset = selectedText ? 0 : 2;
-            break;
-        }
-
-        textarea.value = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
-        textarea.focus();
-
-        if (selectedText) {
-          textarea.setSelectionRange(start, start + formattedText.length);
-        } else {
-          textarea.setSelectionRange(start + cursorOffset, start + cursorOffset);
-        }
-
-        triggerAutoSave();
-        updateContentStats();
-      });
-    });
-
-    // Keyboard shortcuts
-    contentTextarea.addEventListener('keydown', (e) => {
-      if (e.ctrlKey || e.metaKey) {
-        switch (e.key.toLowerCase()) {
-          case 'b':
-            e.preventDefault();
-            document.querySelector('[data-format="bold"]').click();
-            break;
-          case 'i':
-            e.preventDefault();
-            document.querySelector('[data-format="italic"]').click();
-            break;
-          case 'u':
-            e.preventDefault();
-            document.querySelector('[data-format="underline"]').click();
-            break;
-        }
-      }
-    });
+    // Toolbar event listeners removed as toolbar is not implemented
 
     // ============================================
     // ============================================
@@ -1020,40 +945,49 @@
       // Save to the actual chapters storage with status 'draft'
       const store = getStoredChapters();
       const chapters = Array.isArray(store[workId]) ? store[workId] : [];
-      const nextNumber = chapters.filter(ch => ch.status !== 'trash').length + 1;
+      const sortOrder = chapters.filter(ch => ch.status !== 'trash').length + 1;
 
       const newChapter = {
-        id: `chap-${Date.now()}`,
+        id: `draft-${Date.now()}`,
         workId,
         title: titleInput.value.trim() || 'Untitled Draft',
         content: contentTextarea.value.trim(),
         status: 'draft',  // Mark as draft
         createdAt: Date.now(),
-        order: nextNumber,
-        number: nextNumber,
+        order: sortOrder,
+        number: sortOrder,
       };
 
       chapters.push(newChapter);
       store[workId] = chapters;
       persistChapters(store);
 
-      // Push to Supabase with draft status
+      // Push draft to Supabase so it syncs across devices
       if (typeof SupabaseAuth !== 'undefined' && typeof SupabaseDB !== 'undefined' && SupabaseDB.upsertChapter) {
         try {
           const user = await SupabaseAuth.getCurrentUser();
           if (user) {
-            await SupabaseDB.upsertChapter({
-              id: newChapter.id,
+            const supaDraft = await SupabaseDB.upsertChapter({
+              id: newChapter.id.startsWith('draft-') ? undefined : newChapter.id,
               novel_id: workId,
               title: newChapter.title,
               content: newChapter.content,
+              chapter_number: sortOrder,
               status: 'draft',
-              chapter_number: nextNumber,
               updated_at: new Date().toISOString(),
             });
+            if (supaDraft?.id) {
+              const idx = chapters.findIndex(ch => ch.id === newChapter.id);
+              if (idx >= 0) {
+                chapters[idx].id = supaDraft.id;
+                store[workId] = chapters;
+                persistChapters(store);
+              }
+            }
           }
         } catch (err) {
           console.warn('Supabase draft save failed:', err);
+          showToast('Draft saved locally, but cloud sync failed.');
         }
       }
 
@@ -1133,10 +1067,15 @@
 
       titleInput.classList.remove('invalid');
 
-      // Persist chapter locally
+      // Persist chapter locally (published by default)
       const store = getStoredChapters();
       const chapters = Array.isArray(store[workId]) ? store[workId] : [];
-      const nextNumber = chapters.length + 1;
+      const maxNumber = chapters.reduce((max, ch) => {
+        const n = Number(ch.chapter_number || ch.number || ch.order);
+        return Number.isFinite(n) && n > max ? n : max;
+      }, 0);
+      const nextNumber = maxNumber + 1;
+      const publishedCount = chapters.filter(ch => ch.status && ch.status.toLowerCase() === 'published').length;
       const newChapter = {
         id: `chap-${Date.now()}`,
         workId,
@@ -1150,44 +1089,83 @@
       chapters.push(newChapter);
       store[workId] = chapters;
       persistChapters(store);
-      updateWorkChapterCount(workId, chapters.length);
+      const newTotal = Math.max(publishedCount + 1, nextNumber);
+      updateWorkChapterCount(workId, newTotal);
 
       // Push to Supabase
       if (typeof SupabaseAuth !== 'undefined' && typeof SupabaseDB !== 'undefined' && SupabaseDB.upsertChapter) {
         try {
           const user = await SupabaseAuth.getCurrentUser();
           if (user) {
-            await SupabaseDB.upsertChapter({
-              id: newChapter.id,
+            const supaChapter = await SupabaseDB.upsertChapter({
+              id: newChapter.id.startsWith('chap-') ? undefined : newChapter.id,
               novel_id: workId,
               title: newChapter.title,
               content: newChapter.content,
-              status: newChapter.status,
               chapter_number: nextNumber,
-              updated_at: new Date().toISOString(),
+              status: 'published',
+              updated_at: new Date().toISOString()
             });
+            // Replace temp ID with real one if Supabase returned it
+            if (supaChapter?.id) {
+              const idx = chapters.findIndex(ch => ch.id === newChapter.id);
+              if (idx >= 0) {
+                chapters[idx].id = supaChapter.id;
+                chapters[idx].number = supaChapter.chapter_number || nextNumber;
+                store[workId] = chapters;
+                persistChapters(store);
+              }
+            }
+            // Refresh cache from Supabase so other pages see the new chapter immediately
+            try {
+              const supaList = await SupabaseDB.getChapters(workId);
+              if (Array.isArray(supaList) && supaList.length) {
+                const refreshed = supaList.map(ch => ({
+                  id: ch.id,
+                  title: ch.title,
+                  content: ch.content,
+                  status: ch.status ? ch.status.toLowerCase() : 'published', // Preserve status from Supabase
+                  number: ch.chapter_number || ch.number || ch.order,
+                  createdAt: ch.created_at || ch.updated_at
+                }));
+                // Merge with local chapters to preserve drafts not in Supabase
+                const localChapters = Array.isArray(store[workId]) ? store[workId] : [];
+                const merged = [...refreshed];
+                localChapters.forEach(localCh => {
+                  const exists = merged.find(existing => existing.id === localCh.id);
+                  if (!exists) merged.push(localCh);
+                });
+                store[workId] = merged;
+                persistChapters(store);
+              }
+            } catch (refreshErr) {
+              console.warn('Supabase refresh after publish failed:', refreshErr);
+            }
             // Also update novel chapter count if we know the title locally
             const works = JSON.parse(localStorage.getItem('novelshare_my_works') || '[]');
             const found = works.find(w => (w.id || w.novelId || w.slug) === workId);
+            const newTotal = Math.max(publishedCount + 1, nextNumber);
             await SupabaseDB.upsertNovel({
               id: workId,
               title: found?.title || '',
               status: found?.status || 'ongoing',
               cover: found?.cover,
               genre: found?.genre,
-              total_chapters: chapters.length,
+              total_chapters: newTotal,
               author_id: user.id,
               author: found?.author || profile?.display_name || profile?.username || profile?.name || user.email,
             });
           }
         } catch (err) {
           console.warn('Supabase chapter upsert failed:', err);
+          showToast('Chapter published locally, but sync failed. It may not persist across devices.');
         }
       }
 
       // Update chapter count in library if this novel is in user's library
       if (typeof LibrarySystem !== 'undefined' && LibrarySystem.updateChapterCount) {
-        LibrarySystem.updateChapterCount(workId, chapters.length);
+        const newTotal = Math.max(publishedCount + 1, nextNumber);
+        LibrarySystem.updateChapterCount(workId, newTotal);
       }
 
       // Clear draft and show success

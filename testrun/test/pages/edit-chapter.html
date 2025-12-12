@@ -1297,8 +1297,8 @@
               novel_id: workId,
               title: updated.title,
               content: updated.content,
-              status: updated.status,
               chapter_number: updated.number || updated.order || idx + 1,
+              status: updated.status || 'draft',
               updated_at: new Date().toISOString(),
             });
           }

@@ -905,15 +905,25 @@
                 });
             }
 
-            function getLocalWorks() {
-                try {
-                    const works = JSON.parse(localStorage.getItem('novelshare_my_works') || '[]');
-                    if (!Array.isArray(works)) return [];
-                    return works;
-                } catch {
-                    return [];
-                }
-            }
+    function getLocalWorks() {
+        try {
+            const works = JSON.parse(localStorage.getItem('novelshare_my_works') || '[]');
+            if (!Array.isArray(works)) return [];
+            return works;
+        } catch {
+            return [];
+        }
+    }
+
+    function getPublishedCountLocal(novelId) {
+        try {
+            const chaptersStore = JSON.parse(localStorage.getItem('novelshare_chapters') || '{}');
+            const list = Array.isArray(chaptersStore[novelId]) ? chaptersStore[novelId] : [];
+            return list.filter(ch => (ch.status || 'draft').toLowerCase() === 'published').length;
+        } catch {
+            return 0;
+        }
+    }
 
             async function fetchSupabaseNovelsSafe(limit = 30) {
                 if (typeof SupabaseDB === 'undefined') return [];
@@ -941,6 +951,7 @@
                     const statusLower = (work.status || '').toLowerCase();
                     if (statusLower === 'draft') return;
                     if (deleted.has(work.id)) return;
+                    const publishedCount = getPublishedCountLocal(work.id);
                     const payload = {
                         id: work.id,
                         title: work.title,
@@ -949,7 +960,7 @@
                         status: work.status || 'Ongoing',
                         description: work.description || '',
                         cover: work.cover || '',
-                        chapters: work.chapters || 0,
+                        chapters: publishedCount || work.publishedChapters || work.chapters || 0,
                         reads: work.reads || 0,
                         rating: work.rating || 0,
                         popularity: work.reads || 1,

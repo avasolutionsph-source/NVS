@@ -1898,7 +1898,14 @@
 
     function getMyWorks() {
       try {
-        return JSON.parse(localStorage.getItem('novelshare_my_works') || '[]');
+        const works = JSON.parse(localStorage.getItem('novelshare_my_works') || '[]');
+        works.forEach(work => {
+          if (!work.id) {
+            work.id = `work-${Date.now()}-${Math.random()}`;
+          }
+        });
+        localStorage.setItem('novelshare_my_works', JSON.stringify(works));
+        return works;
       } catch {
         return [];
       }
@@ -1908,7 +1915,36 @@
       const grid = document.querySelector('#tab-works .works-grid');
       if (!grid) return;
 
-      const works = getMyWorks();
+      const localWorks = getMyWorks();
+      let works = localWorks;
+
+      // Also fetch from cloud if available
+      (async () => {
+        try {
+          const user = await SupabaseAuth.getCurrentUser();
+          if (user && typeof SupabaseDB !== 'undefined' && SupabaseDB.getNovelsByAuthor) {
+            const cloudWorks = await SupabaseDB.getNovelsByAuthor(user.id);
+            // Merge: prefer local for drafts, but include all
+            const merged = [...cloudWorks];
+            localWorks.forEach(local => {
+              const exists = merged.find(c => c.id === local.id);
+              if (!exists) merged.push(local);
+            });
+            works = merged;
+            // Re-render with merged
+            renderWorksGrid(works);
+          }
+        } catch (err) {
+          console.warn('Failed to fetch cloud works:', err);
+        }
+      })();
+
+      renderWorksGrid(works);
+    }
+
+    function renderWorksGrid(works) {
+      const grid = document.querySelector('#tab-works .works-grid');
+      if (!grid) return;
 
       if (!works.length) {
         grid.innerHTML = `

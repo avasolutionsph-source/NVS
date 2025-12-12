@@ -355,31 +355,44 @@
 
       if (typeof SupabaseDB !== 'undefined' && SupabaseDB.getChapters) {
         try {
-          const supa = await SupabaseDB.getChapters(id, { includeUnpublished: true });
+          const supa = await SupabaseDB.getChapters(id);
           if (Array.isArray(supa) && supa.length) {
             chapters = supa.map(ch => ({
               id: ch.id,
               title: ch.title || 'Untitled',
               content: ch.content || '',
-              status: (ch.status || 'draft').toLowerCase(),
+              status: ch.status ? ch.status.toLowerCase() : 'published', // Use status from Supabase if available
               number: ch.chapter_number || ch.number || ch.order || null,
               createdAt: ch.created_at || ch.updated_at || Date.now()
             }));
-            store[id] = chapters;
-            localStorage.setItem(chapterStoreKey, JSON.stringify(store));
           }
         } catch (err) {
           console.warn('Supabase getChapters failed:', err);
         }
       }
 
-      if (!chapters.length) {
-        chapters = Array.isArray(store[id]) ? store[id] : [];
+      // Merge in any locally stored chapters (drafts/trash) not present in Supabase response
+      const localList = Array.isArray(store[id]) ? store[id] : [];
+      const merged = [...chapters];
+      localList.forEach(ch => {
+        const idx = merged.findIndex(existing => existing.id === ch.id);
+        if (idx >= 0) {
+          // Prefer local status (draft/trash) when the same chapter exists in both
+          merged[idx] = { ...merged[idx], status: (ch.status || merged[idx].status || 'published').toLowerCase() };
+        } else {
+          merged.push(ch);
+        }
+      });
+      if (merged.length !== localList.length || merged.length !== chapters.length) {
+        store[id] = merged;
+        localStorage.setItem(chapterStoreKey, JSON.stringify(store));
       }
+
+      chapters = merged;
 
       return (chapters || []).map(ch => ({
         ...ch,
-        status: (ch.status || 'draft').toLowerCase()
+        status: (ch.status || 'published').toLowerCase()
       }));
     }
 
@@ -433,9 +446,32 @@
       document.getElementById('authorLine').textContent = `by ${work.author || 'You'}`;
       document.getElementById('workDescription').textContent = work.description || 'No description provided.';
       document.getElementById('statusValue').textContent = work.status.charAt(0).toUpperCase() + work.status.slice(1);
-      const publishedChapters = chapters.filter(ch => (ch.status || 'draft') === 'published');
+      const normalizedChapters = chapters.map(ch => ({
+        ...ch,
+        status: (ch.status || 'published').toLowerCase()
+      }));
+
+      const publishedChapters = normalizedChapters.filter(ch => ch.status === 'published');
+
+      // Renumber published chapters sequentially starting from 1
+      publishedChapters.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      publishedChapters.forEach((ch, idx) => {
+        ch.number = idx + 1;
+        // Update in the main chapters array
+        const mainIdx = chapters.findIndex(c => c.id === ch.id);
+        if (mainIdx >= 0) chapters[mainIdx].number = idx + 1;
+      });
+
+      // Persist the corrected numbers
+      const store = JSON.parse(localStorage.getItem('novelshare_chapters') || '{}');
+      if (store[work.id]) {
+        store[work.id] = chapters;
+        localStorage.setItem('novelshare_chapters', JSON.stringify(store));
+      }
+
       const libEntry = getLibraryEntry(work.id);
-      const chapterCount = publishedChapters.length || work.chapters || 0;
+      const chapterCount = publishedChapters.length;
+      const effectiveChapters = chapterCount > 0 ? chapterCount : (work.chapters || 0);
       const progressLabel = (() => {
         if (!libEntry) return '—';
         const current = Number.isFinite(libEntry.currentChapter) ? libEntry.currentChapter : 0;
@@ -459,7 +495,7 @@
       });
 
       // Filter chapters by status
-      const drafts = chapters
+      const drafts = normalizedChapters
         .filter(ch => ch.status === 'draft')
         .map(ch => ({
           id: ch.id,
@@ -470,11 +506,11 @@
       const published = publishedChapters
         .map((ch, idx) => ({
           id: ch.id,
-          number: ch.number || idx + 1,
+          number: ch.number || ch.chapter_number || idx + 1,
           title: ch.title || 'Untitled',
           updated: formatDate(ch.createdAt || Date.now())
         }));
-      const trash = chapters
+      const trash = normalizedChapters
         .filter(ch => ch.status === 'trash')
         .map(ch => ({
           id: ch.id,
@@ -482,7 +518,7 @@
           title: ch.title || 'Untitled',
           updated: formatDate(ch.createdAt || Date.now())
         }));
-      const buildList = (el, items, emptyLabel, showNumber) => {
+      const buildList = (el, items, emptyLabel, showNumber, listType) => {
         if (!el) return;
         if (!items.length) {
           el.innerHTML = `<div class="list-item"><p style="margin:0; color:var(--text-muted);">${emptyLabel}</p></div>`;
@@ -495,14 +531,16 @@
                 <h4>${showNumber && item.number ? `Chapter ${item.number}: ` : ''}${item.title}</h4>
                 <p>${item.updated}</p>
               </div>
-              <button class="chapter-delete" data-chapter-id="${item.id || ''}">Delete</button>
+              <div class="chapter-actions">
+                <button class="chapter-delete" data-chapter-id="${item.id || ''}">Delete</button>
+              </div>
             </div>
           `)
           .join('');
       };
-      buildList(document.getElementById('draftList'), drafts, 'No drafts yet', false);
-      buildList(document.getElementById('publishedList'), published, 'No published chapters yet', true);
-      buildList(document.getElementById('trashList'), trash, 'Trash is empty', false);
+      buildList(document.getElementById('draftList'), drafts, 'No drafts yet', false, 'draft');
+      buildList(document.getElementById('publishedList'), published, 'No published chapters yet', true, 'published');
+      buildList(document.getElementById('trashList'), trash, 'Trash is empty', false, 'trash');
 
       document.querySelectorAll('.chapter-row').forEach(row => {
         row.addEventListener('click', (e) => {
@@ -549,6 +587,40 @@
           }
         });
       });
+
+      // Pull latest chapters from Supabase and merge with local drafts/trash
+      async function refreshFromSupabase() {
+        if (typeof SupabaseDB === 'undefined' || !SupabaseDB.getChapters) return normalizedChapters;
+        try {
+          const supa = await SupabaseDB.getChapters(work.id);
+          if (Array.isArray(supa) && supa.length) {
+            const refreshed = supa.map(ch => ({
+              id: ch.id,
+              title: ch.title || 'Untitled',
+              content: ch.content || '',
+              // Keep server status so drafts/trash stay in the right tab
+              status: (ch.status || 'published').toLowerCase(),
+              number: ch.chapter_number || ch.number || ch.order || null,
+              createdAt: ch.created_at || ch.updated_at || Date.now()
+            }));
+            const store = (() => { try { return JSON.parse(localStorage.getItem(chapterStoreKey) || '{}'); } catch { return {}; } })();
+            const localList = Array.isArray(store[work.id]) ? store[work.id] : [];
+            const merged = [...refreshed];
+            localList.forEach(ch => {
+              if (!merged.find(m => m.id === ch.id)) merged.push({ ...ch, status: (ch.status || 'draft').toLowerCase() });
+            });
+            store[work.id] = merged;
+            localStorage.setItem(chapterStoreKey, JSON.stringify(store));
+            return merged;
+          }
+        } catch (err) {
+          console.warn('Supabase refresh failed:', err);
+        }
+        return normalizedChapters;
+      }
+
+      // publish draft handlers
+      // Draft publish flow removed per design request (drafts can be managed elsewhere)
     }
 
     function initTabs() {
@@ -566,6 +638,17 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
       initTabs();
+      // Sync chapters if logged in
+      if (typeof SupabaseAuth !== 'undefined' && typeof SupabaseSync !== 'undefined') {
+        try {
+          const user = await SupabaseAuth.getCurrentUser();
+          if (user) {
+            await SupabaseSync.syncChapters();
+          }
+        } catch (err) {
+          console.warn('Chapter sync failed:', err);
+        }
+      }
       const work = await fetchWork();
       const chapters = await fetchChaptersForWork(work.id);
       applyWork(work, chapters);

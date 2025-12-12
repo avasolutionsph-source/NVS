@@ -1352,6 +1352,7 @@
                         await SupabaseSync.syncLibrary();
                         await SupabaseSync.syncHistory();
                         await SupabaseSync.syncBookmarks();
+                        await SupabaseSync.syncChapters();
                         syncCompleted = true;
                         // Render after sync completes
                         renderLibrary();
