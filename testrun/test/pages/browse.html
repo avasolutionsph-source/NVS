@@ -1430,14 +1430,14 @@
 
             // TEMPORARY: Delete functionality for removing duplicate novels
             async function deleteNovelFromSupabase(novelId) {
-                if (typeof SupabaseDB === 'undefined' || !SupabaseDB.supabase) {
+                if (!window.supabaseClient) {
                     console.error('Supabase not available');
                     return { error: 'Supabase not available' };
                 }
 
                 try {
                     // Delete from novels table (this will cascade to related tables)
-                    const { error } = await SupabaseDB.supabase
+                    const { error } = await window.supabaseClient
                         .from('novels')
                         .delete()
                         .eq('id', novelId);
