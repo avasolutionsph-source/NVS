@@ -1477,6 +1477,17 @@
                         const result = await deleteNovelFromSupabase(novelId);
 
                         if (result.success) {
+                            // Track deleted ID in localStorage to prevent reappearing
+                            try {
+                                const deletedIds = JSON.parse(localStorage.getItem(DELETED_KEY) || '[]');
+                                if (!deletedIds.includes(novelId)) {
+                                    deletedIds.push(novelId);
+                                    localStorage.setItem(DELETED_KEY, JSON.stringify(deletedIds));
+                                }
+                            } catch (err) {
+                                console.warn('Failed to track deleted ID:', err);
+                            }
+
                             // Remove the card from the DOM
                             const card = btn.closest('.card');
                             if (card) {
