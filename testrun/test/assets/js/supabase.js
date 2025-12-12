@@ -18,6 +18,21 @@ function isSupabaseAvailable() {
   return supabase !== null;
 }
 
+// Track locally deleted novels so all pages stay consistent
+function getDeletedIdSet() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem('novelshare_deleted_ids') || '[]'));
+  } catch {
+    return new Set();
+  }
+}
+
+function filterOutDeleted(list) {
+  const deleted = getDeletedIdSet();
+  if (!Array.isArray(list) || deleted.size === 0) return Array.isArray(list) ? list : [];
+  return list.filter(item => item && !deleted.has(item.id) && !deleted.has(item.novel_id));
+}
+
 // ============================================
 // Offline Sync Queue System
 // ============================================
@@ -303,7 +318,7 @@ const SupabaseDB = {
       .range(offset, offset + limit - 1);
 
     if (error) throw error;
-    return data;
+    return filterOutDeleted(data);
   },
 
   async upsertNovel(novel) {
@@ -326,6 +341,10 @@ const SupabaseDB = {
 
   async getNovelById(novelId) {
     if (!isSupabaseAvailable()) return null;
+
+    // Skip anything the user marked as deleted locally
+    const deleted = getDeletedIdSet();
+    if (deleted.has(novelId)) return null;
 
     // Skip Supabase lookup for local-only IDs (work-* prefix)
     if (novelId && novelId.startsWith('work-')) {
@@ -372,30 +391,33 @@ const SupabaseDB = {
     if (error) throw error;
     if (!novels || novels.length === 0) return [];
 
-    // For each novel, get the actual chapter count from chapters table
+    // For each novel, get the published chapter count from chapters table
     const novelsWithCounts = await Promise.all(
       novels.map(async (novel) => {
         try {
           const { count, error: countError } = await supabase
             .from('chapters')
             .select('*', { count: 'exact', head: true })
-            .eq('novel_id', novel.id);
+            .eq('novel_id', novel.id)
+            .eq('status', 'published');
 
           return {
             ...novel,
+            published_chapters: countError ? (novel.total_chapters || 0) : (count || 0),
             chapters: countError ? (novel.total_chapters || 0) : (count || 0),
             total_chapters: countError ? (novel.total_chapters || 0) : (count || 0)
           };
         } catch (e) {
           return {
             ...novel,
+            published_chapters: novel.total_chapters || 0,
             chapters: novel.total_chapters || 0
           };
         }
       })
     );
 
-    return novelsWithCounts;
+    return filterOutDeleted(novelsWithCounts);
   },
 
   async deleteNovels(ids = [], authorId) {
@@ -431,7 +453,7 @@ const SupabaseDB = {
       .limit(20);
 
     if (error) throw error;
-    return data;
+    return filterOutDeleted(data);
   },
 
   async getNovelsByGenre(genre) {
@@ -442,12 +464,14 @@ const SupabaseDB = {
       .limit(20);
 
     if (error) throw error;
-    return data;
+    return filterOutDeleted(data);
   },
 
   // --- Chapters ---
-  async getChapters(novelId) {
+  async getChapters(novelId, options = {}) {
     if (!isSupabaseAvailable()) return [];
+    const includeUnpublished = !!options.includeUnpublished;
+    const statusFilter = options.status;
 
     // Check if novelId is a valid UUID format
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(novelId);
@@ -458,11 +482,20 @@ const SupabaseDB = {
       return [];
     }
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('chapters')
       .select('*')
-      .eq('novel_id', novelId)
-      .order('chapter_number', { ascending: true });
+      .eq('novel_id', novelId);
+
+    if (Array.isArray(statusFilter) && statusFilter.length) {
+      query = query.in('status', statusFilter);
+    } else if (!includeUnpublished) {
+      query = query.eq('status', 'published');
+    }
+
+    query = query.order('chapter_number', { ascending: true });
+
+    const { data, error } = await query;
 
     if (error) {
       console.warn('getChapters error:', error);
@@ -779,6 +812,64 @@ const SupabaseDB = {
 // ============================================
 
 const SupabaseSync = {
+  // Small helper to persist deleted IDs locally so all pages can hide them
+  _addDeletedIds(ids = []) {
+    try {
+      const key = 'novelshare_deleted_ids';
+      const current = new Set(JSON.parse(localStorage.getItem(key) || '[]'));
+      ids.filter(Boolean).forEach(id => current.add(id));
+      localStorage.setItem(key, JSON.stringify(Array.from(current)));
+    } catch {
+      /* ignore */
+    }
+  },
+
+  _purgeLocalCachesFor(ids = []) {
+    if (!ids.length) return;
+    try {
+      // library
+      const lib = JSON.parse(localStorage.getItem('novelshare_library') || '[]');
+      const cleanedLib = Array.isArray(lib) ? lib.filter(item => item && !ids.includes(item.id) && !ids.includes(item.novelId)) : [];
+      localStorage.setItem('novelshare_library', JSON.stringify(cleanedLib));
+    } catch {}
+
+    try {
+      // history
+      const history = JSON.parse(localStorage.getItem('novelshare_history') || '[]');
+      const cleanedHistory = Array.isArray(history) ? history.filter(item => item && !ids.includes(item.novelId)) : [];
+      localStorage.setItem('novelshare_history', JSON.stringify(cleanedHistory));
+    } catch {}
+
+    try {
+      // bookmarks
+      const bookmarks = JSON.parse(localStorage.getItem('novelshare_bookmarks') || '[]');
+      const cleaned = Array.isArray(bookmarks) ? bookmarks.filter(item => item && !ids.includes(item.novelId)) : [];
+      localStorage.setItem('novelshare_bookmarks', JSON.stringify(cleaned));
+    } catch {}
+
+    try {
+      // cached chapters
+      const chapters = JSON.parse(localStorage.getItem('novelshare_chapters') || '{}');
+      ids.forEach(id => { if (chapters[id]) delete chapters[id]; });
+      localStorage.setItem('novelshare_chapters', JSON.stringify(chapters));
+    } catch {}
+
+    try {
+      // offline downloads
+      const offline = JSON.parse(localStorage.getItem('novelshare_offline') || '{}');
+      let changed = false;
+      ids.forEach(id => {
+        if (offline[id]) {
+          delete offline[id];
+          changed = true;
+        }
+      });
+      if (changed) {
+        localStorage.setItem('novelshare_offline', JSON.stringify(offline));
+      }
+    } catch {}
+  },
+
   // Sync local library with Supabase
   async syncLibrary() {
     if (!isSupabaseAvailable()) return null;
@@ -805,6 +896,8 @@ const SupabaseSync = {
           } catch (cleanupErr) {
             console.warn('Failed to purge stale library rows:', cleanupErr);
           }
+          this._addDeletedIds(staleNovelIds);
+          this._purgeLocalCachesFor(staleNovelIds);
         }
       }
 
@@ -826,6 +919,11 @@ const SupabaseSync = {
           // Use total_chapters as fallback
         }
 
+        const addedAtMs = item.added_at ? new Date(item.added_at).getTime() : Date.now();
+        const lastReadMs = item.last_read_at
+          ? new Date(item.last_read_at).getTime()
+          : (item.updated_at ? new Date(item.updated_at).getTime() : addedAtMs);
+
         return {
           id: item.novel_id,
           novelId: item.novel_id,
@@ -841,7 +939,8 @@ const SupabaseSync = {
           chapters: actualChapterCount,
           currentChapter: item.current_chapter || 0,
           progress: item.progress || 0,
-          addedAt: new Date(item.added_at).getTime()
+          lastRead: lastReadMs,
+          addedAt: addedAtMs
         };
       }));
 

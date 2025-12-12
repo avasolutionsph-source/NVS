@@ -850,10 +850,20 @@
                 }
                 try {
                     const novels = await SupabaseDB.getNovels(24, 0);
-                    return novels || [];
+                    return Array.isArray(novels) ? novels : [];
                 } catch (err) {
                     console.error('Failed to load novels:', err);
                     return [];
+                }
+            }
+
+            function filterDeletedNovels(novels) {
+                try {
+                    const deleted = new Set(JSON.parse(localStorage.getItem('novelshare_deleted_ids') || '[]'));
+                    if (!deleted.size) return novels;
+                    return novels.filter(n => n && !deleted.has(n.id) && !deleted.has(n.novelId));
+                } catch {
+                    return novels;
                 }
             }
 
@@ -952,20 +962,126 @@
                 }).join('');
             }
 
+            // Pull library/history from Supabase so "Continue Reading" reflects cloud data
+            async function loadSupabaseReadingData() {
+                if (typeof GuestMode !== 'undefined' && GuestMode.isGuest && GuestMode.isGuest()) return null;
+                if (typeof SupabaseAuth === 'undefined' || typeof SupabaseDB === 'undefined') return null;
+
+                try {
+                    const user = await SupabaseAuth.getCurrentUser();
+                    if (!user) return null;
+
+                    const [cloudLibrary, cloudHistory] = await Promise.all([
+                        SupabaseDB.getUserLibrary(user.id),
+                        SupabaseDB.getReadingHistory(user.id, 20)
+                    ]);
+
+                    const history = (cloudHistory || []).map(entry => {
+                        const timestamp = entry.read_at ? new Date(entry.read_at).getTime() : Date.now();
+                        return {
+                            novelId: entry.novel_id,
+                            chapterId: entry.chapter_id,
+                            novelTitle: entry.novels?.title || 'Unknown',
+                            chapterTitle: entry.chapter_title,
+                            coverImage: entry.novels?.cover_image || null,
+                            timestamp
+                        };
+                    });
+
+                    const historyLookup = new Map(history.map(item => [item.novelId, item.timestamp]));
+
+                    const library = (cloudLibrary || [])
+                        .filter(item => item?.novels)
+                        .map(item => {
+                            const totalChapters = item.novels?.total_chapters || 0;
+                            const currentChapter = item.current_chapter || 0;
+                            const progress = totalChapters > 0 ? Math.round((currentChapter / totalChapters) * 100) : 0;
+                            const lastRead = historyLookup.get(item.novel_id)
+                                || (item.last_read_at ? new Date(item.last_read_at).getTime() : null)
+                                || (item.added_at ? new Date(item.added_at).getTime() : Date.now());
+
+                            return {
+                                id: item.novel_id,
+                                novelId: item.novel_id,
+                                title: item.novels?.title || 'Untitled',
+                                author: item.novels?.author || 'Unknown',
+                                cover: item.novels?.cover_image || null,
+                                coverImage: item.novels?.cover_image || null,
+                                genre: Array.isArray(item.novels?.genres) ? item.novels.genres[0] : (item.novels?.genre || ''),
+                                status: item.novels?.status || 'ongoing',
+                                description: item.novels?.description || '',
+                                rating: item.novels?.rating || item.novels?.avg_rating || 0,
+                                totalChapters,
+                                chapters: totalChapters,
+                                currentChapter,
+                                progress,
+                                lastRead,
+                                addedAt: item.added_at ? new Date(item.added_at).getTime() : Date.now()
+                            };
+                        });
+
+                    // Keep local cache aligned with the cloud version
+                    localStorage.setItem('novelshare_library', JSON.stringify(library));
+                    localStorage.setItem('novelshare_history', JSON.stringify(history));
+
+                    return { library, history };
+                } catch (error) {
+                    console.warn('Failed to load Supabase reading data:', error);
+                    return null;
+                }
+            }
+
             // Load and render all novel sections
-            const novels = await loadNovelsFromSupabase();
+            const novels = filterDeletedNovels(await loadNovelsFromSupabase());
             renderPopularNovels(novels);
             renderNewlyReleased(novels);
             renderRecentlyUpdated(novels);
 
             // Render Continue Reading Section
-            function renderContinueReading() {
+            async function renderContinueReading() {
                 const section = document.getElementById('continueReadingSection');
                 const grid = document.getElementById('continueReadingGrid');
 
-                // Get library items with progress
-                const library = LibrarySystem.getLibrary();
-                const itemsWithProgress = library.filter(item => item.currentChapter > 0).slice(0, 4);
+                // Prefer Supabase data, fall back to local cache
+                let library = LibrarySystem.getLibrary();
+                let history = (typeof ReadingHistory !== 'undefined' && ReadingHistory.getHistory)
+                    ? ReadingHistory.getHistory()
+                    : [];
+
+                const supabaseData = await loadSupabaseReadingData();
+                if (supabaseData?.library) {
+                    library = supabaseData.library;
+                }
+                if (supabaseData?.history) {
+                    history = supabaseData.history;
+                }
+
+                const lastReadLookup = new Map();
+                history.forEach(item => lastReadLookup.set(item.novelId, item.timestamp));
+
+                const itemsWithProgress = library
+                    .filter(item => item && item.currentChapter > 0)
+                    .map(item => {
+                        const totalChapters = item.totalChapters || item.chapters || 0;
+                        const currentChapter = Number.isFinite(item.currentChapter) ? item.currentChapter : 0;
+                        const progress = totalChapters > 0
+                            ? Math.round((currentChapter / totalChapters) * 100)
+                            : 0;
+                        const lastRead = item.lastRead
+                            || lastReadLookup.get(item.novelId || item.id)
+                            || item.addedAt
+                            || 0;
+
+                        return {
+                            ...item,
+                            totalChapters,
+                            currentChapter,
+                            progress,
+                            lastRead
+                        };
+                    })
+                    .sort((a, b) => (b.lastRead || 0) - (a.lastRead || 0))
+                    .slice(0, 3);
 
                 if (itemsWithProgress.length === 0) {
                     section.style.display = 'none';
@@ -974,12 +1090,12 @@
 
                 section.style.display = '';
                 grid.innerHTML = itemsWithProgress.map(item => {
-                    const progress = item.totalChapters > 0
-                        ? Math.round((item.currentChapter / item.totalChapters) * 100)
-                        : 0;
+                    const progress = item.progress || 0;
+                    const totalChapters = item.totalChapters || item.chapters || 0;
+                    const novelId = item.novelId || item.id;
 
                     return `
-                        <a class="continue-card" href="reader.html?novel=${item.novelId}&chapter=${item.currentChapter}">
+                        <a class="continue-card" href="reader.html?novel=${novelId}&chapter=${item.currentChapter}">
                             <div class="cover">
                                 ${item.coverImage
                                     ? `<img src="${item.coverImage}" alt="${item.title}">`
@@ -1052,7 +1168,7 @@
             }
 
             // Initialize
-            renderContinueReading();
+            await renderContinueReading();
             updateRatingDisplays();
             updateLibraryBadges();
 

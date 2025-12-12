@@ -1767,10 +1767,16 @@
                 const grid = document.getElementById('downloadsGrid');
                 const emptyState = document.getElementById('downloadsEmpty');
                 const raw = JSON.parse(localStorage.getItem('novelshare_offline') || '{}');
+                const deleted = (() => { try { return new Set(JSON.parse(localStorage.getItem('novelshare_deleted_ids') || '[]')); } catch { return new Set(); } })();
 
                 // Normalize data into consistent structure
                 const downloads = {};
                 Object.entries(raw).forEach(([novelId, novelData]) => {
+                  if (deleted.has(novelId)) {
+                    // purge deleted novel download
+                    delete raw[novelId];
+                    return;
+                  }
                   // Check if this is the current format: downloads[novelId][chapterId] = { novelTitle, chapterTitle, ... }
                   // The novelData would be an object with numeric keys (chapter IDs)
                   const chapterKeys = Object.keys(novelData || {});
@@ -1812,6 +1818,11 @@
                     };
                   }
                 });
+
+                // Persist purge of deleted items if any were removed
+                if (Object.keys(raw).length !== Object.keys(downloads).length) {
+                    localStorage.setItem('novelshare_offline', JSON.stringify(raw));
+                }
 
                 const novels = Object.values(downloads);
 
@@ -2026,9 +2037,18 @@
                 }
             });
 
-            // Confirm download
-            confirmDownloadBtn.addEventListener('click', async () => {
+                // Confirm download
+                confirmDownloadBtn.addEventListener('click', async () => {
                 if (!currentDownloadNovel || isDownloading) return;
+
+                // Prevent downloads for deleted novels
+                try {
+                    const deleted = new Set(JSON.parse(localStorage.getItem('novelshare_deleted_ids') || '[]'));
+                    if (deleted.has(currentDownloadNovel.novelId)) {
+                        alert('This novel was removed.');
+                        return;
+                    }
+                } catch {}
 
                 const from = parseInt(downloadFrom.value) || 1;
                 const to = parseInt(downloadTo.value) || 1;

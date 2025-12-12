@@ -324,15 +324,6 @@
         return false;
       }
     }
-    function getChaptersForWork(id) {
-      try {
-        const store = JSON.parse(localStorage.getItem(chapterStoreKey) || '{}');
-        return Array.isArray(store[id]) ? store[id] : [];
-      } catch {
-        return [];
-      }
-    }
-
     function getLibraryEntry(id) {
       try {
         const lib = JSON.parse(localStorage.getItem('novelshare_library') || '[]');
@@ -356,6 +347,40 @@
         reads: work.reads || work.popularity || '—',
         updatedAt: work.updated_at || work.updatedAt || work.created_at || work.createdAt || Date.now(),
       };
+    }
+
+    async function fetchChaptersForWork(id) {
+      const store = (() => { try { return JSON.parse(localStorage.getItem(chapterStoreKey) || '{}'); } catch { return {}; } })();
+      let chapters = [];
+
+      if (typeof SupabaseDB !== 'undefined' && SupabaseDB.getChapters) {
+        try {
+          const supa = await SupabaseDB.getChapters(id, { includeUnpublished: true });
+          if (Array.isArray(supa) && supa.length) {
+            chapters = supa.map(ch => ({
+              id: ch.id,
+              title: ch.title || 'Untitled',
+              content: ch.content || '',
+              status: (ch.status || 'draft').toLowerCase(),
+              number: ch.chapter_number || ch.number || ch.order || null,
+              createdAt: ch.created_at || ch.updated_at || Date.now()
+            }));
+            store[id] = chapters;
+            localStorage.setItem(chapterStoreKey, JSON.stringify(store));
+          }
+        } catch (err) {
+          console.warn('Supabase getChapters failed:', err);
+        }
+      }
+
+      if (!chapters.length) {
+        chapters = Array.isArray(store[id]) ? store[id] : [];
+      }
+
+      return (chapters || []).map(ch => ({
+        ...ch,
+        status: (ch.status || 'draft').toLowerCase()
+      }));
     }
 
     async function fetchWork() {
@@ -391,7 +416,7 @@
       return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
-    function applyWork(work) {
+    function applyWork(work, chapters = []) {
       document.title = `${work.title} | NovelShare`;
       const coverEl = document.getElementById('workCover');
       if (work.cover) {
@@ -408,9 +433,9 @@
       document.getElementById('authorLine').textContent = `by ${work.author || 'You'}`;
       document.getElementById('workDescription').textContent = work.description || 'No description provided.';
       document.getElementById('statusValue').textContent = work.status.charAt(0).toUpperCase() + work.status.slice(1);
-      const chapters = getChaptersForWork(work.id);
+      const publishedChapters = chapters.filter(ch => (ch.status || 'draft') === 'published');
       const libEntry = getLibraryEntry(work.id);
-      const chapterCount = work.chapters || chapters.length || 0;
+      const chapterCount = publishedChapters.length || work.chapters || 0;
       const progressLabel = (() => {
         if (!libEntry) return '—';
         const current = Number.isFinite(libEntry.currentChapter) ? libEntry.currentChapter : 0;
@@ -438,15 +463,14 @@
         .filter(ch => ch.status === 'draft')
         .map(ch => ({
           id: ch.id,
-          number: ch.number || ch.order,
+          number: null,
           title: ch.title || 'Untitled',
           updated: formatDate(ch.createdAt || Date.now())
         }));
-      const published = chapters
-        .filter(ch => (ch.status || 'published') === 'published')
-        .map(ch => ({
+      const published = publishedChapters
+        .map((ch, idx) => ({
           id: ch.id,
-          number: ch.number || ch.order,
+          number: ch.number || idx + 1,
           title: ch.title || 'Untitled',
           updated: formatDate(ch.createdAt || Date.now())
         }));
@@ -454,11 +478,11 @@
         .filter(ch => ch.status === 'trash')
         .map(ch => ({
           id: ch.id,
-          number: ch.number || ch.order,
+          number: null,
           title: ch.title || 'Untitled',
           updated: formatDate(ch.createdAt || Date.now())
         }));
-      const buildList = (el, items, emptyLabel) => {
+      const buildList = (el, items, emptyLabel, showNumber) => {
         if (!el) return;
         if (!items.length) {
           el.innerHTML = `<div class="list-item"><p style="margin:0; color:var(--text-muted);">${emptyLabel}</p></div>`;
@@ -468,7 +492,7 @@
           .map(item => `
             <div class="list-item chapter-row" data-chapter-id="${item.id || ''}">
               <div class="chapter-text">
-                <h4>${item.number ? `Chapter ${item.number}: ` : ''}${item.title}</h4>
+                <h4>${showNumber && item.number ? `Chapter ${item.number}: ` : ''}${item.title}</h4>
                 <p>${item.updated}</p>
               </div>
               <button class="chapter-delete" data-chapter-id="${item.id || ''}">Delete</button>
@@ -476,9 +500,9 @@
           `)
           .join('');
       };
-      buildList(document.getElementById('draftList'), drafts, 'No drafts yet');
-      buildList(document.getElementById('publishedList'), published, 'No published chapters yet');
-      buildList(document.getElementById('trashList'), trash, 'Trash is empty');
+      buildList(document.getElementById('draftList'), drafts, 'No drafts yet', false);
+      buildList(document.getElementById('publishedList'), published, 'No published chapters yet', true);
+      buildList(document.getElementById('trashList'), trash, 'Trash is empty', false);
 
       document.querySelectorAll('.chapter-row').forEach(row => {
         row.addEventListener('click', (e) => {
@@ -543,7 +567,8 @@
     document.addEventListener('DOMContentLoaded', async () => {
       initTabs();
       const work = await fetchWork();
-      applyWork(work);
+      const chapters = await fetchChaptersForWork(work.id);
+      applyWork(work, chapters);
     });
   </script>
 </body>

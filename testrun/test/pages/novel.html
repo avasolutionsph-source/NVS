@@ -1787,47 +1787,57 @@
 
     async function loadChapters() {
       const storeKey = 'novelshare_chapters';
-      let localChapters = [];
-      try {
-        const raw = localStorage.getItem(storeKey) || '{}';
-        const parsed = JSON.parse(raw);
-        localChapters = Array.isArray(parsed[novelData.id]) ? parsed[novelData.id] : [];
-      } catch {
-        localChapters = [];
-      }
+      let chapters = [];
 
-      // If no local chapters, try Supabase
-      if (!localChapters.length && typeof SupabaseDB !== 'undefined' && SupabaseDB.getChapters) {
+      // Always prefer Supabase so drafts stay hidden on the public page
+      if (typeof SupabaseDB !== 'undefined' && SupabaseDB.getChapters) {
         try {
           const supaChapters = await SupabaseDB.getChapters(novelData.id);
-          if (Array.isArray(supaChapters) && supaChapters.length) {
-            const store = (() => { try { return JSON.parse(localStorage.getItem(storeKey) || '{}'); } catch { return {}; } })();
-            store[novelData.id] = supaChapters.map(ch => ({
+          if (Array.isArray(supaChapters)) {
+            chapters = supaChapters.map(ch => ({
               id: ch.id,
               title: ch.title,
               content: ch.content,
-              status: ch.status || 'published',
+              status: (ch.status || 'published').toLowerCase(),
               number: ch.chapter_number || ch.number || ch.order,
               createdAt: ch.created_at || ch.updated_at
             }));
+            // cache the published set for offline fallback
+            const store = (() => { try { return JSON.parse(localStorage.getItem(storeKey) || '{}'); } catch { return {}; } })();
+            store[novelData.id] = chapters;
             localStorage.setItem(storeKey, JSON.stringify(store));
-            localChapters = store[novelData.id];
           }
         } catch (err) {
           console.warn('Supabase chapters fetch failed:', err);
         }
       }
 
-      chaptersData = (localChapters || []).map((ch, idx) => ({
+      // Fallback to local cache if Supabase gave nothing
+      if (!chapters.length) {
+        try {
+          const raw = localStorage.getItem(storeKey) || '{}';
+          const parsed = JSON.parse(raw);
+          chapters = Array.isArray(parsed[novelData.id]) ? parsed[novelData.id] : [];
+        } catch {
+          chapters = [];
+        }
+      }
+
+      // Only expose published chapters to readers
+      const publishedChapters = (chapters || [])
+        .map(ch => ({ ...ch, status: (ch.status || 'draft').toLowerCase() }))
+        .filter(ch => ch.status === 'published');
+
+      chaptersData = publishedChapters.map((ch, idx) => ({
         id: ch.id,
         title: ch.title || `Chapter ${ch.number || idx + 1}`,
         number: ch.number || idx + 1,
         date: ch.createdAt ? new Date(ch.createdAt).toLocaleDateString() : '',
         words: ch.content ? ch.content.length : undefined,
-        status: ch.status || 'published'
+        status: 'published'
       }));
 
-      // Update chapter count and stats
+      // Update chapter count and stats based on published chapters only
       novelData.chapters = Math.max(novelData.chapters || 0, chaptersData.length);
       applyNovelData();
       renderChapters(chapterSort?.value === 'oldest' ? 'oldest' : 'newest');

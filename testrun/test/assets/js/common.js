@@ -828,8 +828,22 @@ const RatingSystem = {
 const LibrarySystem = {
   // Get all library items
   getLibrary() {
-    const library = localStorage.getItem('novelshare_library');
-    return library ? JSON.parse(library) : [];
+    const raw = localStorage.getItem('novelshare_library');
+    let library = raw ? JSON.parse(raw) : [];
+    // Filter out novels marked as deleted anywhere in the app
+    try {
+      const deleted = new Set(JSON.parse(localStorage.getItem('novelshare_deleted_ids') || '[]'));
+      const cleaned = Array.isArray(library)
+        ? library.filter(item => item && !deleted.has(item.id) && !deleted.has(item.novelId))
+        : [];
+      if (cleaned.length !== library.length) {
+        localStorage.setItem('novelshare_library', JSON.stringify(cleaned));
+      }
+      library = cleaned;
+    } catch {
+      // fallback to whatever we had
+    }
+    return library;
   },
 
   // Check if novel is in library
