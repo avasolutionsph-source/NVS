@@ -945,12 +945,13 @@ const LibrarySystem = {
   },
 
   // Update reading progress
-  updateProgress(novelId, progress, currentChapter) {
+  updateProgress(novelId, progress, currentChapter, currentChapterId = null) {
     const library = this.getLibrary();
     const item = library.find(item => item.id === novelId || item.novelId === novelId);
     if (item) {
       item.progress = progress;
       item.currentChapter = currentChapter;
+      if (currentChapterId) item.currentChapterId = currentChapterId;
       item.lastRead = Date.now();
       localStorage.setItem('novelshare_library', JSON.stringify(library));
       if (!GuestMode.isGuest() && typeof SupabaseSync !== 'undefined' && SupabaseSync.pushReadingProgress) {

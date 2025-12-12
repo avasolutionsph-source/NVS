@@ -1315,7 +1315,7 @@
         if (novelData.id) {
           localStorage.setItem(`reading_position_${novelData.id}_${chapterData.id || ''}`, scrollTop);
           if (LibrarySystem.isInLibrary(novelData.id)) {
-            LibrarySystem.updateProgress(novelData.id, Math.round(progress), chapterData.number || chapterData.id || 0);
+            LibrarySystem.updateProgress(novelData.id, Math.round(progress), chapterData.number || 0, chapterData.id);
           }
         }
       }, 300);
