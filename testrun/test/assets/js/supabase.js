@@ -103,20 +103,38 @@ const SyncQueue = {
 };
 
 // ============================================
+// Timeout Wrapper for Sync Operations
+// ============================================
+function withTimeout(promise, ms = 10000, operationName = 'Operation') {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${operationName} timed out after ${ms}ms`)), ms)
+    )
+  ]);
+}
+
+// ============================================
 // Network Status Detection
 // ============================================
 
 const NetworkStatus = {
   _listeners: [],
   _isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+  _lastCheck: 0,
+  _checkInterval: 30000, // Re-check every 30 seconds max
 
   init() {
-    window.addEventListener('online', () => {
-      this._isOnline = true;
-      this._notifyListeners('online');
-      // Auto-process queue when back online
-      if (typeof SupabaseSync !== 'undefined' && SupabaseSync.processQueue) {
-        SupabaseSync.processQueue();
+    window.addEventListener('online', async () => {
+      // Verify actual connectivity before declaring online
+      const actuallyOnline = await this.checkActualConnectivity();
+      if (actuallyOnline) {
+        this._isOnline = true;
+        this._notifyListeners('online');
+        // Auto-process queue when back online
+        if (typeof SupabaseSync !== 'undefined' && SupabaseSync.processQueue) {
+          SupabaseSync.processQueue();
+        }
       }
     });
 
@@ -126,8 +144,41 @@ const NetworkStatus = {
     });
   },
 
+  // Perform actual connectivity test to Supabase
+  async checkActualConnectivity() {
+    const now = Date.now();
+    // Throttle checks to avoid hammering the server
+    if (now - this._lastCheck < this._checkInterval && this._isOnline) {
+      return this._isOnline;
+    }
+    this._lastCheck = now;
+
+    try {
+      // HEAD request to Supabase REST API (lightweight check)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+      const response = await fetch(SUPABASE_URL + '/rest/v1/', {
+        method: 'HEAD',
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      return response.ok || response.status === 400; // 400 is expected without proper auth
+    } catch (err) {
+      // Network error or timeout - actually offline
+      return false;
+    }
+  },
+
   isOnline() {
     return this._isOnline && navigator.onLine;
+  },
+
+  // Async version that performs actual connectivity check
+  async isActuallyOnline() {
+    if (!navigator.onLine) return false;
+    return await this.checkActualConnectivity();
   },
 
   onStatusChange(callback) {
@@ -897,6 +948,9 @@ const SupabaseSync = {
     const user = await SupabaseAuth.getCurrentUser();
     if (!user) return;
 
+    // Backup current library before clearing (prevents data loss on network failure)
+    const backupLibrary = localStorage.getItem('novelshare_library');
+
     // CRITICAL: Clear localStorage FIRST to prevent data leakage between users
     // Without this, User A's library would leak into User B's when they log in
     localStorage.removeItem('novelshare_library');
@@ -929,7 +983,7 @@ const SupabaseSync = {
         // Fetch actual chapter count from chapters table
         let actualChapterCount = item.novels?.total_chapters || 0;
         try {
-          actualChapterCount = await countPublishedChapters(item.novel_id);
+          actualChapterCount = await countChapters(item.novel_id);
         } catch (e) {
           // Use total_chapters as fallback
         }
@@ -965,6 +1019,10 @@ const SupabaseSync = {
       return localFormat;
     } catch (error) {
       console.error('Failed to sync library:', error);
+      // Restore backup on failure to prevent data loss
+      if (backupLibrary) {
+        localStorage.setItem('novelshare_library', backupLibrary);
+      }
       return null;
     }
   },
@@ -974,6 +1032,9 @@ const SupabaseSync = {
     if (!isSupabaseAvailable()) return null;
     const user = await SupabaseAuth.getCurrentUser();
     if (!user) return;
+
+    // Backup current history before clearing (prevents data loss on network failure)
+    const backupHistory = localStorage.getItem('novelshare_history');
 
     // CRITICAL: Clear localStorage FIRST to prevent data leakage between users
     localStorage.removeItem('novelshare_history');
@@ -996,6 +1057,10 @@ const SupabaseSync = {
       return localFormat;
     } catch (error) {
       console.error('Failed to sync history:', error);
+      // Restore backup on failure to prevent data loss
+      if (backupHistory) {
+        localStorage.setItem('novelshare_history', backupHistory);
+      }
       return null;
     }
   },
@@ -1005,6 +1070,9 @@ const SupabaseSync = {
     if (!isSupabaseAvailable()) return null;
     const user = await SupabaseAuth.getCurrentUser();
     if (!user) return;
+
+    // Backup current bookmarks before clearing (prevents data loss on network failure)
+    const backupBookmarks = localStorage.getItem('novelshare_bookmarks');
 
     // CRITICAL: Clear localStorage FIRST to prevent data leakage between users
     localStorage.removeItem('novelshare_bookmarks');
@@ -1025,6 +1093,10 @@ const SupabaseSync = {
       return localFormat;
     } catch (error) {
       console.error('Failed to sync bookmarks:', error);
+      // Restore backup on failure to prevent data loss
+      if (backupBookmarks) {
+        localStorage.setItem('novelshare_bookmarks', backupBookmarks);
+      }
       return null;
     }
   },
@@ -1056,20 +1128,39 @@ const SupabaseSync = {
               // Preserve server status so drafts don't get mis-labeled
               status: (ch.status || 'published').toLowerCase(),
               number: ch.chapter_number || ch.number || ch.order,
-              createdAt: ch.created_at || ch.updated_at
+              createdAt: ch.created_at || ch.updated_at,
+              updatedAt: ch.updated_at || ch.created_at
             }));
 
-            // Merge with local chapters, keeping local status (draft/trash) when IDs match
+            // Merge with local chapters using timestamp-based conflict resolution
+            // If same chapter exists locally and remotely, keep the newer version
             const localChapters = Array.isArray(chapterStore[novelId]) ? chapterStore[novelId] : [];
             const merged = [...refreshed];
             localChapters.forEach(localCh => {
               const idx = merged.findIndex(existing => existing.id === localCh.id);
               if (idx >= 0) {
-                merged[idx] = {
-                  ...merged[idx],
-                  status: (localCh.status || merged[idx].status || 'published').toLowerCase()
-                };
+                // Timestamp-based conflict resolution: keep the newer version
+                const localTime = localCh.updatedAt ? new Date(localCh.updatedAt).getTime() : 0;
+                const remoteTime = merged[idx].updatedAt ? new Date(merged[idx].updatedAt).getTime() : 0;
+
+                if (localTime > remoteTime) {
+                  // Local is newer - keep local content, merge with remote metadata
+                  merged[idx] = {
+                    ...merged[idx],
+                    title: localCh.title || merged[idx].title,
+                    content: localCh.content || merged[idx].content,
+                    status: (localCh.status || merged[idx].status || 'published').toLowerCase(),
+                    updatedAt: localCh.updatedAt
+                  };
+                } else {
+                  // Remote is newer - keep remote, but preserve local-only status if draft
+                  merged[idx] = {
+                    ...merged[idx],
+                    status: (localCh.status === 'draft' ? 'draft' : merged[idx].status || 'published').toLowerCase()
+                  };
+                }
               } else {
+                // Local-only chapter (not in cloud) - add it
                 merged.push(localCh);
               }
             });
@@ -1088,14 +1179,31 @@ const SupabaseSync = {
     }
   },
 
-  // Full sync on login
+  // Full sync on login - uses Promise.allSettled to handle partial failures gracefully
+  // Each sync operation has a 10-second timeout to prevent hanging
   async fullSync() {
-    await Promise.all([
-      this.syncLibrary(),
-      this.syncHistory(),
-      this.syncBookmarks(),
-      this.syncChapters()
+    const SYNC_TIMEOUT = 10000; // 10 seconds per operation
+
+    const results = await Promise.allSettled([
+      withTimeout(this.syncLibrary(), SYNC_TIMEOUT, 'Library sync'),
+      withTimeout(this.syncHistory(), SYNC_TIMEOUT, 'History sync'),
+      withTimeout(this.syncBookmarks(), SYNC_TIMEOUT, 'Bookmarks sync'),
+      withTimeout(this.syncChapters(), SYNC_TIMEOUT, 'Chapters sync')
     ]);
+
+    // Log any failures but don't throw - partial sync is better than no sync
+    const failures = results.filter(r => r.status === 'rejected');
+    if (failures.length > 0) {
+      console.warn('Some syncs failed:', failures.map(f => f.reason));
+    }
+
+    return {
+      library: results[0].status === 'fulfilled' ? results[0].value : null,
+      history: results[1].status === 'fulfilled' ? results[1].value : null,
+      bookmarks: results[2].status === 'fulfilled' ? results[2].value : null,
+      chapters: results[3].status === 'fulfilled' ? results[3].value : null,
+      failures: failures.length
+    };
   },
 
   // ============================================
@@ -1103,7 +1211,7 @@ const SupabaseSync = {
   // ============================================
 
   // Push library item to cloud
-  async pushLibraryItem(novelId, action = 'add') {
+  async pushLibraryItem(novelId, action = 'add', novelData = undefined) {
     if (!isSupabaseAvailable()) return { error: 'Supabase not available' };
 
     // Validate novel ID format - all Supabase novels should have UUID IDs
@@ -1119,7 +1227,6 @@ const SupabaseSync = {
     if (!user) return { error: 'Not logged in' };
 
     if (!NetworkStatus.isOnline()) {
-      const novelData = arguments.length > 2 ? arguments[2] : undefined;
       SyncQueue.add({ type: 'library', novelId, action, userId: user.id, novelData });
       return { queued: true };
     }
@@ -1171,20 +1278,18 @@ const SupabaseSync = {
   },
 
   // Push bookmark to cloud
-  async pushBookmark(novelId, chapterId, note, action = 'add') {
+  async pushBookmark(novelId, chapterId, note, action = 'add', novelData = undefined) {
     if (!isSupabaseAvailable()) return { error: 'Supabase not available' };
     const user = await SupabaseAuth.getCurrentUser();
     if (!user) return { error: 'Not logged in' };
 
     if (!NetworkStatus.isOnline()) {
-      const novelData = arguments.length > 4 ? arguments[4] : undefined;
       SyncQueue.add({ type: 'bookmark', novelId, chapterId, note, action, userId: user.id, novelData });
       return { queued: true };
     }
 
     try {
-      if (action === 'add' && arguments.length > 4) {
-        const novelData = arguments[4] || {};
+      if (action === 'add' && novelData) {
         try {
           await SupabaseDB.upsertNovel({
             id: novelId,
@@ -1205,7 +1310,7 @@ const SupabaseSync = {
       return { success: true };
     } catch (error) {
       console.error('Push bookmark failed:', error);
-      SyncQueue.add({ type: 'bookmark', novelId, chapterId, note, action, userId: user.id });
+      SyncQueue.add({ type: 'bookmark', novelId, chapterId, note, action, userId: user.id, novelData });
       return { queued: true, error };
     }
   },
@@ -1257,20 +1362,18 @@ const SupabaseSync = {
   },
 
   // Push history entry to cloud
-  async pushHistoryEntry(novelId, chapterId, chapterTitle) {
+  async pushHistoryEntry(novelId, chapterId, chapterTitle, novelData = undefined) {
     if (!isSupabaseAvailable()) return { error: 'Supabase not available' };
     const user = await SupabaseAuth.getCurrentUser();
     if (!user) return { error: 'Not logged in' };
 
     if (!NetworkStatus.isOnline()) {
-      const novelData = arguments.length > 3 ? arguments[3] : undefined;
       SyncQueue.add({ type: 'history', novelId, chapterId, chapterTitle, userId: user.id, novelData });
       return { queued: true };
     }
 
     try {
-      if (arguments.length > 3) {
-        const novelData = arguments[3] || {};
+      if (novelData) {
         try {
           await SupabaseDB.upsertNovel({
             id: novelId,
@@ -1289,7 +1392,6 @@ const SupabaseSync = {
       return { success: true };
     } catch (error) {
       console.error('Push history failed:', error);
-      const novelData = arguments.length > 3 ? arguments[3] : undefined;
       SyncQueue.add({ type: 'history', novelId, chapterId, chapterTitle, userId: user.id, novelData });
       return { queued: true, error };
     }

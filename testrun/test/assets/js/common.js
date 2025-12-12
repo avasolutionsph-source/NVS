@@ -3,6 +3,23 @@
    ============================================ */
 
 // ============================================
+// Navigation Helpers (relative-proof redirects)
+// ============================================
+function navigateToPage(pageName) {
+  // Handle redirects that work from any directory level
+  const currentPath = window.location.pathname;
+  const isInPagesDir = currentPath.includes('/pages/');
+
+  if (isInPagesDir) {
+    // Already in pages directory - use direct filename
+    window.location.href = pageName;
+  } else {
+    // In root or other directory - prefix with pages/
+    window.location.href = 'pages/' + pageName;
+  }
+}
+
+// ============================================
 // Safe Storage Wrapper (handles localStorage errors)
 // ============================================
 const SafeStorage = {
@@ -637,7 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
           console.warn('Logout failed, fallback redirect', err);
         }
-        window.location.href = 'login.html';
+        navigateToPage('login.html');
       });
     });
   }
@@ -650,7 +667,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof GuestMode !== 'undefined' && GuestMode.isGuest && GuestMode.isGuest()) {
           event.preventDefault();
           showToast('Please sign up to access your library');
-          setTimeout(() => { window.location.href = 'signup.html'; }, 1200);
+          setTimeout(() => { navigateToPage('signup.html'); }, 1200);
         }
       }, { passive: false });
     });
@@ -773,15 +790,20 @@ const RatingSystem = {
       }
 
       // Touch events for mobile - allow sliding to select stars
+      // Use CSS touch-action: none on container to prevent scroll without blocking page scroll
+      container.style.touchAction = 'manipulation';
+
       container.addEventListener('touchstart', (e) => {
         isTouching = true;
         handleTouchRating(e);
-      }, { passive: false });
+      }, { passive: true });
 
       container.addEventListener('touchmove', (e) => {
-        e.preventDefault(); // Prevent scroll while rating
-        handleTouchRating(e);
-      }, { passive: false });
+        // Only prevent default if actively rating (touch started on container)
+        if (isTouching) {
+          handleTouchRating(e);
+        }
+      }, { passive: true });
 
       container.addEventListener('touchend', (e) => {
         // Commit the rating on touch end
@@ -1375,7 +1397,7 @@ const GuestMode = {
     // Enter clean guest mode to avoid auto-restoring user state
     localStorage.setItem('novelshare_guest_mode', 'true');
 
-    window.location.href = 'login.html';
+    navigateToPage('login.html');
   },
 
   // Update profile UI based on guest mode
@@ -1505,11 +1527,50 @@ document.addEventListener('DOMContentLoaded', () => {
             };
           }
           localStorage.setItem('novelshare_profile', JSON.stringify(profile));
+
+          // Sync all data from cloud for cross-device compatibility
+          if (typeof SupabaseSync !== 'undefined' && SupabaseSync.fullSync) {
+            try {
+              await SupabaseSync.fullSync();
+            } catch (syncErr) {
+              console.warn('Full sync failed on login:', syncErr);
+            }
+          }
         }
       })
       .finally(() => {
         GuestMode.updateProfileUI();
       });
+
+    // Listen for auth state changes across tabs/devices
+    if (SupabaseAuth.onAuthStateChange) {
+      SupabaseAuth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT') {
+          // User logged out (possibly from another tab/device)
+          GuestMode.setGuestMode(true);
+          localStorage.removeItem('novelshare_profile');
+          // Redirect to login if not already there
+          if (!window.location.pathname.includes('login.html') &&
+              !window.location.pathname.includes('signup.html')) {
+            navigateToPage('login.html');
+          }
+        } else if (event === 'SIGNED_IN' && session) {
+          // User logged in (possibly from another tab/device)
+          GuestMode.setGuestMode(false);
+          const user = session.user;
+          const meta = user?.user_metadata || {};
+          const profile = {
+            name: meta.display_name || meta.full_name || user?.email || 'User',
+            username: meta.username || meta.user_name || 'user',
+            email: user?.email || ''
+          };
+          localStorage.setItem('novelshare_profile', JSON.stringify(profile));
+          GuestMode.updateProfileUI(false, profile);
+        } else if (event === 'TOKEN_REFRESHED') {
+          // Session token was refreshed - no action needed
+        }
+      });
+    }
   } else {
     GuestMode.updateProfileUI();
   }
